@@ -1,13 +1,14 @@
 #ifndef BASE_H
 #define BASE_H
 
+#include <locale>
 #include <cctype>
 #include <fstream>
 #include <iostream>
-#include <map>
-#include <set>
 #include <string>
 #include <vector>
+#include <map>
+#include <set>
 
 using namespace std;
 
@@ -36,12 +37,6 @@ const map<char, wchar_t> CharNames{
     { 'a', L'士' }, { 'b', L'象' }, { 'n', L'马' }, { 'r', L'车' },
     { 'c', L'炮' }, { 'p', L'卒' }, { '_', L'\x0000' }
 };
-void print_CharNames()
-{
-    for (const auto m : CharNames) {
-        cout << m.first << ": " << m.second << endl;
-    }
-}
 
 /*
 const KingNames = new Set('帅将');
@@ -51,59 +46,53 @@ const LineMovePieceNames = new Set('帅车炮兵将卒');
 const AdvisorBishopNames = new Set('仕相士象');
 const PawnNames = new Set('兵卒');
 */
-const map<string, string> Feature_PieceNames{ { "king", "帅将" },
-    { "stronge", "马车炮兵卒" },
-    { "allpiece",
-        "帅仕相马车炮兵将士象卒" },
-    { "line_move", "帅车炮兵将卒" },
-    { "adv_bis", "仕相士象" },
-    { "pawn", "兵卒" } };
-void print_Feature_PieceNames()
-{
-    for (const auto m : Feature_PieceNames) {
-        cout << m.first << ": " << m.second << endl;
-    }
-}
+const map<wstring, wstring> Feature_PieceNames{ { L"king", L"帅将" },
+    { L"stronge", L"马车炮兵卒" },
+    { L"allpiece", L"帅仕相马车炮兵将士象卒" },
+    { L"line_move", L"帅车炮兵将卒" },
+    { L"adv_bis", L"仕相士象" },
+    { L"pawn", L"兵卒" } };
 
 // 棋盘相关常量
-/*
-const NumCols = 9;
-const NumRows = 10;
-const MinColNo = 0;
-const maxColNo = 8;
-const FEN = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR r - - 0
-1'; const ColChars = 'abcdefghi'; const Num_Chinese = { 'red':
-'一二三四五六七八九', 'black': '１２３４５６７８９'
+const int NumCols = 9;
+const int NumRows = 10;
+const int MinColNo = 0;
+const int maxColNo = 8;
+const string FEN{"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR r - - 0 1"}; 
+const string ColChars{"abcdefghi"}; 
+const map<side, wstring> Num_Chinese{ 
+    {side::red, L"一二三四五六七八九"}, 
+    {side::black, L"１２３４５６７８９"}
 };
-const Chinese_Index = {
-    '一':0, '二':1, '三':2, '四':3, '五':4,
-    '前': 0, '中': 1, '后': 1
+const map<wchar_t, int> Chinese_Index{
+    {L'一', 0}, {L'二', 1}, {L'三', 2}, {L'四', 3}, {L'五', 4},
+    {L'前', 0}, {L'中', 1}, {L'后', 1}
 };
-const Direction_Num = {
-    '进': 1, '退': -1, '平': 0
+const map<wchar_t, int> Direction_Num{
+    {L'进', 1}, {L'退', -1}, {L'平', 0}
 };
-const BlankBoard = `
-┏━┯━┯━┯━┯━┯━┯━┯━┓
-┃　│　│　│╲│╱│　│　│　┃
-┠─┼─┼─┼─╳─┼─┼─┼─┨
-┃　│　│　│╱│╲│　│　│　┃
-┠─╬─┼─┼─┼─┼─┼─╬─┨
-┃　│　│　│　│　│　│　│　┃
-┠─┼─╬─┼─╬─┼─╬─┼─┨
-┃　│　│　│　│　│　│　│　┃
-┠─┴─┴─┴─┴─┴─┴─┴─┨
-┃　　　　　　　　　　　　　　　┃
-┠─┬─┬─┬─┬─┬─┬─┬─┨
-┃　│　│　│　│　│　│　│　┃
-┠─┼─╬─┼─╬─┼─╬─┼─┨
-┃　│　│　│　│　│　│　│　┃
-┠─╬─┼─┼─┼─┼─┼─╬─┨
-┃　│　│　│╲│╱│　│　│　┃
-┠─┼─┼─┼─╳─┼─┼─┼─┨
-┃　│　│　│╱│╲│　│　│　┃
-┗━┷━┷━┷━┷━┷━┷━┷━┛
-`
+
+const wstring BlankBoard{
+L"┏━┯━┯━┯━┯━┯━┯━┯━┓\n"
+"┃　│　│　│╲│╱│　│　│　┃\n"
+"┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
+"┃　│　│　│╱│╲│　│　│　┃\n"
+"┠─╬─┼─┼─┼─┼─┼─╬─┨\n"
+"┃　│　│　│　│　│　│　│　┃\n"
+"┠─┼─╬─┼─╬─┼─╬─┼─┨\n"
+"┃　│　│　│　│　│　│　│　┃\n"
+"┠─┴─┴─┴─┴─┴─┴─┴─┨\n"
+"┃　　　　　　　　　　　　　　　┃\n"
+"┠─┬─┬─┬─┬─┬─┬─┬─┨\n"
+"┃　│　│　│　│　│　│　│　┃\n"
+"┠─┼─╬─┼─╬─┼─╬─┼─┨\n"
+"┃　│　│　│　│　│　│　│　┃\n"
+"┠─╬─┼─┼─┼─┼─┼─╬─┨\n"
+"┃　│　│　│╲│╱│　│　│　┃\n"
+"┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
+"┃　│　│　│╱│╲│　│　│　┃\n"
+"┗━┷━┷━┷━┷━┷━┷━┷━┛\n"
+};
 // 边框粗线
-*/
 
 #endif
