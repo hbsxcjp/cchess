@@ -1,3 +1,3 @@
 @echo off
-rem g++ -std=c++11 -fexec-charset=gbk base.cpp
-g++ -std=c++11 -fexec-charset=gbk info.cpp
+cls
+g++ -std=c++11 -fexec-charset=gbk info.cpp piece.cpp base.cpp
