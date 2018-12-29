@@ -13,7 +13,7 @@ using std::wstring;
 using std::vector;
 
 // 棋子站队
-enum class Side {
+enum class PieceColor {
     blank,
     red,
     black
@@ -24,7 +24,7 @@ class Piece {
 
 public:
     explicit Piece(wchar_t aWchar)
-        : sd{ islower(aWchar) ? Side::black : (isupper(aWchar) ? Side::red : Side::blank) }
+        : sd{ islower(aWchar) ? PieceColor::black : (isupper(aWchar) ? PieceColor::red : PieceColor::blank) }
         , ch{ aWchar }
         , id{ Piece::curIndex++ }
     {
@@ -39,7 +39,7 @@ public:
         return wss.str();
     }
 
-    Side const side()
+    PieceColor const side()
     {
         return sd;
     }
@@ -93,7 +93,7 @@ public:
     // 空棋子
     bool const isBlank()
     {
-        return sd == Side::black;
+        return sd == PieceColor::black;
     }
 
     bool const isKing()
@@ -122,7 +122,7 @@ public:
     static const Piece nullPie; // 空棋子
 
 private:
-    Side sd;
+    PieceColor sd;
     wchar_t ch;
     int id; // 在一副棋子中的序号
 };
@@ -142,12 +142,12 @@ public:
     }
 
     wstring toString()
-    {        
+    {
         wstringstream wss{};
         wss << L"棋子信息：\nindex side wchar chName isKing isStronge\n";
         vector<Piece> mpies = pies;
         mpies.push_back(Piece::nullPie); // 关注空棋子的特性!
-        for (auto pie : mpies){
+        for (auto pie : mpies) {
             wss << pie.toString();
         }
         return wss.str();
@@ -158,9 +158,9 @@ public:
         return pies;
     }
 
-    Piece getKing(Side side)
+    Piece getKing(PieceColor side)
     {
-        return pies[side == Side::red ? 0 : 16];
+        return pies[side == PieceColor::red ? 0 : 16];
     }
 
     Piece getOthSidePiece(Piece pie)
@@ -190,6 +190,5 @@ const wstring Pieces::advbisNames{ L"仕相士象" };
 const wstring Pieces::strongeNames{ L"马车炮兵卒" };
 const wstring Pieces::lineNames{ L"帅车炮兵将卒" };
 const wstring Pieces::allNames{ L"帅仕相马车炮兵将士象卒" };
-
 
 #endif

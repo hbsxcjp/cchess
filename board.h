@@ -3,78 +3,111 @@
 
 #include "piece.h"
 
+// 棋子站队
+enum class BoardSide {
+    bottom,
+    top
+};
+
 class Board {
 public:
-    Board(wstring pgn){};
-    Board(){};
+    Board(wstring pgn) {}
+    Board()
+    {
+        const Piece* nullPie = &(Piece::nullPie);
+        vector<const Piece*> pieces(90, nullPie);
+        bottomSide = PieceColor::red;
+    }
+
+    static vector<int> rangeSeats(int first, int last)
+    {
+        vector<int> seats;
+        for (int i = first; first != last; ++i)
+            seats.push_back(i);
+        return seats;
+    }
+
+    static vector<int> allSeats()
+    {
+        return rangeSeats(0, 90);
+    }
+
+    static vector<int> kingSeats(BoardSide side)
+    {
+        if (side == BoardSide::bottom)
+            return (vector<int>{ 21, 22, 23, 12, 13, 14, 3, 4, 5 });
+        else
+            return (vector<int>{ 84, 85, 86, 75, 76, 77, 66, 67, 68 });
+    }
+
+    static vector<int> advisorSeats(BoardSide side)
+    {
+        if (side == BoardSide::bottom)
+            return (vector<int>{ 21, 23, 13, 3, 5 });
+        else
+            return (vector<int>{ 84, 86, 76, 66, 68 });
+    }
+
+    static vector<int> bishopSeats(BoardSide side)
+    {
+        if (side == BoardSide::bottom)
+            return (vector<int>{ 2, 6, 18, 22, 26, 38, 42 });
+        else
+            return (vector<int>{ 47, 51, 63, 67, 71, 83, 87 });
+    }
+
+    static vector<int> pawnSeats(BoardSide side)
+    {
+        vector<int> ps, ps0;
+        if (side == BoardSide::bottom) {
+            ps = rangeSeats(45, 90);
+            vector<int> ps0{ 27, 29, 31, 33, 35, 36, 38, 40, 42, 44 };
+        } else {
+            ps = rangeSeats(0, 45);
+            vector<int> ps0{ 45, 47, 49, 51, 53, 54, 56, 58, 60, 62 };
+        }
+        ps.insert(ps.end(), ps0.begin(), ps0.end());
+        return ps;
+    }
 
     /*
-    constructor() {
-        this.pies = new Array(90);
-        this.bottomSide = base.RED;
-    }
-
-    static allSeats() {
-        return base.range(0, 90);
-    }
-
-    static kingSeats() {
-        return {
-            'bottom': [21, 22, 23, 12, 13, 14, 3, 4, 5],
-            'top': [84, 85, 86, 75, 76, 77, 66, 67, 68]
-        };
-    }
-
-    static advisorSeats() {
-        return {
-            'bottom': [21, 23, 13, 3, 5],
-            'top': [84, 86, 76, 66, 68]
-        };
-    }
-
-    static bishopSeats() {
-        return {
-            'bottom': [2, 6, 18, 22, 26, 38, 42],
-            'top': [47, 51, 63, 67, 71, 83, 87]
-        };
-    }
-
-    static pawnSeats() {
-        return {
-            'top': base.range(0, 45).concat([45, 47, 49, 51, 53, 54, 56, 58, 60, 62]),
-            'bottom': base.range(45, 90).concat([27, 29, 31, 33, 35, 36, 38, 40, 42, 44])
-        };
-    }
-
-    static getRow(seat) {
+    static getRow(seat)
+    {
         return Math.floor(seat / 9);
     }
 
-    static getCol(seat) {
+    static getCol(seat)
+    {
         return seat % 9;
     }
 
-    static getSeat(row, col) {
+    static getSeat(row, col)
+    {
         return row * 9 + col;
     }
 
-    static rotateSeat(seat) {
+    static rotateSeat(seat)
+    {
         return 89 - seat;
     }
 
-    static symmetrySeat(seat) {
+    static symmetrySeat(seat)
+    {
         return (Board.getRow(seat) + 1) * 9 - seat % 9 - 1;
     }
 
-    static isSameCol(seat, othseat) {
-        return Board.getCol(seat) === Board.getCol(othseat);
+    static isSameCol(seat, othseat)
+    {
+        return Board.getCol(seat) == = Board.getCol(othseat);
     }
 
-    static getSameColSeats(seat, othseat) {
+    static getSameColSeats(seat, othseat)
+    {
         let seats = new Array();
         let step = seat < othseat ? 9 : -9;
 
-        function compare(i, j) {
+        function compare(i, j)
+        {
             return step > 0 ? i < j : i > j;
         }; // 定义比较函数
         for (let i = seat + step; compare(i, othseat); i += step) {
@@ -82,7 +115,7 @@ public:
         }
         return seats;
     }
-
+    
     static getKingMoveSeats(seat) {
         let E = seat + 1,
             S = seat - 9,
@@ -562,23 +595,25 @@ private:
     static const int RowNum{ 10 };
     static const int MinCol{ 0 };
     static const int MaxCol{ 8 };
+
+    // 棋盘相关字符串: 类内声明，类外定义
     static const wstring FEN;
     static const wstring ColChars;
-    static const map<Side, wstring> Side_ChNums;
+    static const map<PieceColor, wstring> Side_ChNums;
     static const map<wchar_t, int> ChNum_Indexs;
     static const map<wchar_t, int> Direction_Nums;
     static const wstring TextBlankBoard; // 文本空棋盘
 
-    vector<Piece*> pieces;//(90); // 默认初值是nullptr
-    Side bottomSide{ Side::red }; // 底端站队
+    vector<Piece*> pieces;
+    PieceColor bottomSide; // 底端队伍
 };
 
 // 棋盘相关字符串: 类内声明，类外定义
 const wstring FEN{ L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR r - - 0 1" };
 const wstring ColChars{ L"abcdefghi" };
-const map<Side, wstring> Side_ChNums{
-    { Side::red, L"一二三四五六七八九" },
-    { Side::black, L"１２３４５６７８９" }
+const map<PieceColor, wstring> Side_ChNums{
+    { PieceColor::red, L"一二三四五六七八九" },
+    { PieceColor::black, L"１２３４５６７８９" }
 };
 const map<wchar_t, int> ChNum_Indexs{
     { L'一', 0 }, { L'二', 1 }, { L'三', 2 }, { L'四', 3 }, { L'五', 4 },

@@ -3,7 +3,7 @@
 #include <iostream>
 //#include <fstream>
 #include <locale>
-//#include "board.h"
+#include "board.h"
 
 using namespace std;
 
@@ -18,8 +18,8 @@ wstring test_piece()
     wstringstream wss{};
     Pieces pieces = Pieces();
 
-    wss << L'\n' << L"红棋King：" << pieces.getKing(Side::red).chName()
-        << L'\n' << L"黑棋King：" << pieces.getKing(Side::black).chName() << L"\n对称棋子：\n";
+    wss << L'\n' << L"红棋King：" << pieces.getKing(PieceColor::red).chName()
+        << L'\n' << L"黑棋King：" << pieces.getKing(PieceColor::black).chName() << L"\n对称棋子：\n";
     for (auto pie : pieces.getPies())
         wss << pie.chName() << L"->" << pieces.getOthSidePiece(pie).chName() << L' ';
 
