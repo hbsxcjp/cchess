@@ -1,6 +1,7 @@
 #ifndef INFO_H
 #define INFO_H
 
+
 #include <map>
 using std::map;
 
@@ -32,21 +33,14 @@ public:
             { L"Variation", L"" },
             { L"Version", L"" } } {};
 
-    wstring toString()
-    {
-        wstring ws{};
-        /*
-        return Object.keys(this.info)
-            .map((k) = > `[$ { k } "${this.info[k]}"]`)
-            .join('\n');
-        */
-        for (const auto m : this->info)
-            ws += m.first + L": " + m.second + L"\n";
-        return ws;
-    };
+    wstring toString();
 
 private:
     map<wstring, wstring> info;
 };
+
+
+wstring test_info();
+
 
 #endif
