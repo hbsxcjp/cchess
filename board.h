@@ -3,14 +3,9 @@
 
 #include "piece.h"
 
-#include <set>
-using std::set;
-
-#include <utility>
-using std::pair;
-
 // 棋盘端部
 enum class BoardSide { bottom, top };
+
 
 class Board {
   public:
@@ -21,49 +16,21 @@ class Board {
 
     //成员函数，类内定义，内联函数
     bool isBottomSide(PieceColor color) { return bottomPieColor == color; }
-    Piece *getPiece(int seat) { return piePtrSeats[seat]; }
     bool isBlank(int seat) { return getPiece(seat)->isBlank(); }
+    Piece *getPiece(int seat) { return piePtrSeats[seat]; }
     PieceColor getColor(int seat) { return getPiece(seat)->color(); }
     BoardSide getSide(PieceColor color) {
         return isBottomSide(color) ? BoardSide::bottom : BoardSide::top;
     }
-    int getKingSeat(PieceColor color) { return pieces.getKingPie(color).seat; }
 
+    //类内声明，类外定义
+    bool isKilled(PieceColor color);
+    bool isDied(PieceColor color);
+    // '获取棋子可走的位置, 不能被将军'
+    vector<int> canMoveSeats(int fseat);
 
-    //成员函数，类内声明，类外定义
-    vector<Piece *> getLivePieces();
-    vector<Piece *> getLivePieces(PieceColor color);
-    vector<int> getNameSeats(PieceColor color, wchar_t name);
-    vector<int> getNameColSeats(PieceColor color, wchar_t name, int col);
-    vector<Piece *> getEatedPieces();
 
     /*
-
-        isKilled(color) {
-            let otherColor = color === base.BLACK ? base.RED :
-    base.BLACK; let kingSeat = this.getKingSeat(color); let otherSeat =
-    this.getKingSeat(otherColor); if (Board.isSameCol(kingSeat, otherSeat)) {
-    // 将帅是否对面 if (every(getSameColSeats(kingSeat, otherSeat).map(s =>
-        this.isBlank(seat)))) { return true;
-                }
-                for (let piece of this.getLiveColorPieces(otherColor)) {
-                    if (piece.isStronge &&
-        (piece.getMoveSeats(this).indexOf(kingSeat) >= 0)) { return
-    true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        isDied(color) {
-            for (let piece of this.getLiveColorPieces(color)) {
-                if (this.canMoveSeats(this.getSeat(piece))) {
-                    return False;
-                }
-            }
-            return True
-        }
 
         __go(move) {
             let fseat = move.fseat,
@@ -79,23 +46,6 @@ class Board {
                 tseat = move.tseat;
             this.piePtrSeats[fseat] = this.piePtrSeats[tseat];
             this.piePtrSeats[tseat] = move.eatPiece;
-        }
-
-        // '获取棋子可走的位置, 不能被将军'
-        canMoveSeats(fseat) {
-            let result = [];
-            let piece = this.getPiece(fseat);
-            let color = piece.color;
-            let moveData;
-            for (let tseat of piece.getMoveSeats(this)) {
-                moveData = { fseat: fseat, tseat: tseat };
-                moveData.eatPiece = this.__go(moveData);
-                if (!this.isKilled(color)) {
-                    result.push(tseat);
-                }
-                this.__back(moveData);
-            }
-            return result
         }
 
         __fen(pieceChars = null) {
@@ -225,70 +175,13 @@ class Board {
 
     const wstring toString();
 
-    // 静态函数，类内定义，内联函数
-    static int getRow(int seat) { return seat / 9; }
-    static int getCol(int seat) { return seat % 9; }
-    static int getSeat(int row, int col) { return row * 9 + col; }
-    static int rotateSeat(int seat) { return 89 - seat; }
-    static int symmetrySeat(int seat) {
-        return (getRow(seat) + 1) * 9 - seat % 9 - 1;
-    }
-    static bool isSameCol(int seat, int othseat) {
-        return getCol(seat) == getCol(othseat);
-    }
-
-    //类内声明，类外定义
-    static vector<int> getSameColSeats(int seat, int othseat);
-    static vector<int> getKingMoveSeats(int seat);
-    static vector<int> getAdvisorMoveSeats(int seat);
-    // 获取移动、象心行列值
-    static vector<pair<int, int>> getBishopMove_CenSeats(int seat);
-    // 获取移动、马腿行列值
-    static vector<pair<int, int>> getKnightMove_LegSeats(int seat);
-    // 车炮可走的四个方向位置
-    static vector<vector<int>> getRookCannonMoveSeat_Lines(int seat);
-    static vector<int> getPawnMoveSeats(int seat);
-    // '多兵排序'
-    static vector<int> sortPawnSeats(bool isBottomSide, vector<int> pawnSeats);
-
-    wstring getStaticValue();
-    wstring getSeats();
-    wstring getMoveSeats();
-
-  private:
-    // 棋盘数值常量
-    static const int ColNum{9};
-    static const int RowNum{10};
-    static const int MinCol{0};
-    static const int MaxCol{8};
-    static const int MinRow{0};
-    static const int MaxRow{9};
-
-    // 棋盘位置相关组合: 类内声明，类外定义
-    static const vector<int> allSeats;
-    static const vector<int> bottomKingSeats;
-    static const vector<int> topKingSeats;
-    static const vector<int> bottomAdvisorSeats;
-    static const vector<int> topAdvisorSeats;
-    static const vector<int> bottomBishopSeats;
-    static const vector<int> topBishopSeats;
-    static const vector<int> bottomPawnSeats;
-    static const vector<int> topPawnSeats;
-
-    // 棋盘相关字符串: 类内声明，类外定义
-    static const map<PieceColor, wstring> Side_ChNums;
-    static const map<wchar_t, int> ChNum_Indexs;
-    static const map<wchar_t, int> Direction_Nums;
-    static const wstring FEN;
-    static const wstring ColChars;
-    static const wstring TextBlankBoard; // 文本空棋盘
-
+private:
     Pieces pieces;                     // 一副棋子类
     vector<Piece *> piePtrSeats; // 棋盘容器，顺序号即为位置seat
     PieceColor bottomPieColor;         // 底端棋子颜色
 };                                     // Board class end.
 
-wstring test_getRowCols();
-wstring test_board();
+extern wstring test_getRowCols();
+extern wstring test_board();
 
 #endif

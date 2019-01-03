@@ -1,14 +1,18 @@
 #ifndef PIECE_H
 #define PIECE_H
 
-#include "info.h"
-
-#include <sstream>
-using std::wstringstream;
+#include <string>
+using std::wstring;
 
 #include <vector>
 using std::vector;
 
+#include <sstream>
+using std::wstringstream;
+
+#include <iomanip>
+using std::boolalpha;
+using std::setw;
 
 // 棋子站队
 enum class PieceColor { blank, red, black };
@@ -18,10 +22,10 @@ class Piece {
 
   public:
     explicit Piece(wchar_t aWchar)
-        : clr{islower(aWchar)
+        : seat(nullSeat), id{curIndex++}, ch{aWchar},
+          clr{islower(aWchar)
                   ? PieceColor::black
-                  : (isupper(aWchar) ? PieceColor::red : PieceColor::blank)},
-          ch{aWchar}, id{curIndex++}, seat(nullSeat) {}
+                  : (isupper(aWchar) ? PieceColor::red : PieceColor::blank)} {}
 
     int const index() { return id; }
     PieceColor const color() { return clr; }
@@ -69,27 +73,20 @@ class Piece {
     }
 
     const wstring toString();
-    vector<int> getSeats(); // 棋子可置放的全部位置
-    vector<int>
-    getCanMoveSeats(); // 棋子可移动到的全部位置 // 筛除本方棋子占用的目标位置
-
-    // 相关特征棋子名字串
-    static const wstring kingNames;
-    static const wstring pawnNames;
-    static const wstring advbisNames;
-    static const wstring strongeNames;
-    static const wstring lineNames;
-    static const wstring allNames;
+    // 棋子可置放的全部位置
+    vector<int> getSeats(PieceColor bottomColor);
+    // 棋子可移动到的全部位置, 筛除本方棋子所占位置
+    vector<int> getCanMoveSeats();
 
     static const int nullSeat;  // 空位置
     static const Piece nullPie; // 空棋子
-    int seat; // 在棋盘中的位置序号
+    int seat;                   // 在棋盘中的位置序号
 
   private:
-    PieceColor clr;
-    wchar_t ch;
-    int id; // 在一副棋子中的序号
     static int curIndex;
+    int id; // 在一副棋子中的序号
+    wchar_t ch;
+    PieceColor clr;
 };
 
 // 一副棋子类
@@ -100,12 +97,29 @@ class Pieces {
     Piece getKingPie(PieceColor color) {
         return pies[color == PieceColor::red ? 0 : 16];
     }
+    int getKingSeat(PieceColor color) { return getKingPie(color).seat; }
     Piece getOthPie(Piece pie) { return pies[(pie.index() + 16) % 32]; }
 
     vector<Piece *> getPiePtrs();
+
+    //成员函数，类内声明，类外定义
+    vector<Piece *> getLivePieces();
+    vector<Piece *> getLivePieces(PieceColor color);
+    vector<int> getNameSeats(PieceColor color, wchar_t name);
+    vector<int> getNameColSeats(PieceColor color, wchar_t name, int col);
+    vector<Piece *> getEatedPieces();
+
     wstring toString();
     // Pieces seatPieces(vector<int, wchar_t> seatChars)    {    }
     // static const pieceTypes;
+
+    // 相关特征棋子名字串
+    static const wstring kingNames;
+    static const wstring pawnNames;
+    static const wstring advbisNames;
+    static const wstring strongeNames;
+    static const wstring lineNames;
+    static const wstring allNames;
 
     vector<Piece> pies{};
 };
