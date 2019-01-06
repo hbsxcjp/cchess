@@ -1,6 +1,9 @@
 #ifndef PIECE_H
 #define PIECE_H
 
+class Board;
+#include "board_base.h"
+
 #include <string>
 using std::wstring;
 
@@ -14,79 +17,127 @@ using std::wstringstream;
 using std::boolalpha;
 using std::setw;
 
-// 棋子站队
-enum class PieceColor { blank, red, black };
+using namespace Board_base;
 
 // 棋子类
 class Piece {
 
   public:
-    explicit Piece(wchar_t aWchar)
-        : seat(nullSeat), id{curIndex++}, ch{aWchar},
-          clr{islower(aWchar)
-                  ? PieceColor::black
-                  : (isupper(aWchar) ? PieceColor::red : PieceColor::blank)} {}
+    Piece(wchar_t aWchar)
+        : clr{islower(aWchar) ? PieceColor::black : PieceColor::red},
+          ch{aWchar}, st{nullSeat}, id{curIndex++} {}
 
     int const index() { return id; }
     PieceColor const color() { return clr; }
     wchar_t const wchar() { return ch; }
-    wchar_t const chName() {
-        switch (ch) {
-        case L'K':
-            return L'帅';
-        case L'A':
-            return L'仕';
-        case L'B':
-            return L'相';
-        case L'N':
-            return L'马';
-        case L'R':
-            return L'车';
-        case L'C':
-            return L'炮';
-        case L'P':
-            return L'兵';
-        case L'k':
-            return L'将';
-        case L'a':
-            return L'士';
-        case L'b':
-            return L'象';
-        case L'n':
-            return L'马';
-        case L'r':
-            return L'车';
-        case L'c':
-            return L'炮';
-        case L'p':
-            return L'卒';
-        default:
-            return L'\x0000';
-        }
-    }
-    // 空棋子
-    bool const isBlank() { return id == -1; }
-    bool const isKing() { return ch == L'K' || ch == L'k'; }
-    bool const isStronge() {
-        return ch == L'N' || ch == L'n' || ch == L'R' || ch == L'r' ||
-               ch == L'C' || ch == L'c' || ch == L'P' || ch == L'p';
-    }
+    int seat() { return st; }
+    void setSeat(int seat) { st = seat; }
 
-    const wstring toString();
+    virtual wchar_t const chName() { return L'\x0000'; }
+    virtual bool const isBlank() { return false; }
+    virtual bool const isKing() { return false; }
+    virtual bool const isStronge() { return false; }
+
     // 棋子可置放的全部位置
-    vector<int> getSeats(PieceColor bottomColor);
+    virtual vector<int> getSeats(PieceColor bottomColor) { return allSeats; }
     // 棋子可移动到的全部位置, 筛除本方棋子所占位置
-    vector<int> getCanMoveSeats();
+    virtual vector<int> getCanMoveSeats(Board *board);
 
-    static const int nullSeat;  // 空位置
-    static const Piece nullPie; // 空棋子
-    int seat;                   // 在棋盘中的位置序号
+    virtual wstring toString();
+    virtual ~Piece() = default;
+
+    static int curIndex;
+
+  protected:
+    PieceColor clr;
+    // 棋子可移动到的全部位置
+    virtual vector<int> getMoveSeats(Board *board) { return allSeats; }
+    // 筛除棋子行棋规则不允许的位置
+    virtual vector<int> filterMove_obstruct(Board *board,
+                                            vector<pair<int, int>> move_obs);
 
   private:
-    static int curIndex;
-    int id; // 在一副棋子中的序号
     wchar_t ch;
-    PieceColor clr;
+    int st; // 在棋盘中的位置序号
+    int id; // 在一副棋子中的序号
+};
+
+class King : public Piece {
+  public:
+    using Piece::Piece;
+    wchar_t const chName() { return clr == PieceColor::red ? L'帅' : L'将'; }
+    bool const isKing() { return true; }
+    vector<int> getSeats(PieceColor bottomColor) {
+        return color() == bottomColor ? bottomKingSeats : topKingSeats;
+    }
+    vector<int> getMoveSeats(Board *board) { return getKingMoveSeats(seat()); }
+};
+
+class Advisor : public Piece {
+  public:
+    using Piece::Piece;
+    wchar_t const chName() { return clr == PieceColor::red ? L'仕' : L'士'; }
+    vector<int> getSeats(PieceColor bottomColor) {
+        return color() == bottomColor ? bottomAdvisorSeats : topAdvisorSeats;
+    }
+    vector<int> getMoveSeats(Board *board) {
+        return getAdvisorMoveSeats(seat());
+    }
+};
+
+class Bishop : public Piece {
+  public:
+    using Piece::Piece;
+    wchar_t const chName() { return clr == PieceColor::red ? L'相' : L'象'; }
+    vector<int> getSeats(PieceColor bottomColor) {
+        return color() == bottomColor ? bottomBishopSeats : topBishopSeats;
+    }
+    vector<int> getMoveSeats(Board *board) {
+        return filterMove_obstruct(board, getBishopMove_CenSeats(seat()));
+    }
+};
+
+class Knight : public Piece {
+  public:
+    using Piece::Piece;
+    wchar_t const chName() { return L'马'; }
+    bool const isStronge() { return true; }
+    vector<int> getMoveSeats(Board *board) {
+        return filterMove_obstruct(board, getKnightMove_LegSeats((seat())));
+    }
+};
+
+class Rook : public Piece {
+  public:
+    using Piece::Piece;
+    wchar_t const chName() { return L'车'; }
+    bool const isStronge() { return true; }
+    vector<int> getMoveSeats(Board *board);
+};
+
+class Cannon : public Piece {
+  public:
+    using Piece::Piece;
+    wchar_t const chName() { return L'炮'; }
+    bool const isStronge() { return true; }
+    vector<int> getMoveSeats(Board *board);
+};
+
+class Pawn : public Piece {
+  public:
+    using Piece::Piece;
+    wchar_t const chName() { return clr == PieceColor::red ? L'兵' : L'卒'; }
+    bool const isStronge() { return true; }
+    vector<int> getSeats(PieceColor bottomColor) {
+        return color() == bottomColor ? bottomPawnSeats : topPawnSeats;
+    }
+    vector<int> getMoveSeats(Board *board);
+};
+
+class NullPie : public Piece {
+  public:
+    using Piece::Piece;
+    bool const isBlank() { return true; }
 };
 
 // 一副棋子类
@@ -94,24 +145,18 @@ class Pieces {
   public:
     Pieces();
 
-    Piece getKingPie(PieceColor color) {
-        return pies[color == PieceColor::red ? 0 : 16];
-    }
-    int getKingSeat(PieceColor color) { return getKingPie(color).seat; }
-    Piece getOthPie(Piece pie) { return pies[(pie.index() + 16) % 32]; }
-
-    vector<Piece *> getPiePtrs();
-
+    Piece *getKingPie(PieceColor color);
+    Piece *getOthPie(Piece *pie);
     //成员函数，类内声明，类外定义
-    vector<Piece *> getLivePieces();
-    vector<Piece *> getLivePieces(PieceColor color);
-    vector<int> getNameSeats(PieceColor color, wchar_t name);
-    vector<int> getNameColSeats(PieceColor color, wchar_t name, int col);
-    vector<Piece *> getEatedPieces();
+    vector<Piece *> getPies() { return piePtrs; }
+    vector<Piece *> getLivePies();
+    vector<Piece *> getLivePies(PieceColor color);
+    vector<Piece *> getLiveStrongePies(PieceColor color);
+    vector<Piece *> getEatedPies();
+    vector<Piece *> getNamePies(PieceColor color, wchar_t name);
 
     wstring toString();
-    // Pieces seatPieces(vector<int, wchar_t> seatChars)    {    }
-    // static const pieceTypes;
+    wstring test_piece();
 
     // 相关特征棋子名字串
     static const wstring kingNames;
@@ -120,10 +165,18 @@ class Pieces {
     static const wstring strongeNames;
     static const wstring lineNames;
     static const wstring allNames;
+    static Piece *nullPiePtr;
 
-    vector<Piece> pies{};
+  private:
+    static NullPie nullPiece; // 空棋子
+    vector<King> kings;
+    vector<Advisor> advisors;
+    vector<Bishop> bishops;
+    vector<Knight> knights;
+    vector<Rook> rooks;
+    vector<Cannon> cannons;
+    vector<Pawn> pawns;
+    vector<Piece *> piePtrs;
 };
-
-wstring test_piece();
 
 #endif

@@ -33,13 +33,13 @@ public:
             { L"Version", L"" } } {};
 
     wstring toString();
+    wstring test_info();
 
 private:
     map<wstring, wstring> info;
 };
 
 
-wstring test_info();
 
 
 #endif

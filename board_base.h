@@ -1,21 +1,23 @@
 #ifndef BOARD_BASE_H
 #define BOARD_BASE_H
 
-#include "piece.h"
-
 #include <string>
 using std::wstring;
-
 #include <vector>
 using std::vector;
-
 #include <map>
 using std::map;
-
 #include <utility>
 using std::pair;
+#include <algorithm>
+using std::find;
+
+// 棋子站队
+enum class PieceColor { red, black };
 
 namespace Board_base {
+// 空位置
+const int nullSeat{-1};
 
 // 棋盘数值常量
 const int ColNum{9};
@@ -80,15 +82,16 @@ const wstring TextBlankBoard{L"┏━┯━┯━┯━┯━┯━┯━┯━�
                              "┃　│　│　│╱│╲│　│　│　┃\n"
                              "┗━┷━┷━┷━┷━┷━┷━┷━┛\n"}; // 边框粗线
 
-// 静态函数
+// 位置操作函数
 int getRow(int seat);
 int getCol(int seat);
 int getSeat(int row, int col);
 int rotateSeat(int seat);
 int symmetrySeat(int seat);
 bool isSameCol(int seat, int othseat);
-
 vector<int> getSameColSeats(int seat, int othseat);
+
+// 位置行走函数
 vector<int> getKingMoveSeats(int seat);
 vector<int> getAdvisorMoveSeats(int seat);
 // 获取移动、象心行列值
@@ -97,19 +100,19 @@ vector<pair<int, int>> getBishopMove_CenSeats(int seat);
 vector<pair<int, int>> getKnightMove_LegSeats(int seat);
 // 车炮可走的四个方向位置
 vector<vector<int>> getRookCannonMoveSeat_Lines(int seat);
-vector<int> getPawnMoveSeats(int seat);
+vector<int> getPawnMoveSeats(bool isBottomSide, int seat);
 // '多兵排序'
 vector<int> sortPawnSeats(bool isBottomSide, vector<int> pawnSeats);
 
-// 测试
-wstring test_getStaticValue();
-// 测试
+
+wstring print_vector_int(vector<int> vi);
+// 测试函数
+wstring test_constValue();
 wstring test_getSeats();
-// 测试
 wstring test_getMoveSeats();
-// 测试
 wstring test_getRowCols();
 
+wstring test_board_base();
 } // namespace Board_base
 
 #endif

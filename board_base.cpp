@@ -1,5 +1,5 @@
 #include "board_base.h"
-#include "piece.h"
+//#include "piece.h"
 
 #include <string>
 using std::wstring;
@@ -16,8 +16,6 @@ using std::pair;
 #include <sstream>
 using std::wstringstream;
 
-//#include <iostream>
-
 #include <iomanip>
 using std::boolalpha;
 using std::setw;
@@ -25,7 +23,7 @@ using std::setw;
 #include <chrono>
 using namespace std::chrono;
 
-// 静态函数
+// 函数
 int Board_base::getRow(int seat) { return seat / 9; }
 int Board_base::getCol(int seat) { return seat % 9; }
 int Board_base::getSeat(int row, int col) { return row * 9 + col; }
@@ -122,15 +120,19 @@ vector<pair<int, int>> Board_base::getBishopMove_CenSeats(int seat) {
 // 获取移动、马腿行列值
 vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
     auto leg = [seat](int to) {
-        int x = to - seat;
-        if (x > 11)
+        switch (to - seat) {
+        case 17:
+        case 19:
             return seat + 9;
-        else if (x < -11)
+        case -17:
+        case -19:
             return seat - 9;
-        else if (x == 11 || x == -7)
+        case 11:
+        case -7:
             return seat + 1;
-        else
+        default:
             return seat - 1;
+        }
     };
 
     int EN{seat + 11}, ES{seat - 7}, SE{seat - 17}, SW{seat - 19},
@@ -141,18 +143,14 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
         switch (row) {
         case MaxRow:
             return (vector<pair<int, int>>{{WS, leg(WS)}, {SW, leg(SW)}});
-
         case MaxRow - 1:
             return (vector<pair<int, int>>{
                 {WS, leg(WS)}, {SW, leg(SW)}, {WN, leg(WN)}});
-
         case MinRow:
             return (vector<pair<int, int>>{{WN, leg(WN)}, {NW, leg(NW)}});
-
         case MinRow + 1:
             return (vector<pair<int, int>>{
                 {WN, leg(WN)}, {NW, leg(NW)}, {WS, leg(WS)}});
-
         default:
             return (vector<pair<int, int>>{
                 {WN, leg(WN)}, {NW, leg(NW)}, {WS, leg(WS)}, {SW, leg(SW)}});
@@ -162,19 +160,15 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
         case MaxRow:
             return (vector<pair<int, int>>{
                 {WS, leg(WS)}, {SW, leg(SW)}, {SE, leg(SE)}});
-
         case MaxRow - 1:
             return (vector<pair<int, int>>{
                 {WS, leg(WS)}, {SW, leg(SW)}, {SE, leg(SE)}, {WN, leg(WN)}});
-
         case MinRow:
             return (vector<pair<int, int>>{
                 {WN, leg(WN)}, {NW, leg(NW)}, {NE, leg(NE)}});
-
         case MinRow + 1:
             return (vector<pair<int, int>>{
                 {WN, leg(WN)}, {NW, leg(NW)}, {NE, leg(NE)}, {WS, leg(WS)}});
-
         default:
             return (vector<pair<int, int>>{{WN, leg(WN)},
                                            {NW, leg(NW)},
@@ -187,18 +181,14 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
         switch (row) {
         case MaxRow:
             return (vector<pair<int, int>>{{ES, leg(ES)}, {SE, leg(SE)}});
-
         case MaxRow - 1:
             return (vector<pair<int, int>>{
                 {ES, leg(ES)}, {SE, leg(SE)}, {EN, leg(EN)}});
-
         case MinRow:
             return (vector<pair<int, int>>{{EN, leg(EN)}, {NE, leg(NE)}});
-
         case MinRow + 1:
             return (vector<pair<int, int>>{
                 {EN, leg(EN)}, {NE, leg(NE)}, {ES, leg(ES)}});
-
         default:
             return (vector<pair<int, int>>{
                 {EN, leg(EN)}, {NE, leg(NE)}, {ES, leg(ES)}, {SE, leg(SE)}});
@@ -208,19 +198,15 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
         case MaxRow:
             return (vector<pair<int, int>>{
                 {ES, leg(ES)}, {SW, leg(SW)}, {SE, leg(SE)}});
-
         case MaxRow - 1:
             return (vector<pair<int, int>>{
                 {ES, leg(ES)}, {SW, leg(SW)}, {SE, leg(SE)}, {EN, leg(EN)}});
-
         case MinRow:
             return (vector<pair<int, int>>{
                 {EN, leg(EN)}, {NW, leg(NW)}, {NE, leg(NE)}});
-
         case MinRow + 1:
             return (vector<pair<int, int>>{
                 {EN, leg(EN)}, {NW, leg(NW)}, {NE, leg(NE)}, {ES, leg(ES)}});
-
         default:
             return (vector<pair<int, int>>{{EN, leg(EN)},
                                            {NW, leg(NW)},
@@ -234,7 +220,6 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
         case MaxRow:
             return (vector<pair<int, int>>{
                 {ES, leg(ES)}, {WS, leg(WS)}, {SW, leg(SW)}, {SE, leg(SE)}});
-
         case MaxRow - 1:
             return (vector<pair<int, int>>{{ES, leg(ES)},
                                            {WS, leg(WS)},
@@ -242,11 +227,9 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
                                            {SW, leg(SW)},
                                            {SE, leg(SE)},
                                            {EN, leg(EN)}});
-
         case MinRow:
             return (vector<pair<int, int>>{
                 {EN, leg(EN)}, {NW, leg(NW)}, {WN, leg(WN)}, {NE, leg(NE)}});
-
         case MinRow + 1:
             return (vector<pair<int, int>>{{EN, leg(EN)},
                                            {NW, leg(NW)},
@@ -254,7 +237,6 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
                                            {WN, leg(WN)},
                                            {WS, leg(WS)},
                                            {ES, leg(ES)}});
-
         default:
             return (vector<pair<int, int>>{{EN, leg(EN)},
                                            {ES, leg(ES)},
@@ -270,19 +252,105 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat) {
 
 // 车炮可走的四个方向位置
 vector<vector<int>> Board_base::getRookCannonMoveSeat_Lines(int seat) {
-    return (vector<vector<int>>{});
+    vector<vector<int>> res{vector<int>{}, vector<int>{}, vector<int>{},
+                            vector<int>{}};
+    int row{getRow(seat)}, left{row * 9 - 1}, right{row * 9 + 9};
+    for (int i = seat - 1; i != left; --i)
+        res[0].push_back(i);
+    for (int i = seat + 1; i != right; ++i)
+        res[1].push_back(i);
+    for (int i = seat - 9; i > -1; i -= 9)
+        res[2].push_back(i);
+    for (int i = seat + 9; i < 90; i += 9)
+        res[3].push_back(i);
+    return res;
 }
-vector<int> Board_base::getPawnMoveSeats(int seat) {
-    return (vector<int>{});
+
+vector<int> Board_base::getPawnMoveSeats(bool isBottomSide, int seat) {
+    int E{seat + 1}, S{seat - 9}, W{seat - 1}, N{seat + 9}, row{getRow(seat)};
+    switch (getCol(seat)) {
+    case MaxCol:
+        if (isBottomSide) {
+            if (row > 4)
+                return (vector<int>{W, N});
+            else
+                return (vector<int>{N});
+        } else {
+            if (row < 5)
+                return (vector<int>{W, S});
+            else
+                return (vector<int>{S});
+        }
+    case MinCol:
+        if (isBottomSide) {
+            if (row > 4)
+                return (vector<int>{E, N});
+            else
+                return (vector<int>{N});
+        } else {
+            if (row < 5)
+                return (vector<int>{E, S});
+            else
+                return (vector<int>{S});
+        }
+    default:
+        if (isBottomSide) {
+            if (row > 4)
+                return (vector<int>{E, W, N});
+            else
+                return (vector<int>{N});
+        } else {
+            if (row < 5)
+                return (vector<int>{E, W, S});
+            else
+                return (vector<int>{S});
+        }
+    }
 }
+
 // '多兵排序'
 vector<int> Board_base::sortPawnSeats(bool isBottomSide,
                                       vector<int> pawnSeats) {
     return (vector<int>{});
 }
 
+/*
+// '多兵排序'
+static sortPawnSeats(isBottomSide, pawnSeats) {
+    let temp = [],
+        result = [];
+    // 按列建立字典，按列排序
+    pawnSeats.forEach(seat => {
+        let col = Board_impl.getCol(seat);
+        if (temp[col]) {
+            temp[col].push(seat);
+        } else {
+            temp[col] = [seat];
+        }
+    });
+    // 筛除只有一个位置的列, 整合成一个数组
+    temp.forEach(seats => {
+        if (seats.length > 1) {
+            result = result.concat(seats);
+        }
+    });
+    // 根据棋盘顶底位置,是否反序
+    return isBottomSide ? result.reverse() : result;
+}
+
+*/
+
+
+wstring Board_base::print_vector_int(vector<int> vi) {
+    wstringstream wss{};
+    for (auto i : vi)
+        wss << setw(3) << i << L' ';
+    wss << L'\n';
+    return wss.str();
+}
+
 // 测试
-wstring Board_base::test_getStaticValue() {
+wstring Board_base::test_constValue() {
     wstringstream wss{};
     wss << L"NumCols: ";
     wss << L"ColNum " << ColNum << L" RowNum " << RowNum << L" MinCol "
@@ -411,5 +479,17 @@ wstring Board_base::test_getRowCols() {
     wss << "getSeats: use time -> " << duration_cast<milliseconds>(d).count()
         << "ms" << L'\n';
 
+    return wss.str();
+}
+
+wstring Board_base::test_board_base() {
+    wstringstream wss{};
+    wss << L"test "
+           L"board_base.h\n----------------------------------------------------"
+           L"-\n";
+    wss << test_constValue();
+    wss << test_getSeats();
+    wss << test_getMoveSeats();
+    wss << test_getRowCols();
     return wss.str();
 }

@@ -1,273 +1,117 @@
+//#include "board_base.h"
+//#include "piece.h"
 #include "board.h"
-#include "board_base.h"
 
+#include <algorithm>
 
-/*
-// 车炮可走的四个方向位置
-static getRookCannonMoveSeat_Lines(seat) {
-    let seat_lines = [[], [], [], []];
-    let row = Board_impl.getRow(seat); //this指类，而不是实例
-    let leftlimit = row * 9 - 1;
-    let rightlimit = (row + 1) * 9;
-    for (let i = seat - 1; i > leftlimit; i--) {
-        seat_lines[0].push(i);
+using namespace Board_base;
+
+Piece *Board::move_go(int fseat, int tseat) {
+    auto eatPiece = __movePiece(getPiece(fseat), tseat);
+    __movePiece(Pieces::nullPiePtr, fseat);
+    return eatPiece;
+}
+
+void Board::move_back(int fseat, int tseat, Piece *eatPiece) {
+    __movePiece(getPiece(tseat), fseat);
+    __movePiece(eatPiece, tseat);
+}
+
+//判断是否将军
+bool Board::isKilled(PieceColor color) {
+    PieceColor othColor =
+        color == PieceColor::black ? PieceColor::red : PieceColor::black;
+    int kingSeat{pieces.getKingPie(color)->seat()},
+        othKingSeat{pieces.getKingPie(othColor)->seat()};
+    if (isSameCol(kingSeat, othKingSeat)) {
+        vector<int> ss{getSameColSeats(kingSeat, othKingSeat)};
+        if (std::all_of(ss.begin(), ss.end(),
+                        [this](int s) { return isBlank(s); }))
+            return true;
     }
-    for (let i = seat + 1; i < rightlimit; i++) {
-        seat_lines[1].push(i);
-    }
-    for (let i = seat - 9; i > -1; i -= 9) {
-        seat_lines[2].push(i);
-    }
-    for (let i = seat + 9; i < 90; i += 9) {
-        seat_lines[3].push(i);
-    }
-    return seat_lines;
-}
-*/
-/*
-vector<int> getPawnMoveSeats(int seat) {
-    int E{seat + 1},
-        S{seat - 9},
-        W{seat - 1},
-        N{seat + 9};
-    int row{getRow(seat)}, col{getCol(seat)};
-    switch (col) {
-        case base.maxColNo:
-            mvseats = [S, W, N];
-            break;
-        case base.MinColNo:
-            mvseats = [E, S, N];
-            break;
-        default:
-            mvseats = [E, S, W, N];
-    }
-    let row = Board_impl.getRow(seat);
-    if (row === 9 || row === 0) {
-        seats = new Set([E, W]);
-    }
-    else {
-        if (this.getSide(this.getColor(seat)) === 'bottom') {
-            seats = new Set([E, W, N]);
-        }
-        else {
-            seats = new Set([E, W, S]);
-        }
-    }
-    return mvseats.filter(s => seats.has(s));
-}
-
-
-// '多兵排序'
-static sortPawnSeats(isBottomSide, pawnSeats) {
-    let temp = [],
-        result = [];
-    // 按列建立字典，按列排序
-    pawnSeats.forEach(seat => {
-        let col = Board_impl.getCol(seat);
-        if (temp[col]) {
-            temp[col].push(seat);
-        } else {
-            temp[col] = [seat];
-        }
-    });
-    // 筛除只有一个位置的列, 整合成一个数组
-    temp.forEach(seats => {
-        if (seats.length > 1) {
-            result = result.concat(seats);
-        }
-    });
-    // 根据棋盘顶底位置,是否反序
-    return isBottomSide ? result.reverse() : result;
-}
-
-toString() {
-    function __getname(piece) {
-        let rcpName = { '车': '車', '马': '馬', '炮': '砲' };
-        let name = piece.name;
-        return (piece.color === base.BLACK && name in rcpName) ?
-rcpName[name] : name;
-    }
-
-    let lineStr = base.BlankBoard.trim().split('\n').map(line =>
-[...line.trim()]); for (let piece of this.getLivePieces()) { let
-seat = this.getSeat(piece); lineStr[(9 - Board_impl.getRow(seat)) *
-2][Board_impl.getCol(seat) * 2] = __getname(piece);
-    }
-    return `\n${lineStr.map(line =>
-line.join('')).join('\n')}\n`;
-}
-
-isBottomSide(color) {
-    return this.bottomPieColor === color;
-}
-
-isBlank(seat) {
-    return Boolean(this.pies[seat]);
-}
-
-getSeat(piece) {
-    return this.pies.indexOf(piece);
-}
-
-getPiece(seat) {
-    return this.pies[seat];
-}
-
-getColor(seat) {
-    return this.pies[seat].color;
-}
-
-getSide(color) {
-    return this.isBottomSide(color) ? 'bottom' : 'top';
-}
-
-getKingSeat(color) {
-    let piece;
-    for (let seat of Board_impl.kingSeats()[this.getSide(color)]) {
-        piece = this.getPiece(seat);
-        if (Boolean(piece) && piece.isKing) {
-            return seat;
-        }
-    }
-    console.log('出错了，在棋盘上没有找到将、帅！');
-    console.log(this.toString());
-}
-
-getLivePieces() {
-    return this.pies.filter(p => Boolean(p));
-}
-
-getLiveSidePieces(color) {
-    return this.getLivePieces().filter(p => p.color === color);
-}
-
-getSideNameSeats(color, name) {
-    return this.getLiveSidePieces(color).filter(
-        p => p.name === name).map(p => this.getSeat(p));
-}
-
-getSideNameColSeats(color, name, col) {
-    return this.getSideNameSeats(color, name).filter(s =>
-Board_impl.getCol(s)
-=== col);
-}
-
-getEatedPieces() {
-    let livePieces = new Set(this.getLivePieces());
-    return this.pies.filter(p => !livePieces.has(p));
-}
-
-isKilled(color) {
-    let otherColor = color === base.BLACK ? base.RED :
-base.BLACK; let kingSeat = this.getKingSeat(color); let otherSeat =
-this.getKingSeat(otherColor); if (Board_impl.isSameCol(kingSeat, otherSeat)) {
-// 将帅是否对面 if (every(getSameColSeats(kingSeat, otherSeat).map(s =>
-this.isBlank(seat)))) { return true;
-        }
-        for (let piece of this.getLiveSidePieces(otherColor)) {
-            if (piece.isStronge &&
-(piece.getMoveSeats(this).indexOf(kingSeat) >= 0)) { return
-true;
-            }
-        }
+    for (auto pie : pieces.getLiveStrongePies(othColor)) {
+        auto ss = pie->getCanMoveSeats(this);
+        if (std::find(ss.begin(), ss.end(), kingSeat) != ss.end())
+            return true;
     }
     return false;
 }
 
-isDied(color) {
-    for (let piece of this.getLiveSidePieces(color)) {
-        if (this.canMoveSeats(this.getSeat(piece))) {
-            return False;
-        }
-    }
-    return True
-}
-
-__go(move) {
-    let fseat = move.fseat,
-        tseat = move.tseat;
-    move.eatPiece = this.pies[tseat];
-    this.pies[tseat] = this.pies[fseat];
-    this.pies[fseat] = null;
-    return move.eatPiece;
-}
-
-__back(move) {
-    let fseat = move.fseat,
-        tseat = move.tseat;
-    this.pies[fseat] = this.pies[tseat];
-    this.pies[tseat] = move.eatPiece;
+//判断是否被将死
+bool Board::isDied(PieceColor color) {
+    for (auto pie : pieces.getLivePies(color))
+        if (getCanMoveSeats(pie->seat()).size() > 0)
+            return false;
+    return true;
 }
 
 // '获取棋子可走的位置, 不能被将军'
-canMoveSeats(fseat) {
-    let result = [];
-    let piece = this.getPiece(fseat);
-    let color = piece.color;
-    let moveData;
-    for (let tseat of piece.getMoveSeats(this)) {
-        moveData = { fseat: fseat, tseat: tseat };
-        moveData.eatPiece = this.__go(moveData);
-        if (!this.isKilled(color)) {
-            result.push(tseat);
-        }
-        this.__back(moveData);
+vector<int> Board::getCanMoveSeats(int fseat) {
+    vector<int> res{};
+    auto pie = getPiece(fseat);
+    auto color = pie->color();
+    // 移动棋子后，检测是否会被对方将军
+    for (auto tseat : pie->getCanMoveSeats(this)) {
+        auto eatPiece = move_go(fseat, tseat);
+        if (!isKilled(color))
+            res.push_back(tseat);
+        move_back(fseat, tseat, eatPiece);
     }
-    return result
+    return res;
 }
 
-__fen(pieceChars = null) {
-    function __linetonums() {
-        //'下划线字符串对应数字字符元组 列表'
-        let result = [];
-        for (let i = 9; i > 0; i--) {
-            result.push(['_'.repeat(i), String(i)]);
-        }
-        return result;
-    }
-
-    if (!pieceChars) {
-        pieceChars = this.pies.map(p => piece.char);
-    }
-    let charls = [];
-    for (let rowno = 0; rowno < base.NumRows; rowno++) {
-        charls.push(pieceChars.slice(rowno * 9, (rowno + 1) *
-9));
-    }
-    let fen = charls.reverse().map(chars =>
-chars.join('')).join('/'); for (let [_str, nstr] of __linetonums()) {
-fen = fen.replace(_str, nstr);
-    }
-    return fen;
+inline void Board::__setPiece(Piece *pie, int tseat) {
+    pieSeats[tseat] = pie;
+    pie->setSeat(tseat);
 }
 
-getFen(chessInstance) {
-    let currentMove = this.currentMove;
-    chessInstance.moves.toFirst(chessInstance.board);
-    let fen = `${this.__fen()} ${chessInstance.moves.firstColor
-=== base.BLACK ? 'b' : 'r'} - - 0 0`;
-chessInstance.moves.goTo(currentMove, chessInstance.board);
-    //assert this.info['FEN'] === fen,
-'\n原始:{}\n生成:{}'.format(this.info['FEN'], fen) return fen;
+inline Piece *Board::__movePiece(Piece *pie, int tseat) {
+    Piece *eatPiece = pieSeats[tseat];
+    eatPiece->setSeat(nullSeat);
+    __setPiece(pie, tseat);
+    return eatPiece;
 }
 
-setSeatPieces(seatPieces) {
-    this.pies = (new Array(90)).fill(null);
-    for (let [seat, piece] of seatPieces) {
-        this.pies[seat] = piece;
-    }
-    this.bottomPieColor = this.getKingSeat(base.RED) < 45 ?
-base.RED : base.BLACK;
+wstring Board::getFEN() {
+    wstring res{};
+    return res;
 }
+
+void Board::setFEN(wstring FEN) {
+    wstring fen{L'/' + FEN}, chars{};
+    //'数字字符对应下划线字符串'
+    map<wstring, wstring> num_lines{
+        {L"9", L"_________"}, {L"8", L"________"}, {L"7", L"_______"},
+        {L"6", L"______"},    {L"5", L"_____"},    {L"4", L"____"},
+        {L"3", L"___"},       {L"2", L"__"},       {L"1", L"_"}};
+    while (fen.size()) {
+        auto p = fen.rfind(L'/');
+        chars.append(fen, p + 1, 9);
+        fen.erase(p);
+    }
+    for (auto n_l : num_lines)
+        chars.replace(chars.find(n_l.first), 1, n_l.second);
+    __setPieces(chars);
+}
+
+void Board::__setPieces(wstring chars) {
+    std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
+    auto getPie = [&](wchar_t ch) {
+        for (auto p : pieces.getPies())
+            if (p->wchar() == ch && p->seat() != nullSeat)
+                return p;
+        return pieces.nullPiePtr;
+    };
+    for (int s = 0; s < 90; ++s)
+        __setPiece(getPie(chars[s]), s);
+    bottomColor = pieces.getKingPie(PieceColor::red)->seat() < 45
+                      ? PieceColor::red
+                      : PieceColor::black;
+}
+
+/*
 
 setFen(chessInstance) {
-    function __numtolines() {
-        //'数字字符: 下划线字符串'
-        let numtolines = [];
-        for (let i = 0; i < 10; i++)
-            numtolines.push([String(i), '_'.repeat(i)]);
-        return numtolines;
-    }
 
     function __isvalid(charls) {
         '判断棋子列表是否有效'
@@ -293,6 +137,70 @@ __numtolines()).split(''); let info = __isvalid(charls); if (info)
     chessInstance.moves.firstColor = afens[1] === 'b' ?
 base.BLACK : base.RED; this.currentMove = this.rootMove;
 }
+
+*/
+void Board::changeSide(ChangeType ct) {} // = ChangeType::exchange
+
+wstring Board::__FEN() {
+    wstring res{};
+    //'下划线字符串对应数字字符'
+    map<wstring, wstring> line_nums{
+        {L"_________", L"9"}, {L"________", L"8"}, {L"_______", L"7"},
+        {L"______", L"6"},    {L"_____", L"5"},    {L"____", L"4"},
+        {L"___", L"3"},       {L"__", L"2"},       {L"_", L"1"}};
+    for (int row = MaxRow; row >= MinRow; --row) {
+        for (int col = MinCol; col <= MaxCol; ++col)
+            res += getPiece(getSeat(row, col))->wchar();
+        if (row != MinRow)
+            res += L'/';
+    }
+    for (auto l_n : line_nums)
+        res.replace(res.find(l_n.first), l_n.first.size(), l_n.second);
+    return res;
+}
+
+
+const wstring Board::toString() {
+    auto getName = [](Piece *p) {
+        map<wchar_t, wchar_t> rcpName{
+            {L'车', L'車'}, {L'马', L'馬'}, {L'炮', L'砲'}};
+        wchar_t name = p->chName();
+        return (p->color() == PieceColor::black &&
+                rcpName.find(name) != rcpName.end())
+                   ? rcpName[name]
+                   : name;
+    };
+    /*
+    vector<wstring> lineStr;
+    wstringstream res{L'\n'}, wss{Board_base::TextBlankBoard};
+    for (wstring s; std::getline(wss, s);)
+        lineStr.push_back(s);
+    for (auto p : getLivePies())
+        lineStr[(9 - getRow(p->seat())) * 2][getCol(p->seat()) * 2] =
+            getName(p);
+    for(auto s: lineStr)
+        res << s << L'\n';
+    return res.str();
+    */
+    wstring res{Board_base::TextBlankBoard};
+    for (auto p : pieces.getLivePies())
+        res[((9 - getRow(p->seat())) * 2 - 1) * 18 + getCol(p->seat()) * 2] =
+            getName(p);
+    return res;
+}
+
+/*
+
+getFen(chessInstance) {
+    let currentMove = this.currentMove;
+    chessInstance.moves.toFirst(chessInstance.board);
+    let fen = `${this.__fen()} ${chessInstance.moves.firstColor
+=== base.BLACK ? 'b' : 'r'} - - 0 0`;
+chessInstance.moves.goTo(currentMove, chessInstance.board);
+    //assert this.info['FEN'] === fen,
+'\n原始:{}\n生成:{}'.format(this.info['FEN'], fen) return fen;
+}
+
 
 changeSide(chessInstance, changeType = 'exchange') {
 
@@ -337,35 +245,22 @@ rotateSeat : symmetrySeat;
     }
 }
 
+getSideNameColSeats(color, name, col) {
+    return this.getSideNameSeats(color, name).filter(s =>
+Board_impl.getCol(s)
+=== col);
+}
+
             */
 
-
-//类内声明，类外定义
-bool Board::isKilled(PieceColor color)
-{
-    return true;
-}
-bool Board::isDied(PieceColor color)
-{
-
-    return true;    
-}
-// '获取棋子可走的位置, 不能被将军'
-vector<int> Board::canMoveSeats(int fseat)
-{
-
-    return (vector<int>{});
-}
-
-
-wstring test_board() {
+wstring Board::test_board() {
     wstringstream wss{};
     wss << L"test "
-           L"board_base.h\n-----------------------------------------------------\n";
-    wss << Board_base::test_getStaticValue();
-    wss << Board_base::test_getSeats();
-    wss << Board_base::test_getMoveSeats();
+           L"board.h\n----------------------------------------------------"
+           L"-\n";
+    setFEN(L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5");
+    
+    wss << toString();
 
-    // wss << test_getRowCols();
     return wss.str();
 }
