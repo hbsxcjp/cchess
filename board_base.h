@@ -13,7 +13,7 @@ using std::pair;
 using std::find;
 
 // 棋子站队
-enum class PieceColor { red, black };
+enum class PieceColor { blank, red, black };
 
 namespace Board_base {
 // 空位置

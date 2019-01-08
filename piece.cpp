@@ -4,22 +4,29 @@
 #include <algorithm>
 using std::remove_if;
 
+
 vector<int> Piece::getCanMoveSeats(Board *board) {
-    vector<int> res{getMoveSeats(board)};
+    vector<int> res{};
+    auto fseat = seat();
+    for (auto tseat : getFilterMoveSeats(board)) {
+        auto eatPiece = board->move_go(fseat, tseat);
+        // 移动棋子后，检测是否会被对方将军
+        if (!board->isKilled(color()))
+            res.push_back(tseat);
+        board->move_back(fseat, tseat, eatPiece);
+    }
+    return res;
+}
+
+vector<int> Piece::getFilterMoveSeats(Board *board) {
+    vector<int> res{__MoveSeats(board)};
     auto p = remove_if(res.begin(), res.end(), [&](int seat) {
         return board->getColor(seat) == color();
     });
     return (vector<int>{res.begin(), p});
-    /*
-    vector<int> res{};
-    for (auto seat : getMoveSeats(board))
-        if (board->getColor(seat) != color())
-            res.push_back(seat);
-    return res;
-    */
 }
 
-vector<int> Piece::filterMove_obstruct(Board *board,
+vector<int> Piece::__filterMove_obstruct(Board *board,
                                        vector<pair<int, int>> move_obs) {
     vector<int> res{};
     for (auto st_c : move_obs)
@@ -28,7 +35,7 @@ vector<int> Piece::filterMove_obstruct(Board *board,
     return res;
 }
 
-vector<int> Rook::getMoveSeats(Board *board) {
+vector<int> Rook::__MoveSeats(Board *board) {
     vector<int> res{};
     auto seatLines = getRookCannonMoveSeat_Lines(seat());
     for (auto seatLine : seatLines)
@@ -40,7 +47,7 @@ vector<int> Rook::getMoveSeats(Board *board) {
     return res;
 }
 
-vector<int> Cannon::getMoveSeats(Board *board) {
+vector<int> Cannon::__MoveSeats(Board *board) {
     vector<int> res{};
     auto seatLines = getRookCannonMoveSeat_Lines(seat());
     for (auto seatLine : seatLines) {
@@ -60,7 +67,7 @@ vector<int> Cannon::getMoveSeats(Board *board) {
     return res;
 }
 
-vector<int> Pawn::getMoveSeats(Board *board) {
+vector<int> Pawn::__MoveSeats(Board *board) {
     return getPawnMoveSeats(board->isBottomSide(color()), seat());
 }
 
@@ -83,8 +90,9 @@ const wstring Pieces::allNames{L"帅仕相马车炮兵将士象卒"};
 
 // 类外初始化类内静态const成员
 int Piece::curIndex{-1};
-NullPie Pieces::nullPiece{NullPie(L'_')}; // 空棋子
-Piece *Pieces::nullPiePtr{&nullPiece};    // 空棋子指针
+const wchar_t Piece::nullChar{L'_'};
+NullPie Pieces::nullPiece{NullPie(Piece::nullChar)}; // 空棋子
+Piece *Pieces::nullPiePtr{&nullPiece};               // 空棋子指针
 
 // 一副棋子类
 Pieces::Pieces()
@@ -130,43 +138,70 @@ inline Piece *Pieces::getOthPie(Piece *pie) {
 }
 
 vector<Piece *> Pieces::getLivePies() {
-    vector<Piece *> res{};
-    for (auto p : piePtrs)
-        if (p->seat() != nullSeat)
-            res.push_back(p);
-    return res;
+    vector<Piece *> res{piePtrs};
+    auto p = remove_if(res.begin(), res.end(),
+                       [&](Piece *p) { return p->seat() == nullSeat; });
+    return (vector<Piece *>{res.begin(), p});
 }
 
 vector<Piece *> Pieces::getLivePies(PieceColor color) {
+    vector<Piece *> res{piePtrs};
+    auto p = remove_if(res.begin(), res.end(), [&](Piece *p) {
+        return p->seat() == nullSeat || p->color() != color;
+    });
+    return (vector<Piece *>{res.begin(), p});
+    /*
     vector<Piece *> res{};
     for (auto p : piePtrs)
         if (p->seat() != nullSeat && p->color() == color)
             res.push_back(p);
     return res;
+    */
 }
 
 vector<Piece *> Pieces::getLiveStrongePies(PieceColor color) {
+    vector<Piece *> res{piePtrs};
+    auto p = remove_if(res.begin(), res.end(), [&](Piece *p) {
+        return p->seat() == nullSeat || p->color() != color || !p->isStronge();
+    });
+    return (vector<Piece *>{res.begin(), p});
+    /*
     vector<Piece *> res{};
     for (auto p : piePtrs)
         if (p->seat() != nullSeat && p->color() == color && p->isStronge())
             res.push_back(p);
     return res;
+    */
 }
 
 vector<Piece *> Pieces::getEatedPies() {
+    vector<Piece *> res{piePtrs};
+    auto p = remove_if(res.begin(), res.end(),
+                       [&](Piece *p) { return p->seat() != nullSeat; });
+    return (vector<Piece *>{res.begin(), p});
+    /*
     vector<Piece *> res{};
     for (auto p : piePtrs)
         if (p->seat() == nullSeat)
             res.push_back(p);
     return res;
+    */
 }
 
 vector<Piece *> Pieces::getNamePies(PieceColor color, wchar_t name) {
+    vector<Piece *> res{piePtrs};
+    auto p = remove_if(res.begin(), res.end(), [&](Piece *p) {
+        return p->seat() == nullSeat || p->color() != color ||
+               p->chName() != name;
+    });
+    return (vector<Piece *>{res.begin(), p});
+    /*
     vector<Piece *> res{};
-    for (auto p : getLivePies(color))
-        if (p->chName() == name)
+    for (auto p : piePtrs)
+        if (p->seat() != nullSeat && p->color() == color && p->chName() == name)
             res.push_back(p);
     return res;
+    */
 }
 
 wstring Pieces::toString() {

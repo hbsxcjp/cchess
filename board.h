@@ -28,8 +28,6 @@ class Board {
     Piece *move_go(int fseat, int tseat);
     void move_back(int fseat, int tseat, Piece *eatPiece);
 
-    // '获取棋子可走的位置, 不能被将军'
-    vector<int> getCanMoveSeats(int fseat);
     bool isKilled(PieceColor color); //判断是否将军
     bool isDied(PieceColor color);   //判断是否被将死
 
@@ -43,7 +41,6 @@ class Board {
     PieceColor bottomColor; // 底端棋子颜色
   private:
     void __setPiece(Piece *pie, int tseat);
-    Piece *__movePiece(Piece *pie, int tseat);
     wstring __FEN();
     void __setPieces(wstring chars);
 
