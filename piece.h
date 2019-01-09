@@ -143,7 +143,7 @@ class NullPie : public Piece {
   public:
     using Piece::Piece;
     bool const isBlank() { return true; }
-    //void setSeat(int seat) {}
+    //void setSeat(int seat) {} // 加此函数，反而出现不明问题。
 };
 
 // 一副棋子类

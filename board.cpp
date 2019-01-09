@@ -89,7 +89,7 @@ void Board::setFEN(wstring FEN) {
 }
 
 void Board::__setPieces(wstring chars) {
-    std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
+    __clearPieces();
     auto getPie = [&](wchar_t ch) {
         if (ch == Piece::nullChar)
             return pieces.nullPiePtr;
@@ -103,6 +103,13 @@ void Board::__setPieces(wstring chars) {
     bottomColor = pieces.getKingPie(PieceColor::red)->seat() < 45
                       ? PieceColor::red
                       : PieceColor::black;
+}
+
+void Board::__clearPieces() {
+    std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
+    auto ps = pieces.getPies();
+    for_each(ps.begin(), ps.end(),
+             [&](Piece *p) { p->setSeat(nullSeat); });
 }
 
 void Board::changeSide(ChangeType ct) {} // = ChangeType::exchange
@@ -150,10 +157,6 @@ rotateSeat : symmetrySeat;
     }
 }
 
-getSideNameColSeats(color, name, col) {
-    return this.getSideNameSeats(color, name).filter(s =>
-Board_impl.getCol(s)
-=== col);
 }
             */
 
@@ -194,26 +197,34 @@ const wstring Board::toString() {
     return res;
 }
 
-
 wstring Board::test_board() {
     wstringstream wss{};
     wss << L"test "
            L"board.h\n----------------------------------------------------"
            L"-\n";
-    //setFEN(L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5");
-    setFEN(L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR");
-    wss << L"__FEN(): \n" << __FEN() << L'\n';
-    wss << L"Board::toString():\n" << toString();
+    for (auto fen :
+         {L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5",
+          L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR"}) {
+        wss << L"  fen  :" << fen << L'\n';
+        setFEN(fen);
+        wss << L"__FEN():" << __FEN() << L'\n';
 
-    wss << L"Piece::getCanMoveSeats():\n";
-    for(auto p: pieces.getLivePies()){
-        wss << p->chName() << L' ' << p->wchar() << L'_' << setw(2) << p->seat() << L'：';
-        for(auto s: p->getCanMoveSeats(this))
-            wss << setw(2) << s << L' ';
-        wss << L'\n';
+        wss << L"Board::toString():\n" << toString();
+
+        wss << L"Piece::getCanMoveSeats():\n";
+        for (auto p : pieces.getLivePies()) {
+            wss << p->chName() << L' ' << p->wchar() << L'_' << setw(2)
+                << p->seat() << L'：';
+            for (auto s : p->getCanMoveSeats(this))
+                wss << setw(2) << s << L' ';
+            wss << L'\n';
+        }
+
+        wss << pieces.toString();
+        // wss << pieces.test_piece();
+
+        wss << L"Board::getFEN():" << L'\n';
+        wss << L"Board::changeSide():" << L'\n';
     }
-
-    wss << pieces.toString();
-
     return wss.str();
 }

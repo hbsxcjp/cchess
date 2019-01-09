@@ -74,8 +74,8 @@ vector<int> Pawn::__MoveSeats(Board *board) {
 wstring Piece::toString() {
     wstringstream wss{};
     wss << boolalpha;
-    wss << setw(4) << index() << setw(4) << static_cast<int>(color()) << setw(6)
-        << wchar() << setw(6) << seat() << setw(6) << chName() << setw(9)
+    wss << setw(4) << index() << setw(5) << static_cast<int>(color()) << setw(6)
+        << wchar() << setw(6) << seat() << setw(5) << chName() << setw(9)
         << isBlank() << setw(8) << isKing() << setw(8) << isStronge() << L'\n';
     return wss.str();
 }

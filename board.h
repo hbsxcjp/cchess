@@ -40,9 +40,10 @@ class Board {
 
     PieceColor bottomColor; // 底端棋子颜色
   private:
-    void __setPiece(Piece *pie, int tseat);
     wstring __FEN();
     void __setPieces(wstring chars);
+    void __setPiece(Piece *pie, int tseat);
+    void __clearPieces();
 
     Pieces pieces;            // 一副棋子类
     vector<Piece *> pieSeats; // 棋盘容器，顺序号即为位置seat
