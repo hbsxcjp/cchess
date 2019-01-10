@@ -4,7 +4,6 @@
 #include <algorithm>
 using std::remove_if;
 
-
 vector<int> Piece::getCanMoveSeats(Board *board) {
     vector<int> res{};
     auto fseat = seat();
@@ -27,7 +26,7 @@ vector<int> Piece::getFilterMoveSeats(Board *board) {
 }
 
 vector<int> Piece::__filterMove_obstruct(Board *board,
-                                       vector<pair<int, int>> move_obs) {
+                                         vector<pair<int, int>> move_obs) {
     vector<int> res{};
     for (auto st_c : move_obs)
         if (board->isBlank(st_c.second))
@@ -150,13 +149,6 @@ vector<Piece *> Pieces::getLivePies(PieceColor color) {
         return p->seat() == nullSeat || p->color() != color;
     });
     return (vector<Piece *>{res.begin(), p});
-    /*
-    vector<Piece *> res{};
-    for (auto p : piePtrs)
-        if (p->seat() != nullSeat && p->color() == color)
-            res.push_back(p);
-    return res;
-    */
 }
 
 vector<Piece *> Pieces::getLiveStrongePies(PieceColor color) {
@@ -165,27 +157,6 @@ vector<Piece *> Pieces::getLiveStrongePies(PieceColor color) {
         return p->seat() == nullSeat || p->color() != color || !p->isStronge();
     });
     return (vector<Piece *>{res.begin(), p});
-    /*
-    vector<Piece *> res{};
-    for (auto p : piePtrs)
-        if (p->seat() != nullSeat && p->color() == color && p->isStronge())
-            res.push_back(p);
-    return res;
-    */
-}
-
-vector<Piece *> Pieces::getEatedPies() {
-    vector<Piece *> res{piePtrs};
-    auto p = remove_if(res.begin(), res.end(),
-                       [&](Piece *p) { return p->seat() != nullSeat; });
-    return (vector<Piece *>{res.begin(), p});
-    /*
-    vector<Piece *> res{};
-    for (auto p : piePtrs)
-        if (p->seat() == nullSeat)
-            res.push_back(p);
-    return res;
-    */
 }
 
 vector<Piece *> Pieces::getNamePies(PieceColor color, wchar_t name) {
@@ -195,13 +166,21 @@ vector<Piece *> Pieces::getNamePies(PieceColor color, wchar_t name) {
                p->chName() != name;
     });
     return (vector<Piece *>{res.begin(), p});
-    /*
-    vector<Piece *> res{};
-    for (auto p : piePtrs)
-        if (p->seat() != nullSeat && p->color() == color && p->chName() == name)
-            res.push_back(p);
-    return res;
-    */
+}
+
+vector<Piece *> Pieces::getNameColPies(PieceColor color, wchar_t name,
+                                       int col) {
+    vector<Piece *> res{getNamePies(color, name)};
+    auto p = remove_if(res.begin(), res.end(),
+                       [&](Piece *p) { return getCol(p->seat() != col); });
+    return (vector<Piece *>{res.begin(), p});
+}
+
+vector<Piece *> Pieces::getEatedPies() {
+    vector<Piece *> res{piePtrs};
+    auto p = remove_if(res.begin(), res.end(),
+                       [&](Piece *p) { return p->seat() != nullSeat; });
+    return (vector<Piece *>{res.begin(), p});
 }
 
 wstring Pieces::toString() {

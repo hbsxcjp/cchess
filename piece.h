@@ -158,8 +158,9 @@ class Pieces {
     vector<Piece *> getLivePies();
     vector<Piece *> getLivePies(PieceColor color);
     vector<Piece *> getLiveStrongePies(PieceColor color);
-    vector<Piece *> getEatedPies();
     vector<Piece *> getNamePies(PieceColor color, wchar_t name);
+    vector<Piece *> getNameColPies(PieceColor color, wchar_t name, int col);
+    vector<Piece *> getEatedPies();
 
     wstring toString();
     wstring test_piece();

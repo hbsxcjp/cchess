@@ -3,6 +3,7 @@
 // 中国象棋棋盘布局类型 by-cjp
 
 #include "info.h"
+#include "board.h"
 #include "move.h"
 
 #include <string>
@@ -19,8 +20,8 @@ class ChessInstance {
     // void notifyViews();
 
   private:
-    Board board;
     Info info;
+    Board board;
     Moves moves;
 };
 

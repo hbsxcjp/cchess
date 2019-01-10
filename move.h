@@ -1,7 +1,11 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-#include "board.h"
+#include <vector>
+using std::vector;
+
+enum class PieceColor;
+class Board;
 
 #include <c++/functional>
 using std::function;
@@ -18,21 +22,15 @@ class Move {
     void setNext(Move *next_);
     void setOther(Move *other);
 
-    void setSeat__ICCS(Board *board);
+    void setSeat__ICCS();
     void setICCS();
 
     wstring getStr(InstanceFormat fmt);
     //根据中文纵线着法描述取得源、目标位置: (fseat, tseat)
     void setSeat__ZhStr(Board *board);
-    // 根据源、目标位置: (fseat, tseat)取得中文纵线着法描述
+    //根据源、目标位置: (fseat, tseat)取得中文纵线着法描述
     void setZhStr(Board *board);
 
-    void fromJSON(wstring moveJSON);
-    // （rootMove）调用
-    void fromICCSZh(wstring moveStr, Board *board);
-    void fromCC(wstring moveStr, Board *board);
-
-    wstring toJSON(); // JSON
     wstring toString();
 
     // 以下信息存储时不需保存
@@ -43,16 +41,17 @@ class Move {
 
   private:
     // （rootMove）调用, 设置树节点的seat or zhStr'
-    void __initSet(function<void()> setFunc, Board *board); // C++primer P512
+    void __initSet(function<void()> setFunc, Board *board); // C++primer P512   
+    // '多兵排序' 
+    vector<int> __sortPawnSeats(bool isBottomSide, vector<int> seats); 
 
     int fs{0};
     int ts{0};
     wstring rem{}; // 注释
-    wstring da{}; // 着法数字字母描述
-    wstring zh{}; // 着法中文描述
+    wstring da{};  // 着法数字字母描述
+    wstring zh{};  // 着法中文描述
     Move *nt;
     Move *ot;
-
 };
 
 // 棋局着法树类
@@ -85,6 +84,12 @@ class Moves {
     void cutNext();
     void cutOther();
 
+    void fromJSON(wstring moveJSON);
+    // （rootMove）调用
+    void fromICCSZh(wstring moveStr, Board *board);
+    void fromCC(wstring moveStr, Board *board);
+
+    wstring toJSON(); // JSON
     wstring toString();
     wstring toLocaleString();
 

@@ -50,13 +50,13 @@ const vector<int> topPawnSeats{
     38, 39, 40, 41, 42, 43, 44, 45, 47, 49, 51, 53, 54, 56, 58, 60, 62};
 
 // 棋盘相关字符串: 类内声明，类外定义
-const map<PieceColor, wstring> Side_ChNums{
+map<PieceColor, wstring> Side_ChNums{
     {PieceColor::red, L"一二三四五六七八九"},
     {PieceColor::black, L"１２３４５６７８９"}};
-const map<wchar_t, int> ChNum_Indexs{{L'一', 0}, {L'二', 1}, {L'三', 2},
+map<wchar_t, int> ChNum_Indexs{{L'一', 0}, {L'二', 1}, {L'三', 2},
                                      {L'四', 3}, {L'五', 4}, {L'前', 0},
                                      {L'中', 1}, {L'后', 1}};
-const map<wchar_t, int> Direction_Nums{{L'进', 1}, {L'退', -1}, {L'平', 0}};
+map<wchar_t, int> Direction_Nums{{L'进', 1}, {L'退', -1}, {L'平', 0}};
 
 const wstring FEN{L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/"
                   L"RNBAKABNR r - - 0 1"};
