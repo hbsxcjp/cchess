@@ -1,6 +1,6 @@
-//#include "board_base.h"
-//#include "piece.h"
 #include "board.h"
+#include "move.h"
+
 #include <iostream>
 
 #include <algorithm>
@@ -8,16 +8,33 @@
 
 using namespace Board_base;
 
+vector<int> Board::getSideNameSeats(PieceColor color, wchar_t name)
+{
+    return __getSeats(pieces.getNamePies(color, name));
+}
+
+vector<int> Board::getSideNameColSeats(PieceColor color, wchar_t name, int col)
+{
+    return __getSeats(pieces.getNameColPies(color, name, col));
+}
+
+vector<int> Board::__getSeats(vector<Piece*> pies)
+{
+    vector<int> res{};
+    for_each(pies.begin(), pies.end(), [&](Piece* p) { res.push_back(p->seat()); });
+    return res;
+}
+
 //判断是否将军
-bool Board::isKilled(PieceColor color) {
-    PieceColor othColor =
-        color == PieceColor::black ? PieceColor::red : PieceColor::black;
-    int kingSeat{pieces.getKingPie(color)->seat()},
-        othKingSeat{pieces.getKingPie(othColor)->seat()};
+bool Board::isKilled(PieceColor color)
+{
+    PieceColor othColor = color == PieceColor::black ? PieceColor::red : PieceColor::black;
+    int kingSeat{ pieces.getKingPie(color)->seat() },
+        othKingSeat{ pieces.getKingPie(othColor)->seat() };
     if (isSameCol(kingSeat, othKingSeat)) {
-        vector<int> ss{getSameColSeats(kingSeat, othKingSeat)};
+        vector<int> ss{ getSameColSeats(kingSeat, othKingSeat) };
         if (std::all_of(ss.begin(), ss.end(),
-                        [this](int s) { return isBlank(s); }))
+                [this](int s) { return isBlank(s); }))
             return true;
     }
     for (auto pie : pieces.getLiveStrongePies(othColor)) {
@@ -29,32 +46,47 @@ bool Board::isKilled(PieceColor color) {
 }
 
 //判断是否被将死
-bool Board::isDied(PieceColor color) {
+bool Board::isDied(PieceColor color)
+{
     for (auto pie : pieces.getLivePies(color))
         if (pie->getCanMoveSeats(this).size() > 0)
             return false;
     return true;
 }
 
-Piece *Board::move_go(int fseat, int tseat) {
-    Piece *eatPiece = pieSeats[tseat];
+inline Piece* Board::go(Move* move)
+{
+    return move->setEatPiece(move_go(move->fseat(), move->tseat()));
+}
+
+inline void Board::back(Move* move)
+{
+    move_back(move->fseat(), move->tseat(), move->eatPiece());
+}
+
+inline Piece* Board::move_go(int fseat, int tseat)
+{
+    Piece* eatPiece = pieSeats[tseat];
     eatPiece->setSeat(nullSeat);
     __setPiece(getPiece(fseat), tseat);
     __setPiece(Pieces::nullPiePtr, fseat);
     return eatPiece;
 }
 
-void Board::move_back(int fseat, int tseat, Piece *eatPiece) {
+inline void Board::move_back(int fseat, int tseat, Piece* eatPiece)
+{
     __setPiece(getPiece(tseat), fseat);
     __setPiece(eatPiece, tseat);
 }
 
-inline void Board::__setPiece(Piece *pie, int tseat) {
+inline void Board::__setPiece(Piece* pie, int tseat)
+{
     pieSeats[tseat] = pie;
     pie->setSeat(tseat);
 }
 
-wstring Board::getFEN() {
+wstring Board::getFEN()
+{
     wstring res{};
     return res;
 }
@@ -70,12 +102,14 @@ chessInstance.moves.goTo(currentMove, chessInstance.board);
 }
 */
 
-void Board::setFEN(wstring FEN) {
+void Board::setFEN(wstring FEN)
+{
     //'数字字符对应下划线字符串'
     map<wchar_t, wstring> num_lines{
-        {L'9', L"_________"}, {L'8', L"________"}, {L'7', L"_______"},
-        {L'6', L"______"},    {L'5', L"_____"},    {L'4', L"____"},
-        {L'3', L"___"},       {L'2', L"__"},       {L'1', L"_"}};
+        { L'9', L"_________" }, { L'8', L"________" }, { L'7', L"_______" },
+        { L'6', L"______" }, { L'5', L"_____" }, { L'4', L"____" },
+        { L'3', L"___" }, { L'2', L"__" }, { L'1', L"_" }
+    };
     wstring chars_temp{}, chars{};
     FEN = L'/' + FEN;
     while (FEN.size()) {
@@ -84,11 +118,12 @@ void Board::setFEN(wstring FEN) {
         FEN.erase(p);
     }
     for (auto ch : chars_temp)
-        chars += std::isdigit(ch) ? num_lines[ch] : wstring{ch};
+        chars += std::isdigit(ch) ? num_lines[ch] : wstring{ ch };
     __setPieces(chars);
 }
 
-void Board::__setPieces(wstring chars) {
+void Board::__setPieces(wstring chars)
+{
     __clearPieces();
     auto getPie = [&](wchar_t ch) {
         if (ch == Piece::nullChar)
@@ -101,15 +136,16 @@ void Board::__setPieces(wstring chars) {
     for (int s = 0; s < 90; ++s)
         __setPiece(getPie(chars[s]), s);
     bottomColor = pieces.getKingPie(PieceColor::red)->seat() < 45
-                      ? PieceColor::red
-                      : PieceColor::black;
+        ? PieceColor::red
+        : PieceColor::black;
 }
 
-void Board::__clearPieces() {
+void Board::__clearPieces()
+{
     std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
     auto ps = pieces.getPies();
     for_each(ps.begin(), ps.end(),
-             [&](Piece *p) { p->setSeat(nullSeat); });
+        [&](Piece* p) { p->setSeat(nullSeat); });
 }
 
 void Board::changeSide(ChangeType ct) {} // = ChangeType::exchange
@@ -160,13 +196,15 @@ rotateSeat : symmetrySeat;
 }
             */
 
-wstring Board::__FEN() {
+wstring Board::__FEN()
+{
     wstring res{};
     //'下划线字符串对应数字字符'
     vector<pair<wstring, wstring>> line_nums{
-        {L"_________", L"9"}, {L"________", L"8"}, {L"_______", L"7"},
-        {L"______", L"6"},    {L"_____", L"5"},    {L"____", L"4"},
-        {L"___", L"3"},       {L"__", L"2"},       {L"_", L"1"}};
+        { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
+        { L"______", L"6" }, { L"_____", L"5" }, { L"____", L"4" },
+        { L"___", L"3" }, { L"__", L"2" }, { L"_", L"1" }
+    };
     for (int row = MaxRow; row >= MinRow; --row) {
         for (int col = MinCol; col <= MaxCol; ++col)
             res += getPiece(getSeat(row, col))->wchar();
@@ -180,36 +218,38 @@ wstring Board::__FEN() {
     return res;
 }
 
-const wstring Board::toString() {
-    auto getName = [](Piece *p) {
+const wstring Board::toString()
+{
+    auto getName = [](Piece* p) {
         map<wchar_t, wchar_t> rcpName{
-            {L'车', L'車'}, {L'马', L'馬'}, {L'炮', L'砲'}};
+            { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' }
+        };
         wchar_t name = p->chName();
-        return (p->color() == PieceColor::black &&
-                rcpName.find(name) != rcpName.end())
-                   ? rcpName[name]
-                   : name;
+        return (p->color() == PieceColor::black && rcpName.find(name) != rcpName.end())
+            ? rcpName[name]
+            : name;
     };
-    wstring res{Board_base::TextBlankBoard};
+    wstring res{ Board_base::TextBlankBoard };
     for (auto p : pieces.getLivePies())
-        res[(9 - getRow(p->seat())) * 2 * 18 + getCol(p->seat()) * 2] =
-            getName(p);
+        res[(9 - getRow(p->seat())) * 2 * 18 + getCol(p->seat()) * 2] = getName(p);
     return res;
 }
 
-wstring Board::test_board() {
+wstring Board::test_board()
+{
     wstringstream wss{};
     wss << L"test "
            L"board.h\n----------------------------------------------------"
            L"-\n";
     for (auto fen :
-         {L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5",
-          L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR"}) {
+        { L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5",
+            L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR" }) {
         wss << L"  fen  :" << fen << L'\n';
         setFEN(fen);
         wss << L"__FEN():" << __FEN() << L'\n';
 
-        wss << L"Board::toString():\n" << toString();
+        wss << L"Board::toString():\n"
+            << toString();
 
         wss << L"Piece::getCanMoveSeats():\n";
         for (auto p : pieces.getLivePies()) {

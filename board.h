@@ -2,12 +2,16 @@
 #define BOARD_H
 
 #include "piece.h"
+
 #include <string>
 using std::wstring;
 
 // 棋盘端部
 enum class BoardSide { bottom, top };
 enum class ChangeType { exchange, rotate, symmetry };
+class Piece;
+class Pieces;
+class Move;
 
 class Board {
   public:
@@ -25,6 +29,11 @@ class Board {
         return isBottomSide(color) ? BoardSide::bottom : BoardSide::top;
     }   
 
+    vector<int> getSideNameSeats(PieceColor color, wchar_t name);
+    vector<int> getSideNameColSeats(PieceColor color, wchar_t name, int col);
+
+    Piece *go(Move* move);
+    void back(Move* move);
     Piece *move_go(int fseat, int tseat);
     void move_back(int fseat, int tseat, Piece *eatPiece);
 
@@ -39,13 +48,14 @@ class Board {
     wstring test_board();
 
     PieceColor bottomColor; // 底端棋子颜色
-    Pieces pieces;            // 一副棋子类
   private:
     wstring __FEN();
+    vector<int> __getSeats(vector<Piece *> pies);
     void __setPieces(wstring chars);
     void __setPiece(Piece *pie, int tseat);
     void __clearPieces();
 
+    Pieces pieces;            // 一副棋子类
     vector<Piece *> pieSeats; // 棋盘容器，顺序号即为位置seat
 };                            // Board class end.
 

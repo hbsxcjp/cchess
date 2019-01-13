@@ -3,6 +3,7 @@
 
 class Board;
 #include "board_base.h"
+using namespace Board_base;
 
 #include <string>
 using std::wstring;
@@ -17,7 +18,6 @@ using std::wstringstream;
 using std::boolalpha;
 using std::setw;
 
-using namespace Board_base;
 
 // 棋子类
 class Piece {

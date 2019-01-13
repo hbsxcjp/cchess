@@ -1,4 +1,4 @@
-#include "piece.h"
+//#include "piece.h"
 #include "board.h"
 
 #include <algorithm>

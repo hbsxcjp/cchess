@@ -1,7 +1,10 @@
 #include "info.h"
-#include "board_base.h"
+//#include "board_base.h"
 //#include "piece.h"
-#include "board.h"
+//#include "board.h"
+#include "move.h"
+
+
 //#include <fstream>
 #include <locale>
 
@@ -21,7 +24,8 @@ int main(int argc, char const *argv[]) {
     
     //Pieces ps{Pieces()};
     //wcout << ps.test_piece();
-    wcout << Board().test_board();
+    //wcout << Board().test_board();
+    wcout << Moves().test_moves();
 
     return 0;
 }
