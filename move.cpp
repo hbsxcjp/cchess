@@ -1,54 +1,44 @@
 //#include "piece.h"
-#include "board.h"
 #include "move.h"
+#include "board.h"
 
 #include <algorithm>
 #include <regex>
 #include <sstream>
 using namespace std;
 
-Move::Move(int fseat = nullSeat, int tseat = nullSeat, wstring remark = L"")
-    : remark{ remark }
-    , fs{ fseat }
-    , ts{ tseat }
-{
+Move::Move(int fseat = nullSeat, int tseat = nullSeat, wstring aremark = L"")
+    : remark{aremark}, fs{fseat}, ts{tseat} {}
+
+void Move::setNext(Move *next) {
+    next->stepNo = stepNo + 1; // 步数
+    next->othCol = othCol;     // 变着层数
+    next->setPrev(this);
+    nt = next;
 }
 
-void Move::setNext(Move* next_)
-{
-    next_->stepNo = stepNo + 1; // 步数
-    next_->othCol = othCol; // 变着层数
-    next_->setPrev(this);
-
-    nt = next_;
-}
-
-void Move::setOther(Move* other)
-{
-    other->stepNo = stepNo; // 与premove的步数相同
+void Move::setOther(Move *other) {
+    other->stepNo = stepNo;     // 与premove的步数相同
     other->othCol = othCol + 1; // 变着层数
     other->setPrev(prev());
-
     ot = other;
 }
 
-void Move::setSeat__ICCS(Board* board)
-{
+void Move::setSeat__ICCS(Board *board) {
     fs = getSeat(static_cast<int>(ColChars.find(da[1])),
-        static_cast<int>(da[0]));
+                 static_cast<int>(da[0]));
     ts = getSeat(static_cast<int>(ColChars.find(da[3])),
-        static_cast<int>(da[2]));
+                 static_cast<int>(da[2]));
 }
 
-void Move::setICCS()
-{
+void Move::setICCS() {
     wstringstream wss{};
-    wss << getCol(fs) << ColChars[getRow(fs)] << getCol(ts) << ColChars[getRow(ts)];
+    wss << getCol(fs) << ColChars[getRow(fs)] << getCol(ts)
+        << ColChars[getRow(ts)];
     da = wss.str();
 }
 
-wstring Move::getStr(RecFormat fmt)
-{
+wstring Move::getStr(RecFormat fmt) {
     switch (fmt) {
     case RecFormat::ICCS:
         return da;
@@ -60,8 +50,7 @@ wstring Move::getStr(RecFormat fmt)
 }
 
 //根据中文纵线着法描述取得源、目标位置: (fseat, tseat)
-void Move::setSeat__ZhStr(Board* board)
-{
+void Move::setSeat__ZhStr(Board *board) {
     /*
     int index;
     vector<int> seats{};
@@ -79,10 +68,8 @@ void Move::setSeat__ZhStr(Board* board)
         int col{ __getCol(__getNum(zh[1])) };
         seats = board->getSideNameColSeats(color, name, col);
         //# 排除：士、象同列时不分前后，以进、退区分棋子
-        index = (seats.size() == 2 && find_char(Pieces::advbisNames, name) && (zh[2] == L'退') == isBottomSide)
-            ? seats.size() - 1
-            : 0;
-    } else {
+        index = (seats.size() == 2 && find_char(Pieces::advbisNames, name) &&
+    (zh[2] == L'退') == isBottomSide) ? seats.size() - 1 : 0; } else {
         //# 未获得棋子, 查找某个排序（前后中一二三四五）某方某个名称棋子
         index = ChNum_Indexs[zh[0]];
         name = zh[1];
@@ -134,8 +121,7 @@ void Move::setSeat__ZhStr(Board* board)
 }
 
 // 根据源、目标位置: (fseat, tseat)取得中文纵线着法描述
-void Move::setZhStr(Board* board)
-{
+void Move::setZhStr(Board *board) {
     /*
     wstring firstStr;
     int fromRow{ getRow(fs) }, fromCol{ getCol(fs) };
@@ -156,27 +142,29 @@ void Move::setZhStr(Board* board)
             length = seats.size();
         } else if (isBottomSide) //# '车', '马', '炮'
             seats = reverse(seats);
-        wstring indexStr{ length == 2 ? L"前后" : (length == 3 ? L"前中后" : L"一二三四五") };
-        firstStr = indexStr[find_index(seats, fs)] + name;
-    } else
+        wstring indexStr{ length == 2 ? L"前后" : (length == 3 ? L"前中后" :
+    L"一二三四五") }; firstStr = indexStr[find_index(seats, fs)] + name; } else
         //#仕(士)和相(象)不用“前”和“后”区别，因为能退的一定在前，能进的一定在后
         firstStr = L"" + name + __getColChar(color, fromCol);
 
     int toRow{ getRow(ts) };
-    zh = firstStr + (toRow == fromRow ? L'平' : (isBottomSide == (toRow > fromRow) ? L'进' : L'退'))
-        + (toRow == fromRow || !find_char(Pieces::lineNames, name) ? __getColChar(color, getCol(ts)) : (Side_ChNums[color][toRow > fromRow ? toRow - fromRow - 1 : fromRow - toRow - 1]));
+    zh = firstStr + (toRow == fromRow ? L'平' : (isBottomSide == (toRow >
+    fromRow) ? L'进' : L'退'))
+        + (toRow == fromRow || !find_char(Pieces::lineNames, name) ?
+    __getColChar(color, getCol(ts)) : (Side_ChNums[color][toRow > fromRow ?
+    toRow - fromRow - 1 : fromRow - toRow - 1]));
     // 断言已通过
     //this.setSeatFromZhStr(board);
     //if (fseat != this.fseat || tseat != this.tseat)
-    //    console.log(board.toString(), fseat, tseat, '=>', this.zhStr, '=>', this.fseat, this.tseat);
+    //    console.log(board.toString(), fseat, tseat, '=>', this.zhStr, '=>',
+    this.fseat, this.tseat);
 
     */
 }
 
-void Move::fromJSON(wstring moveJSON, Board* board) {}
+void Move::fromJSON(wstring moveJSON, Board *board) {}
 // （rootMove）调用
-void Move::fromICCSZh(wstring moveStr, Board* board)
-{
+void Move::fromICCSZh(wstring moveStr, Board *board) {
 
     /*
     auto __setMoves = [&](Move* move, wstring mvstr, bool isOther) { //# 非递归
@@ -203,16 +191,15 @@ void Move::fromICCSZh(wstring moveStr, Board* board)
         //wregex moverg{R"(([\u4E00-\u9FA5]{4})(?:\s+\{([\s\S]*?)\})?)"};
         //console.log(moveStr);
         //let moverg = / ([\u4E00-\u9FA5]{4})(?:\s+\{([\s\S]*?)\})?/ugm;
-        // 第一届“嘉宝杯”粤沪象棋对抗赛 - 上海胡荣华 (先和) 广东吕钦： 出现“审形度势”的错误！
+        // 第一届“嘉宝杯”粤沪象棋对抗赛 - 上海胡荣华 (先和) 广东吕钦：
+    出现“审形度势”的错误！
 
         wregex moverg{R"(([^\.\{\}\s/-]{4})(?:\s+\{([\s\S]*?)\})?)"};
-        //let moverg = / ([^\.\{\}\s/-]{4})(?:\s+\{([\s\S]*?)\})?/gm; // 插入:(?= )
-        //# 走棋信息 (?:pattern)匹配pattern,但不获取匹配结果;  注解[\s\S]*?: 非贪婪
-        Move *thisMove;
-        wstring leftStr;
-        int index;
-        vector<Move*> othMove{this};
-        bool isOther = false;
+        //let moverg = / ([^\.\{\}\s/-]{4})(?:\s+\{([\s\S]*?)\})?/gm; //
+    插入:(?= )
+        //# 走棋信息 (?:pattern)匹配pattern,但不获取匹配结果;  注解[\s\S]*?:
+    非贪婪 Move *thisMove; wstring leftStr; int index; vector<Move*>
+    othMove{this}; bool isOther = false;
 
         let leftStrs = moveStr.split(/\(\d+\./gm);
         //# 如果注解里存在‘\(\d+\.’的情况，则可能会有误差
@@ -235,28 +222,24 @@ void Move::fromICCSZh(wstring moveStr, Board* board)
         */
 }
 
-void Move::fromCC(wstring moveStr, Board* board) {}
+void Move::fromCC(wstring moveStr, Board *board) {}
 
-wstring Move::toJSON()
-{
+wstring Move::toJSON() {
     wstring res{};
     return res;
 } // JSON
 
-wstring Move::toString()
-{
+wstring Move::toString() {
     wstringstream wss{};
-    wss << L"{stepNo:" << stepNo << L" othCol:" << othCol
-        << L" maxCol:" << maxCol << L" fseat:" << fs
-        << L" tseat:" << ts << L" zhStr:" << zh
+    wss << L"{stepNo:" << stepNo << L" othCol:" << othCol << L" maxCol:"
+        << maxCol << L" fseat:" << fs << L" tseat:" << ts << L" zhStr:" << zh
         << L",remark:" << remark << L"}";
     return wss.str();
 }
 
 // （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
-void Move::initSet(function<void(Move*, Board*)> setFunc, Board* board)
-{
-    function<void(Move*)> __set = [&](Move* move) {
+void Move::initSet(function<void(Move *, Board *)> setFunc, Board *board) {
+    function<void(Move *)> __set = [&](Move *move) {
         setFunc(move, board);
         board->go(move);
         if (move->next())
@@ -270,30 +253,29 @@ void Move::initSet(function<void(Move*, Board*)> setFunc, Board* board)
 }
 
 // Moves
-inline PieceColor Moves::currentColor()
-{
-    return currentMove->stepNo % 2 == 0 ? firstColor : (firstColor == PieceColor::red ? PieceColor::black : PieceColor::red);
+inline PieceColor Moves::currentColor() {
+    return currentMove->stepNo % 2 == 0
+               ? firstColor
+               : (firstColor == PieceColor::red ? PieceColor::black
+                                                : PieceColor::red);
 }
 
-vector<Move*> Moves::getPrevMoves(Move* move)
-{
-    vector<Move*> res{ move };
+vector<Move *> Moves::getPrevMoves(Move *move) {
+    vector<Move *> res{move};
     while ((move = move->prev()) != rootMove)
         res.insert(res.begin(), move);
     return res;
 }
 
 // 基本走法
-void Moves::forward(Board* board)
-{
+void Moves::forward(Board *board) {
     if (currentMove->next()) {
         currentMove = currentMove->next();
         board->go(currentMove);
     }
 }
 
-void Moves::backward(Board* board)
-{
+void Moves::backward(Board *board) {
     if (currentMove->prev()) {
         board->back(currentMove);
         currentMove = currentMove->prev();
@@ -301,10 +283,9 @@ void Moves::backward(Board* board)
 }
 
 //'移动到当前节点的另一变着'
-void Moves::forwardOther(Board* board)
-{
+void Moves::forwardOther(Board *board) {
     if (currentMove->other()) {
-        Move* toMove = currentMove->other();
+        Move *toMove = currentMove->other();
         board->back(currentMove);
         board->go(toMove);
         currentMove = toMove;
@@ -312,30 +293,26 @@ void Moves::forwardOther(Board* board)
 }
 
 // 复合走法
-void Moves::to(Move* move, Board* board)
-{
+void Moves::to(Move *move, Board *board) {
     if (move == currentMove)
         return;
     toFirst(board);
-    for (auto& m : getPrevMoves(move))
+    for (auto &m : getPrevMoves(move))
         board->go(m);
     currentMove = move;
 }
 
-void Moves::toFirst(Board* board)
-{
+void Moves::toFirst(Board *board) {
     while (!isStart())
         backward(board);
 }
 
-void Moves::toLast(Board* board)
-{
+void Moves::toLast(Board *board) {
     while (!isLast())
         forward(board);
 }
 
-void Moves::go(Board* board, int inc = 1)
-{
+void Moves::go(Board *board, int inc = 1) {
     if (inc > 0)
         for (int i = 0; i != inc; ++i)
             forward(board);
@@ -345,10 +322,9 @@ void Moves::go(Board* board, int inc = 1)
 }
 
 // 添加着法，复合走法
-void Moves::addMove(int fseat, int tseat, wstring remark, Board* board,
-    bool isOther = false)
-{
-    Move move{ Move(fseat, tseat, remark) };
+void Moves::addMove(int fseat, int tseat, wstring remark, Board *board,
+                    bool isOther = false) {
+    Move move{Move(fseat, tseat, remark)};
     move.setZhStr(board);
     if (isOther) {
         currentMove->setOther(&move);
@@ -362,18 +338,16 @@ void Moves::addMove(int fseat, int tseat, wstring remark, Board* board,
 
 inline void Moves::cutNext() { currentMove->setNext(nullptr); }
 
-inline void Moves::cutOther()
-{
+inline void Moves::cutOther() {
     if (currentMove->other())
         currentMove->setOther(currentMove->other()->other());
 }
 
-void Moves::setFrom(wstring moveStr, Board* board, RecFormat fmt)
-{
+void Moves::setFrom(wstring moveStr, Board *board, RecFormat fmt) {
     __clear();
     if (fmt == RecFormat::JSON)
         rootMove->fromJSON(moveStr, board);
-    //rootMove->initSet(rootMove.setZhStr, board);
+    // rootMove->initSet(rootMove.setZhStr, board);
     else {
         if (fmt == RecFormat::CC)
             rootMove->fromCC(moveStr, board);
@@ -387,12 +361,14 @@ void Moves::setFrom(wstring moveStr, Board* board, RecFormat fmt)
     __initNums(board);
 }
 
-wstring Moves::toString()
-{
+wstring Moves::toString() {
     wstringstream wss;
-    function<void(Move*)> __remark = [&](Move* move) { if(move->remark.size() != 0) wss << L"\n{" << move->remark << L"}\n"; };
+    function<void(Move *)> __remark = [&](Move *move) {
+        if (move->remark.size() != 0)
+            wss << L"\n{" << move->remark << L"}\n";
+    };
     __remark(rootMove);
-    function<void(Move*, bool)> __moveStr = [&](Move* move, bool isOther) {
+    function<void(Move *, bool)> __moveStr = [&](Move *move, bool isOther) {
         int boutNum = (move->stepNo + 1) / 2;
         bool isEven = move->stepNo % 2 == 0;
         if (isOther)
@@ -419,22 +395,23 @@ wstring Moves::toString()
     return wss.str();
 }
 
-wstring Moves::toLocaleString()
-{
+wstring Moves::toLocaleString() {
     wstringstream remstrs{};
     wstring lstr((maxCol + 1) * 5, L'　');
     vector<wstring> lineStr((maxRow + 1) * 2, lstr);
-    //rootMove->setZhStr(L"1.开始");
+    // rootMove->setZhStr(L"1.开始");
 
-    function<void(Move*)> __setChar = [&](Move* move) {
+    function<void(Move *)> __setChar = [&](Move *move) {
         int firstcol = move->maxCol * 5;
         for (int i = 0; i < 4; ++i)
-            //console.log(lineStr[move.stepNo * 2] || `${move.stepNo * 2}`);
-            lineStr[move->stepNo * 2][firstcol + i] = move->getStr(RecFormat::zh)[i];
+            // console.log(lineStr[move.stepNo * 2] || `${move.stepNo * 2}`);
+            lineStr[move->stepNo * 2][firstcol + i] =
+                move->getStr(RecFormat::zh)[i];
         if (move->remark.size())
-            remstrs << L"(" << move->stepNo << L"," << move->maxCol << L"): {" << move->remark << L'\n';
+            remstrs << L"(" << move->stepNo << L"," << move->maxCol << L"): {"
+                    << move->remark << L'\n';
         if (move->next()) {
-            int row{ move->stepNo * 2 + 1 };
+            int row{move->stepNo * 2 + 1};
             lineStr[row][firstcol + 1] = L' ';
             lineStr[row][firstcol + 2] = L'↓';
             lineStr[move->stepNo * 2 + 1][firstcol + 2] = L' ';
@@ -458,8 +435,7 @@ wstring Moves::toLocaleString()
     return wss.str() + remstrs.str();
 }
 
-void Moves::__clear()
-{
+void Moves::__clear() {
     moves = {};
     rootMove = nullptr;
     currentMove = nullptr;
@@ -467,9 +443,8 @@ void Moves::__clear()
     movCount = remCount = remLenMax = othCol = maxRow = maxCol = 0;
 }
 
-void Moves::__initNums(Board* board)
-{
-    function<void(Move*)> setNums = [&](Move* move) {
+void Moves::__initNums(Board *board) {
+    function<void(Move *)> setNums = [&](Move *move) {
         movCount += 1;
         if (move->remark.size()) {
             remCount += 1;
@@ -497,7 +472,9 @@ void Moves::__initNums(Board* board)
     // # 驱动调用递归函数
 }
 
-wstring Moves::test_moves(){
-    wstring ws{};
+wstring Moves::test_moves() {
+    wstring ws{readTxt("01.pgn")};
+    
+    //writeTxt("out.pgn", ws);
     return ws;
 }

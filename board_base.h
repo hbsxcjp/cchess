@@ -2,6 +2,7 @@
 #define BOARD_BASE_H
 
 #include <string>
+using std::string;
 using std::wstring;
 #include <vector>
 using std::vector;
@@ -115,6 +116,9 @@ int find_index(vector<int> seats, int seat);
 vector<int> reverse(vector<int> seats); // '反转排序'
 
 wstring print_vector_int(vector<int> vi);
+wstring readTxt(string fileName);
+void writeTxt(string fileName, wstring ws);
+
 // 测试函数
 wstring test_constValue();
 wstring test_getSeats();

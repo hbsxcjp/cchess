@@ -54,17 +54,17 @@ bool Board::isDied(PieceColor color)
     return true;
 }
 
-inline Piece* Board::go(Move* move)
+Piece* Board::go(Move* move)
 {
     return move->setEatPiece(move_go(move->fseat(), move->tseat()));
 }
 
-inline void Board::back(Move* move)
+void Board::back(Move* move)
 {
     move_back(move->fseat(), move->tseat(), move->eatPiece());
 }
 
-inline Piece* Board::move_go(int fseat, int tseat)
+Piece* Board::move_go(int fseat, int tseat)
 {
     Piece* eatPiece = pieSeats[tseat];
     eatPiece->setSeat(nullSeat);
@@ -73,13 +73,13 @@ inline Piece* Board::move_go(int fseat, int tseat)
     return eatPiece;
 }
 
-inline void Board::move_back(int fseat, int tseat, Piece* eatPiece)
+void Board::move_back(int fseat, int tseat, Piece* eatPiece)
 {
     __setPiece(getPiece(tseat), fseat);
     __setPiece(eatPiece, tseat);
 }
 
-inline void Board::__setPiece(Piece* pie, int tseat)
+void Board::__setPiece(Piece* pie, int tseat)
 {
     pieSeats[tseat] = pie;
     pie->setSeat(tseat);

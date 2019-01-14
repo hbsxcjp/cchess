@@ -1,4 +1,4 @@
-#include "info.h"
+//#include "info.h"
 //#include "board_base.h"
 //#include "piece.h"
 //#include "board.h"
