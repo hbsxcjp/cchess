@@ -55,18 +55,8 @@ const vector<int> topPawnSeats{
     38, 39, 40, 41, 42, 43, 44, 45, 47, 49, 51, 53, 54, 56, 58, 60, 62
 };
 
-// 棋盘相关字符串
-const map<PieceColor, wstring> Side_ChNums{
-    { PieceColor::red, L"一二三四五六七八九" },
-    { PieceColor::black, L"１２３４５６７８９" }
-};
-const map<wchar_t, int> ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
-    { L'四', 3 }, { L'五', 4 }, { L'前', 0 },
-    { L'中', 1 }, { L'后', 1 } };
-const map<wchar_t, int> Direction_Nums{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
-
-const wstring FEN{ L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/"
-                   L"RNBAKABNR r - - 0 1" };
+const wstring FEN{ L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR" };
+const wstring FENPro{ FEN + L" r - - 0 1" };                   
 const wstring ColChars{ L"abcdefghi" };
 // 文本空棋盘
 const wstring TextBlankBoard{ L"┏━┯━┯━┯━┯━┯━┯━┯━┓\n"
@@ -88,6 +78,12 @@ const wstring TextBlankBoard{ L"┏━┯━┯━┯━┯━┯━┯━┯━
                               "┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
                               "┃　│　│　│╱│╲│　│　│　┃\n"
                               "┗━┷━┷━┷━┷━┷━┷━┷━┛\n" }; // 边框粗线
+
+// 字符获取函数
+wstring getColChars(PieceColor color);
+wchar_t getColChar(PieceColor color, int col);
+int getIndex(wchar_t ch);
+int getNum(wchar_t ch);
 
 // 位置操作函数
 int getRow(int seat);
@@ -116,16 +112,12 @@ int find_index(vector<int> seats, int seat);
 vector<int> reverse(vector<int> seats); // '反转排序'
 
 wstring print_vector_int(vector<int> vi);
-wstring readTxt(string fileName);
-void writeTxt(string fileName, wstring ws);
+wstring readTxt(const char* fileName);
+void writeTxt(const char* fileName, wstring ws);
+pair<map<wstring, wstring>, wstring> getHead_Body(const char* filename);
 
 // 测试函数
-wstring test_constValue();
-wstring test_getSeats();
-wstring test_getMoveSeats();
-wstring test_getRowCols();
-
-wstring test_board_base();
+wstring test();
 } // namespace Board_base
 
 #endif

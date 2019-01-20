@@ -10,36 +10,17 @@ using std::wstring;
 class Info {
 
 public:
-    Info()
-        : info{ { L"Author", L"" },
-            { L"Black", L"" },
-            { L"BlackTeam", L"" },
-            { L"Date", L"" },
-            { L"ECCO", L"" },
-            { L"Event", L"" },
-            { L"FEN", L"" },
-            { L"Format", L"zh" },
-            { L"Game", L"Chinese Chess" },
-            { L"Opening", L"" },
-            { L"PlayType", L"" },
-            { L"RMKWriter", L"" },
-            { L"Red", L"" },
-            { L"RedTeam", L"" },
-            { L"Result", L"" },
-            { L"Round", L"" },
-            { L"Site", L"" },
-            { L"Title", L"" },
-            { L"Variation", L"" },
-            { L"Version", L"" } } {};
+    Info();
+    Info(map<wstring, wstring> minfo);
+
+    wstring getFEN();
 
     wstring toString();
-    wstring test_info();
+    wstring test();
+
+    map<wstring, wstring> info;
 
 private:
-    map<wstring, wstring> info;
 };
-
-
-
 
 #endif
