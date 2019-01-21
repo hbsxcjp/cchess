@@ -2,6 +2,7 @@
 #define MOVE_H
 
 #include "board_base.h"
+#include "piece.h"
 using namespace Board_base;
 
 #include <vector>
@@ -38,14 +39,14 @@ public:
         fs = seats.first;
         ts = seats.second;
     }
-    Piece* eatPiece() { return eatPiePtr; }
-    Piece* setEatPiece(Piece* pie) { return eatPiePtr = pie; }
+    Piece* eatp() { return ep; }
     Move* prev() { return pr; }
     Move* next() { return nt; }
     Move* other() { return ot; }
+    void setEatp(Piece* pie) { ep = pie; }
     void setPrev(Move* prev) { pr = prev; }
-    Move* setNext(Move* next);
-    Move* setOther(Move* other);
+    void setNext(Move* next);
+    void setOther(Move* other);
 
     wstring toJSON(); // JSON
     wstring toString();
@@ -61,7 +62,7 @@ public:
 private:
     int fs;
     int ts;
-    Piece* eatPiePtr{ nullptr };
+    Piece* ep{ Pieces::nullPiePtr };
     Move* pr{ nullptr };
     Move* nt{ nullptr };
     Move* ot{ nullptr };
@@ -71,7 +72,7 @@ private:
 class Moves {
 public:
     Moves();
-    Moves(wstring moveStr, RecFormat fmt, Board* board);
+    Moves(wstring moveStr, RecFormat fmt, Board& board);
 
     PieceColor currentColor();
     bool isStart() { return currentMove == &rootMove; }
@@ -79,27 +80,27 @@ public:
 
     // 基本走法
     vector<Move*> getPrevMoves(Move* move);
-    void forward(Board* board);
-    void backward(Board* board);
-    void forwardOther(Board* board);
+    void forward(Board& board);
+    void backward(Board& board);
+    void forwardOther(Board& board);
     // 复合走法
-    void backwardTo(Move* move, Board* board);
-    void to(Move* move, Board* board);
-    void toFirst(Board* board);
-    void toLast(Board* board);
-    void go(Board* board, int inc);
+    void backwardTo(Move* move, Board& board);
+    void to(Move* move, Board& board);
+    void toFirst(Board& board);
+    void toLast(Board& board);
+    void go(Board& board, int inc);
 
     void cutNext();
     void cutOther();
     const wstring getICCS(int fseat, int tseat);
-    const wstring getZh(int fseat, int tseat, Board* board) const; //(fseat, tseat)->中文纵线着法, 着法未走状态
-    const pair<int, int> getSeat__ICCS(wstring ICCS, Board* board);
-    const pair<int, int> getSeat__Zh(wstring Zh, Board* board) const; //中文纵线着法->(fseat, tseat), 着法未走状态
+    const wstring getZh(int fseat, int tseat, Board& board) const; //(fseat, tseat)->中文纵线着法, 着法未走状态
+    const pair<int, int> getSeat__ICCS(wstring ICCS, Board& board);
+    const pair<int, int> getSeat__Zh(wstring Zh, Board& board) const; //中文纵线着法->(fseat, tseat), 着法未走状态
 
-    void fromICCSZh(wstring moveStr, RecFormat fmt, Board* board);
-    void fromJSON(wstring moveJSON, Board* board);
-    void fromCC(wstring moveStr, Board* board);
-    void setFrom(wstring moveStr, RecFormat fmt, Board* board);
+    void fromICCSZh(wstring moveStr, RecFormat fmt, Board& board);
+    void fromJSON(wstring moveJSON, Board& board);
+    void fromCC(wstring moveStr, Board& board);
+    void setFrom(wstring moveStr, RecFormat fmt, Board& board);
 
     wstring toString();
     wstring toLocaleString();
@@ -108,8 +109,8 @@ public:
 
 private:
     void __clear();
-    void __initSet(RecFormat fmt, Board* board);
-    void __initNums(Board* board);
+    void __initSet(RecFormat fmt, Board& board);
+    void __initNums(Board& board);
 
     vector<Move> moves;
     Move rootMove;
