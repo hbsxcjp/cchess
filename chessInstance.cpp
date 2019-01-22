@@ -19,7 +19,7 @@ void ChessInstance::setFrom(const char* filename)
     info = Info(info_moves.first);
     board = Board(info.getFEN());
     RecFormat fmt = info.info[L"Format"] == L"zh" ? RecFormat::zh : RecFormat::ICCS;
-    moves = Moves(info_moves.second, fmt, &board);
+    moves = Moves(info_moves.second, fmt, board);
 }
 
 wstring ChessInstance::toString()

@@ -65,12 +65,13 @@ bool Board::isDied(PieceColor color)
     return true;
 }
 
-Piece* Board::go(Move* move)
+Piece* Board::go(shared_ptr<Move> move)
 {
-    return move->setEatPiece(move_go(move->fseat(), move->tseat()));
+    move->setEatPiece(move_go(move->fseat(), move->tseat()));
+    return move->eatPiece();
 }
 
-void Board::back(Move* move)
+void Board::back(shared_ptr<Move> move)
 {
     move_back(move->fseat(), move->tseat(), move->eatPiece());
 }
@@ -80,7 +81,7 @@ Piece* Board::move_go(int fseat, int tseat)
     Piece* eatPiece = pieSeats[tseat];
     eatPiece->setSeat(nullSeat);
     __setPiece(getPiece(fseat), tseat);
-    __setPiece(Pieces::nullPiePtr, fseat);
+    __setPiece(Pieces::nullPiePtr, fseat);    
     return eatPiece;
 }
 

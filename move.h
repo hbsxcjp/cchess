@@ -12,6 +12,8 @@ using std::function;
 using std::wstring;
 #include <utility>
 using std::pair;
+#include <memory>
+using std::shared_ptr;
 
 enum class PieceColor;
 class Piece;
@@ -26,27 +28,22 @@ enum class RecFormat { ICCS,
 class Move {
 
 public:
-    Move(int fseat = nullSeat, int tseat = nullSeat, wstring aremark = L"")
-        : remark{ aremark }
-        , fs{ fseat }
-        , ts{ tseat }
-    {
-    }
-    int fseat() { return fs; }
-    int tseat() { return ts; }
+
+    int fseat() { return fromseat; }
+    int tseat() { return toseat; }
     void setSeat(pair<int, int> seats)
     {
-        fs = seats.first;
-        ts = seats.second;
+        fromseat = seats.first;
+        toseat = seats.second;
     }
-    Piece* eatp() { return ep; }
-    Move* prev() { return pr; }
-    Move* next() { return nt; }
-    Move* other() { return ot; }
-    void setEatp(Piece* pie) { ep = pie; }
-    void setPrev(Move* prev) { pr = prev; }
-    void setNext(Move* next);
-    void setOther(Move* other);
+    Piece* eatPiece() { return eatPie_ptr; }
+    shared_ptr<Move> prev() { return prev_ptr; }
+    shared_ptr<Move> next() { return next_ptr; }
+    shared_ptr<Move> other() { return other_ptr; }
+    void setEatPiece(Piece* pie) { eatPie_ptr = pie; }
+    void setPrev(shared_ptr<Move> prev) { prev_ptr = prev; }
+    void setNext(shared_ptr<Move> next);
+    void setOther(shared_ptr<Move> other);
 
     wstring toJSON(); // JSON
     wstring toString();
@@ -60,12 +57,12 @@ public:
     int maxCol{ 0 }; // 图中列位置（需结合board确定）
 
 private:
-    int fs;
-    int ts;
-    Piece* ep{ Pieces::nullPiePtr };
-    Move* pr{ nullptr };
-    Move* nt{ nullptr };
-    Move* ot{ nullptr };
+    int fromseat{ nullSeat };
+    int toseat{ nullSeat };
+    Piece* eatPie_ptr{ Pieces::nullPiePtr };
+    shared_ptr<Move> prev_ptr{ nullptr };
+    shared_ptr<Move> next_ptr{ nullptr };
+    shared_ptr<Move> other_ptr{ nullptr };
 };
 
 // 棋局着法树类
@@ -75,17 +72,17 @@ public:
     Moves(wstring moveStr, RecFormat fmt, Board& board);
 
     PieceColor currentColor();
-    bool isStart() { return currentMove == &rootMove; }
+    bool isStart() { return currentMove->prev() == nullptr; }
     bool isLast() { return currentMove->next() == nullptr; }
 
     // 基本走法
-    vector<Move*> getPrevMoves(Move* move);
+    vector<shared_ptr<Move>> getPrevMoves(shared_ptr<Move> move);
     void forward(Board& board);
     void backward(Board& board);
     void forwardOther(Board& board);
     // 复合走法
-    void backwardTo(Move* move, Board& board);
-    void to(Move* move, Board& board);
+    void backwardTo(shared_ptr<Move> move, Board& board);
+    void to(shared_ptr<Move> move, Board& board);
     void toFirst(Board& board);
     void toLast(Board& board);
     void go(Board& board, int inc);
@@ -93,13 +90,13 @@ public:
     void cutNext();
     void cutOther();
     const wstring getICCS(int fseat, int tseat);
+    const pair<int, int> getSeat__ICCS(wstring ICCS);
     const wstring getZh(int fseat, int tseat, Board& board) const; //(fseat, tseat)->中文纵线着法, 着法未走状态
-    const pair<int, int> getSeat__ICCS(wstring ICCS, Board& board);
     const pair<int, int> getSeat__Zh(wstring Zh, Board& board) const; //中文纵线着法->(fseat, tseat), 着法未走状态
 
-    void fromICCSZh(wstring moveStr, RecFormat fmt, Board& board);
-    void fromJSON(wstring moveJSON, Board& board);
-    void fromCC(wstring moveStr, Board& board);
+    void fromICCSZh(wstring moveStr, RecFormat fmt);
+    void fromJSON(wstring moveJSON);
+    void fromCC(wstring moveStr);
     void setFrom(wstring moveStr, RecFormat fmt, Board& board);
 
     wstring toString();
@@ -112,9 +109,9 @@ private:
     void __initSet(RecFormat fmt, Board& board);
     void __initNums(Board& board);
 
-    vector<Move> moves;
-    Move rootMove;
-    Move* currentMove; // board对应状态：该着已执行
+    //vector<shared_ptr<Move>> moves;
+    shared_ptr<Move> rootMove;
+    shared_ptr<Move> currentMove; // board对应状态：该着已执行
     PieceColor firstColor; // 棋局载入时需要设置此属性！
     int movCount; //着法数量
     int remCount; //注解数量
