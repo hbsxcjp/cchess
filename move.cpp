@@ -15,23 +15,26 @@ using namespace std;
 
 void Move::setNext(shared_ptr<Move> next)
 {
-    next->stepNo = stepNo + 1; // 步数
-    next->othCol = othCol; // 变着层数
-    auto pre = make_shared<Move>();
-    *pre = *this;
-    next->setPrev(pre);
     next_ptr = next;
-    //wcout << next_ptr->toString() << L'\n' << next->toString() << endl;
+    if (next) {
+        next->stepNo = stepNo + 1; // 步数
+        next->othCol = othCol; // 变着层数
+        auto pre = make_shared<Move>();
+        *pre = *this;
+        next->setPrev(pre);
+    }
 }
 
 void Move::setOther(shared_ptr<Move> other)
 {
-    other->stepNo = stepNo; // 与premove的步数相同
-    other->othCol = othCol + 1; // 变着层数
-    auto pre = make_shared<Move>();
-    *pre = *this;
-    other->setPrev(pre);
     other_ptr = other;
+    if (other) {
+        other->stepNo = stepNo; // 与premove的步数相同
+        other->othCol = othCol + 1; // 变着层数
+        auto pre = make_shared<Move>();
+        *pre = *this;
+        other->setPrev(pre);
+    }
 }
 
 wstring Move::toJSON()
@@ -52,7 +55,6 @@ wstring Move::toString()
 // Moves
 void Moves::__clear()
 {
-    //moves = {};
     rootMove = make_shared<Move>();
     currentMove = rootMove;
     firstColor = PieceColor::red; // 棋局载入时需要设置此属性！
@@ -89,14 +91,14 @@ void Moves::forward(Board& board)
 {
     if (currentMove->next()) {
         currentMove = currentMove->next();
-        board.go(currentMove);
+        board.go(*currentMove);
     }
 }
 
 void Moves::backward(Board& board)
 {
     if (currentMove->prev()) {
-        board.back(currentMove);
+        board.back(*currentMove);
         currentMove = currentMove->prev();
     }
 }
@@ -106,8 +108,8 @@ void Moves::forwardOther(Board& board)
 {
     if (currentMove->other()) {
         shared_ptr<Move> toMove = currentMove->other();
-        board.back(currentMove);
-        board.go(toMove);
+        board.back(*currentMove);
+        board.go(*toMove);
         currentMove = toMove;
     }
 }
@@ -116,7 +118,7 @@ void Moves::forwardOther(Board& board)
 void Moves::backwardTo(shared_ptr<Move> move, Board& board)
 {
     while (move != currentMove) {
-        board.back(move);
+        board.back(*move);
         move = move->prev();
     }
 }
@@ -127,7 +129,7 @@ void Moves::to(shared_ptr<Move> move, Board& board)
         return;
     toFirst(board);
     for (auto& m : getPrevMoves(move))
-        board.go(m);
+        board.go(*m);
     currentMove = move;
 }
 
@@ -153,7 +155,7 @@ inline void Moves::go(Board& board, int inc = 1)
             backward(board);
 }
 
-inline void Moves::cutNext() { ; } //currentMove->setNext(nullptr);
+inline void Moves::cutNext() { currentMove->setNext(nullptr); }
 
 inline void Moves::cutOther()
 {
@@ -178,7 +180,7 @@ const pair<int, int> Moves::getSeat__ICCS(wstring ICCS)
 //(fseat, tseat)->中文纵线着法
 const wstring Moves::getZh(int fseat, int tseat, Board& board) const
 {
-    wstring firstStr;
+    wstringstream wss{};
     int fromRow{ getRow(fseat) }, fromCol{ getCol(fseat) };
     Piece* fromPiece{ board.getPiece(fseat) };
     PieceColor color{ fromPiece->color() };
@@ -186,8 +188,8 @@ const wstring Moves::getZh(int fseat, int tseat, Board& board) const
     bool isBottomSide{ board.isBottomSide(color) };
     vector<int> seats{ board.getSideNameColSeats(color, name, fromCol) };
     int length{ static_cast<int>(seats.size()) };
-    auto __getColChar = [&](PieceColor color, int col) {
-        return getColChar(color, isBottomSide ? MaxCol - col : col);
+    auto __getChar = [&](int col) {
+        return getNumChar(color, isBottomSide ? MaxCol - col : col);
     };
 
     if (length > 1 && find_char(Pieces::strongeNames, name)) {
@@ -196,25 +198,21 @@ const wstring Moves::getZh(int fseat, int tseat, Board& board) const
                 board.getSideNameSeats(color, name));
             length = seats.size();
         } else if (isBottomSide) //# '车', '马', '炮'
-            seats = reverse(seats);
+            reverse(seats.begin(), seats.end());
         wstring indexStr{ length == 2 ? L"前后" : (length == 3 ? L"前中后" : L"一二三四五") };
-        firstStr = indexStr[find_index(seats, fseat)] + name;
+        wss << indexStr[find_index(seats, fseat)] << name;
     } else
         //#仕(士)和相(象)不用“前”和“后”区别，因为能退的一定在前，能进的一定在后
-        firstStr = L"" + name + __getColChar(color, fromCol);
+        wss << name << __getChar(fromCol);
 
     int toRow{ getRow(tseat) };
-    wchar_t toChar{ toRow == fromRow ? L'平' : (isBottomSide == (toRow > fromRow) ? L'进' : L'退') };
-    wchar_t toColChar;
-    if (toRow == fromRow || !find_char(Pieces::lineNames, name))
-        toColChar = __getColChar(color, getCol(tseat));
-    else
-        toColChar = getColChar(color, toRow > fromRow ? toRow - fromRow - 1 : fromRow - toRow - 1);
-    return firstStr + toChar + toColChar;
-    // 断言已通过
-    //this.setSeatFromZhStr(board);
-    //if (fseat != this.fseat || tseat != this.tseat)
-    //    console.log(board.toString(), fseat, tseat, '=>', this.zhStr, '=>',  this.fseat, this.tseat);
+    //wcout << (toRow == fromRow ? L'平' : (isBottomSide == (toRow > fromRow) ? L'进' : L'退')) << endl;
+
+    wss << (toRow == fromRow ? L'平' : (isBottomSide == (toRow > fromRow) ? L'进' : L'退'))
+        << (find_char(Pieces::lineNames, name) && toRow != fromRow
+                   ? getNumChar(color, toRow > fromRow ? toRow - fromRow - 1 : fromRow - toRow - 1)
+                   : __getChar(getCol(tseat)));
+    return wss.str();
 }
 
 //中文纵线着法->(fseat, tseat)
@@ -223,19 +221,19 @@ const pair<int, int> Moves::getSeat__Zh(wstring zhStr, Board& board) const
     int index, fseat, tseat;
     vector<int> seats{};
     // 根据最后一个字符判断该着法属于哪一方
-    PieceColor color{ find_char(getColChars(PieceColor::red), zhStr[zhStr.size() - 1])
+    PieceColor color{ find_char(getNumChars(PieceColor::red), zhStr[zhStr.size() - 1])
             ? PieceColor::red
             : PieceColor::black };
     bool isBottomSide = board.isBottomSide(color);
     wchar_t name{ zhStr[0] };
     auto __getNum = [&](wchar_t ch) {
-        return static_cast<int>(getColChars(color).find(ch)) + 1;
+        return static_cast<int>(getNumChars(color).find(ch)) + 1;
     };
     auto __getCol = [&](int num) { return isBottomSide ? ColNum - num : num - 1; };
     if (find_char(Pieces::allNames, name)) {
         seats = board.getSideNameColSeats(color, name, __getCol(__getNum(zhStr[1])));
-        if (seats.size() < 1)
 
+        if (seats.size() < 1)
             wcout << L"棋子列表少于1个:" << zhStr << L' ' << static_cast<int>(color) << name
                   << __getCol(__getNum(zhStr[1])) << L' ' << L'\n' << board.toString();
 
@@ -246,8 +244,10 @@ const pair<int, int> Moves::getSeat__Zh(wstring zhStr, Board& board) const
         index = getIndex(zhStr[0]);
         name = zhStr[1];
         seats = board.getSideNameSeats(color, name);
+
         if (seats.size() < 2)
             wcout << L"棋子列表少于2个:" << zhStr << L' ' << name << L' ' << board.toString();
+
         if (find_char(Pieces::pawnNames, name)) {
             seats = sortPawnSeats(isBottomSide, seats);
             //#获取多兵的列
@@ -258,7 +258,6 @@ const pair<int, int> Moves::getSeat__Zh(wstring zhStr, Board& board) const
                 index = seats.size() - index - 1;
         }
     }
-    sort(seats.begin(), seats.end(), [&](int a, int b) { return a < b; });
     fseat = seats[index];
 
     // '根据中文行走方向取得棋子的内部数据方向（进：1，退：-1，平：0）'
@@ -312,8 +311,11 @@ void Moves::fromICCSZh(wstring moveStr, RecFormat fmt)
     shared_ptr<Move> move;
     bool isOther{ false }; // 首次非变着
     vector<shared_ptr<Move>> othMoves{ rootMove };
-    wregex spleft{ LR"(\(\s*\d+\.)" }, spright{ LR"(\))" };
+    wregex rempat{ LR"(\{([\s\S]*?)\}\s*\d+\.\s+)" }, spleft{ LR"(\(\s*\d+\.)" }, spright{ LR"(\))" };
     wsregex_token_iterator wtleft{ moveStr.begin(), moveStr.end(), spleft, -1 }, end{};
+    wsmatch res;
+    if (regex_search((*wtleft).first, (*wtleft).second, res, rempat))
+        rootMove->remark = res.str(1);
     for (; wtleft != end; ++wtleft) {
         wsregex_token_iterator wtright{ (*wtleft).first, (*wtleft).second, spright, -1 };
         for (; wtright != end; ++wtright) {
@@ -332,67 +334,66 @@ void Moves::fromCC(wstring moveStr)
 }
 
 // （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
-void Moves::__initSet(RecFormat fmt, Board& board)
+void Moves::__initSetSeat(RecFormat fmt, Board& board)
 {
-    function<void(shared_ptr<Move>)> __set = [&](shared_ptr<Move> move) {
+    function<void(Move&)> __set = [&](Move& move) {
         if (fmt == RecFormat::ICCS) {
-            move->setSeat(getSeat__ICCS(move->ICCS));
-            move->zh = getZh(move->fseat(), move->tseat(), board);
+            move.setSeat(getSeat__ICCS(move.ICCS));
+            move.zh = getZh(move.fseat(), move.tseat(), board);
         } else {
-            move->setSeat(getSeat__Zh(move->zh, board));
-
-            if (move->zh != getZh(move->fseat(), move->tseat(), board)) {
-                wcout << L"move->zh: " << move->zh  << L'\n'
-                      << L"getZh( ): " << getZh(move->fseat(), move->tseat(), board) << L'\n'
-                      << move->toString() << L'\n' << board.toString() << endl;
+            move.setSeat(getSeat__Zh(move.zh, board));
+            //*
+            wstring zh{ getZh(move.fseat(), move.tseat(), board) };
+            // wcout << move.toString() << L'\n';
+            if (move.zh != zh) {
+                wcout << L"move.zh: " << move.zh << L'\n'
+                      << L"getZh( ): " << zh << L'\n'
+                      << move.toString() << L'\n' << board.toString() << endl;
                 return;
-            }
-
-            move->ICCS = getICCS(move->fseat(), move->tseat());
+            } //*/
+            move.ICCS = getICCS(move.fseat(), move.tseat());
         }
         board.go(move);
-        if (move->next())
-            __set(move->next());
+        if (move.next())
+            __set(*move.next());
         board.back(move);
-        if (move->other())
-            __set(move->other());
+        if (move.other())
+            __set(*move.other());
     };
 
     if (rootMove->next())
-        __set(rootMove->next()); // 驱动函数
+        __set(*rootMove->next()); // 驱动函数
+    toFirst(board); // 复原board
 }
 
-void Moves::__initNums(Board& board)
+void Moves::__initSetNum(Board& board)
 {
-    function<void(shared_ptr<Move>)> __setNums = [&](shared_ptr<Move> move) {
+    function<void(Move&)> __setNums = [&](Move& move) {
         movCount += 1;
-        if (move->remark.size()) {
+        if (move.remark.size()) {
             remCount += 1;
-            int length = move->remark.size();
+            int length = move.remark.size();
             if (length > remLenMax)
                 remLenMax = length;
         }
-        move->maxCol = maxCol; // # 本着在视图中的列数
-        if (move->othCol > othCol)
-            othCol = move->othCol;
-        if (move->stepNo > maxRow)
-            maxRow = move->stepNo;
-
+        move.maxCol = maxCol; // # 本着在视图中的列数
+        if (move.othCol > othCol)
+            othCol = move.othCol;
+        if (move.stepNo > maxRow)
+            maxRow = move.stepNo;
         board.go(move);
-        if (move->next())
-            __setNums(move->next());
+        if (move.next())
+            __setNums(*move.next());
         board.back(move);
-        if (move->other()) {
-
-            //wcout << move.toString() << endl;
+        if (move.other()) {
             maxCol += 1;
-            __setNums(move->other());
+            __setNums(*move.other());
         }
     };
 
     if (rootMove->next())
-        __setNums(rootMove->next());
-    // # 驱动调用递归函数
+        __setNums(*rootMove->next()); // # 驱动调用递归函数
+    toFirst(board); // 复原board
 }
 
 void Moves::setFrom(wstring moveStr, RecFormat fmt, Board& board)
@@ -405,9 +406,9 @@ void Moves::setFrom(wstring moveStr, RecFormat fmt, Board& board)
             fromCC(moveStr);
         else
             fromICCSZh(moveStr, fmt);
-        __initSet(fmt, board);
+        __initSetSeat(fmt, board);
     }
-    //__initNums(board);
+    __initSetNum(board);
 }
 
 wstring Moves::toString()
@@ -449,8 +450,6 @@ wstring Moves::toLocaleString()
     wstringstream remstrs{};
     wstring lstr((maxCol + 1) * 5, L'　');
     vector<wstring> lineStr((maxRow + 1) * 2, lstr);
-    // rootMove->setZhStr(L"1.开始");
-
     function<void(Move&)> __setChar = [&](Move& move) {
         int firstcol = move.maxCol * 5;
         for (int i = 0; i < 4; ++i)
@@ -458,7 +457,7 @@ wstring Moves::toLocaleString()
             lineStr[move.stepNo * 2][firstcol + i] = move.zh[i];
         if (move.remark.size())
             remstrs << L"(" << move.stepNo << L"," << move.maxCol << L"): {"
-                    << move.remark << L'\n';
+                    << move.remark << L"}\n";
         if (move.next()) {
             int row{ move.stepNo * 2 + 1 };
             lineStr[row][firstcol + 1] = L' ';
@@ -477,7 +476,7 @@ wstring Moves::toLocaleString()
 
     wstringstream wss{};
     wss << L"\n着法深度：" << maxRow << L", 变着广度：" << othCol
-        << L", 视图宽度：" << maxCol << L"着法数量：" << movCount
+        << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
         << L", 注解数量：" << remCount << L", 注解最长：" << remLenMax << L'\n';
     for (auto line : lineStr)
         wss << line << L'\n';
@@ -486,13 +485,13 @@ wstring Moves::toLocaleString()
 
 wstring Moves::test()
 {
-    auto info_moves = getHead_Body("nx.pgn");
+    auto info_moves = getHead_Body("bing.pgn");
     Info info = Info(info_moves.first);
     Board board = Board(info.getFEN());
     //RecFormat fmt = info.info[L"Format"] == L"zh" ? RecFormat::zh : RecFormat::ICCS;
     Moves moves(info_moves.second, RecFormat::zh, board);
 
-    //writeTxt("out.txt", res);
-    return L""; //; //moves.toLocaleString()  + board.toString();// +
-    //return toString();
+    wstring res{ moves.toString() + L"\n" + moves.toLocaleString() };
+    writeTxt("bing.txt", res);
+    return res;
 }

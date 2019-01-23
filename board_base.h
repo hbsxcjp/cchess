@@ -12,6 +12,7 @@ using std::map;
 using std::pair;
 #include <algorithm>
 using std::find;
+using std::reverse;
 
 // 棋子站队
 enum class PieceColor { blank,
@@ -56,7 +57,7 @@ const vector<int> topPawnSeats{
 };
 
 const wstring FEN{ L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR" };
-const wstring FENPro{ FEN + L" r - - 0 1" };                   
+const wstring FENPro{ FEN + L" r - - 0 1" };
 const wstring ColChars{ L"abcdefghi" };
 // 文本空棋盘
 const wstring TextBlankBoard{ L"┏━┯━┯━┯━┯━┯━┯━┯━┓\n"
@@ -80,18 +81,43 @@ const wstring TextBlankBoard{ L"┏━┯━┯━┯━┯━┯━┯━┯━
                               "┗━┷━┷━┷━┷━┷━┷━┷━┛\n" }; // 边框粗线
 
 // 字符获取函数
-wstring getColChars(PieceColor color);
-wchar_t getColChar(PieceColor color, int col);
-int getIndex(wchar_t ch);
-int getNum(wchar_t ch);
+inline wstring getNumChars(PieceColor color)
+{
+    return color == PieceColor::red ? L"一二三四五六七八九" : L"１２３４５６７８９";
+}
+inline wchar_t getNumChar(PieceColor color, int col) { return getNumChars(color)[col]; }
 
-// 位置操作函数
-int getRow(int seat);
-int getCol(int seat);
-int getSeat(int row, int col);
-int rotateSeat(int seat);
-int symmetrySeat(int seat);
-bool isSameCol(int seat, int othseat);
+inline int getIndex(wchar_t ch)
+{
+    map<wchar_t, int> ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
+        { L'四', 3 }, { L'五', 4 }, { L'前', 0 },
+        { L'中', 1 }, { L'后', 1 } };
+    return ChNum_Indexs[ch];
+}
+
+inline int getNum(wchar_t ch)
+{
+    map<wchar_t, int> Direction_Nums{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
+    return Direction_Nums[ch];
+}
+
+// 函数
+inline int getRow(int seat) { return seat / 9; }
+inline int getCol(int seat) { return seat % 9; }
+inline int getSeat(int row, int col) { return row * 9 + col; }
+inline int rotateSeat(int seat) { return 89 - seat; }
+inline int symmetrySeat(int seat) { return (getRow(seat) + 1) * 9 - seat % 9 - 1; }
+inline bool isSameCol(int seat, int othseat) { return getCol(seat) == getCol(othseat); }
+inline bool find_char(wstring ws, wchar_t ch) { return ws.find(ch) != wstring::npos; }
+inline int find_index(vector<int> seats, int seat)
+{
+    int size = seats.size();
+    for (int i = 0; i != size; ++i)
+        if (seat == seats[i])
+            return i;
+    return 0;
+}
+
 vector<int> getSameColSeats(int seat, int othseat);
 
 // 位置行走函数
@@ -106,10 +132,6 @@ vector<vector<int>> getRookCannonMoveSeat_Lines(int seat);
 vector<int> getPawnMoveSeats(bool isBottomSide, int seat);
 // '多兵排序'
 vector<int> sortPawnSeats(bool isBottomSide, vector<int> pawnSeats);
-
-bool find_char(wstring ws, wchar_t ch);
-int find_index(vector<int> seats, int seat);
-vector<int> reverse(vector<int> seats); // '反转排序'
 
 wstring print_vector_int(vector<int> vi);
 wstring readTxt(const char* fileName);

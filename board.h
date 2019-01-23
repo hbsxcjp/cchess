@@ -34,8 +34,8 @@ public:
     vector<int> getSideNameSeats(PieceColor color, wchar_t name);
     vector<int> getSideNameColSeats(PieceColor color, wchar_t name, int col);
 
-    Piece* go(shared_ptr<Move> move);
-    void back(shared_ptr<Move> move);
+    Piece* go(Move& move);
+    void back(Move& move);
     Piece* move_go(int fseat, int tseat);
     void move_back(int fseat, int tseat, Piece* eatPiece);
 

@@ -24,48 +24,16 @@ using std::wofstream;
 #include <sstream>
 using std::wstringstream;
 
+#include <algorithm>
+using std::find;
+using std::reverse;
+
 #include <iomanip>
 using std::boolalpha;
 using std::setw;
 
 #include <chrono>
 using namespace std::chrono;
-
-// 字符获取函数
-wstring Board_base::getColChars(PieceColor color)
-{
-    return color == PieceColor::red ? L"一二三四五六七八九" : L"１２３４５６７８９";
-}
-
-wchar_t Board_base::getColChar(PieceColor color, int col) { return getColChars(color)[col]; }
-
-int Board_base::getIndex(wchar_t ch)
-{
-    map<wchar_t, int> ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
-        { L'四', 3 }, { L'五', 4 }, { L'前', 0 },
-        { L'中', 1 }, { L'后', 1 } };
-    return ChNum_Indexs[ch];
-}
-
-int Board_base::getNum(wchar_t ch)
-{
-    map<wchar_t, int> Direction_Nums{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
-    return Direction_Nums[ch];
-}
-
-// 函数
-int Board_base::getRow(int seat) { return seat / 9; }
-int Board_base::getCol(int seat) { return seat % 9; }
-int Board_base::getSeat(int row, int col) { return row * 9 + col; }
-int Board_base::rotateSeat(int seat) { return 89 - seat; }
-int Board_base::symmetrySeat(int seat)
-{
-    return (getRow(seat) + 1) * 9 - seat % 9 - 1;
-}
-bool Board_base::isSameCol(int seat, int othseat)
-{
-    return getCol(seat) == getCol(othseat);
-}
 
 vector<int> Board_base::getSameColSeats(int seat, int othseat)
 {
@@ -347,27 +315,6 @@ vector<int> Board_base::getPawnMoveSeats(bool isBottomSide, int seat)
     }
 }
 
-vector<int> Board_base::reverse(vector<int> seats)
-{
-    vector<int> res(seats.size());
-    auto pos = copy_backward(seats.begin(), seats.end(), res.begin());
-    return (vector<int>{ res.begin(), pos });
-}
-
-bool Board_base::find_char(wstring ws, wchar_t ch)
-{
-    return ws.find(ch) != wstring::npos;
-}
-
-int Board_base::find_index(vector<int> seats, int seat)
-{
-    int index{ 0 };
-    for (auto s : seats)
-        if (s != seat)
-            ++index;
-    return index;
-}
-
 // '多兵排序'
 vector<int> Board_base::sortPawnSeats(bool isBottomSide, vector<int> seats)
 {
@@ -379,12 +326,15 @@ vector<int> Board_base::sortPawnSeats(bool isBottomSide, vector<int> seats)
     // 筛除只有一个位置的列, 整合成一个数组
     auto pos = res.begin();
     for_each(temp.begin(), temp.end(), [&](pair<int, vector<int>> col_seats) {
-        if (col_seats.second.size() > 1)
-            pos = copy(col_seats.second.begin(), col_seats.second.end(), pos);
+        if (col_seats.second.size() > 1){
+            std::sort(col_seats.second.begin(), col_seats.second.end()); // 每列排序
+            pos = copy(col_seats.second.begin(), col_seats.second.end(), pos); //按列存入
+        }
     });
-    // 根据棋盘顶底位置,是否反序
-    return isBottomSide ? reverse(vector<int>{ res.begin(), pos })
-                        : (vector<int>{ res.begin(), pos });
+    res = vector<int>{ res.begin(), pos };    
+    if (isBottomSide)
+        reverse(res.begin(), res.end()); // 根据棋盘顶底位置,是否反序
+    return res;
 }
 
 wstring Board_base::print_vector_int(vector<int> vi)
@@ -401,7 +351,7 @@ wstring Board_base::readTxt(const char* fileName)
     wstringstream wss;
     wchar_t buf[1024];
     wifstream wifs(fileName);
-    while(!wifs.eof()){
+    while (!wifs.eof()) {
         wifs.read(buf, 1024);
         wss.write(buf, wifs.gcount());
     }
@@ -446,7 +396,8 @@ wstring Board_base::test()
         wss << L'\n';
     }
     wss << L"\nFEN: " << FEN << L"\nColChars: " << ColChars
-        << L"\nTextBlankBoard: \n" << TextBlankBoard << L'\n';        
+        << L"\nTextBlankBoard: \n"
+        << TextBlankBoard << L'\n';
     wss << L"allSeats rotateSeat symmetrySeat isSameCol\n";
     for (auto s : allSeats)
         wss << setw(5) << s << setw(10) << rotateSeat(s) << setw(12)
@@ -458,7 +409,7 @@ wstring Board_base::test()
             wss << setw(3) << s << L' ';
         wss << L'\n';
     }
-    
+
     wss << L"getKingMoveSeats:\n";
     vector<vector<int>> testSeats = { bottomKingSeats, topKingSeats };
     for (auto tseats : testSeats)
@@ -520,6 +471,6 @@ wstring Board_base::test()
     auto d = steady_clock::now() - t0;
     wss << "getSeats: use time -> " << duration_cast<milliseconds>(d).count()
         << "ms" << L'\n';
-    
+
     return wss.str();
 }

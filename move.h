@@ -106,8 +106,8 @@ public:
 
 private:
     void __clear();
-    void __initSet(RecFormat fmt, Board& board);
-    void __initNums(Board& board);
+    void __initSetSeat(RecFormat fmt, Board& board);
+    void __initSetNum(Board& board);
 
     //vector<shared_ptr<Move>> moves;
     shared_ptr<Move> rootMove;

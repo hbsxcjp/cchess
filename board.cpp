@@ -33,6 +33,7 @@ vector<int> Board::__getSeats(vector<Piece*> pies)
 {
     vector<int> res{};
     for_each(pies.begin(), pies.end(), [&](Piece* p) { res.push_back(p->seat()); });
+    std::sort(res.begin(), res.end());
     return res;
 }
 
@@ -65,15 +66,15 @@ bool Board::isDied(PieceColor color)
     return true;
 }
 
-Piece* Board::go(shared_ptr<Move> move)
+Piece* Board::go(Move& move)
 {
-    move->setEatPiece(move_go(move->fseat(), move->tseat()));
-    return move->eatPiece();
+    move.setEatPiece(move_go(move.fseat(), move.tseat()));
+    return move.eatPiece();
 }
 
-void Board::back(shared_ptr<Move> move)
+void Board::back(Move& move)
 {
-    move_back(move->fseat(), move->tseat(), move->eatPiece());
+    move_back(move.fseat(), move.tseat(), move.eatPiece());
 }
 
 Piece* Board::move_go(int fseat, int tseat)
