@@ -365,15 +365,12 @@ void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
             ifs.read(byteStr, size);
             if (version > 10) // '字节串解密'
                 for (int i = 0; i != size; ++i)
-                    byteStr[i] = __subbyte(byteStr[i], F32Keys[(pos + i) % 32]);
+                    byteStr[i] = __subbyte((unsigned char)(byteStr[i]), F32Keys[(pos + i) % 32]);
         };
         auto __readremarksize = [&]() {
-            intUnion byteSize;
-            __readbytes(byteSize.buf, 4);
-            int size = byteSize.number;
-            wcout << L"remsize: " << byteSize.buf << L'/'
-                  << size << L'/' << KeyRMKSize << L'/' << size - KeyRMKSize << endl;
-
+            char byteSize[4];
+            __readbytes(byteSize, 4);
+            int size{ *(int*)(unsigned char*)(byteSize) };
             return size - KeyRMKSize;
         };
 

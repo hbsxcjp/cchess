@@ -129,7 +129,7 @@ Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
     Keys = vector<int>{ version, KeyXYf, KeyXYt, KeyRMKSize };
     wstring pieceChars(90, L'_');
     for (int i = 0; i != 32; ++i) {
-        int xy = headQiziXY[i];
+        int xy = (unsigned char)(headQiziXY[i]);
         if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
