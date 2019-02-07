@@ -11,13 +11,6 @@ using std::wstring;
 #include <vector>
 using std::vector;
 
-#include <sstream>
-using std::wstringstream;
-
-#include <iomanip>
-using std::boolalpha;
-using std::setw;
-
 // 棋子类
 class Piece {
 
@@ -46,9 +39,9 @@ public:
     // 棋子可置放的全部位置
     virtual vector<int> getSeats(PieceColor bottomColor) { return allSeats; }
     // 棋子可移动到的全部位置, 筛除本方棋子所占位置
-    virtual vector<int> getFilterMoveSeats(Board* board);
+    virtual vector<int> getFilterMoveSeats(Board& board);
     // '获取棋子可走的位置, 不能被将军'
-    vector<int> getCanMoveSeats(Board* board);
+    vector<int> getCanMoveSeats(Board& board);
 
     virtual wstring toString();
     virtual ~Piece() = default;
@@ -59,10 +52,10 @@ public:
 protected:
     PieceColor clr;
     // 棋子可移动到的全部位置
-    virtual vector<int> __MoveSeats(Board* board) { return allSeats; }
+    virtual vector<int> __MoveSeats(Board& board) { return allSeats; }
     // 筛除棋子行棋规则不允许的位置
-    virtual vector<int> __filterMove_obstruct(Board* board,
-        vector<pair<int, int>> move_obs);
+    virtual vector<int> __filterMove_obstruct(Board& board,
+        const vector<pair<int, int>>& move_obs);
 
 private:
     wchar_t ch;
@@ -79,7 +72,7 @@ public:
     {
         return color() == bottomColor ? bottomKingSeats : topKingSeats;
     }
-    vector<int> __MoveSeats(Board* board) { return getKingMoveSeats(seat()); }
+    vector<int> __MoveSeats(Board& board) { return getKingMoveSeats(seat()); }
 };
 
 class Advisor : public Piece {
@@ -90,7 +83,7 @@ public:
     {
         return color() == bottomColor ? bottomAdvisorSeats : topAdvisorSeats;
     }
-    vector<int> __MoveSeats(Board* board)
+    vector<int> __MoveSeats(Board& board)
     {
         return getAdvisorMoveSeats(seat());
     }
@@ -104,7 +97,7 @@ public:
     {
         return color() == bottomColor ? bottomBishopSeats : topBishopSeats;
     }
-    vector<int> __MoveSeats(Board* board)
+    vector<int> __MoveSeats(Board& board)
     {
         return __filterMove_obstruct(board, getBishopMove_CenSeats(seat()));
     }
@@ -115,7 +108,7 @@ public:
     using Piece::Piece;
     wchar_t const chName() { return L'马'; }
     bool const isStronge() { return true; }
-    vector<int> __MoveSeats(Board* board)
+    vector<int> __MoveSeats(Board& board)
     {
         return __filterMove_obstruct(board, getKnightMove_LegSeats((seat())));
     }
@@ -126,7 +119,7 @@ public:
     using Piece::Piece;
     wchar_t const chName() { return L'车'; }
     bool const isStronge() { return true; }
-    vector<int> __MoveSeats(Board* board);
+    vector<int> __MoveSeats(Board& board);
 };
 
 class Cannon : public Piece {
@@ -134,7 +127,7 @@ public:
     using Piece::Piece;
     wchar_t const chName() { return L'炮'; }
     bool const isStronge() { return true; }
-    vector<int> __MoveSeats(Board* board);
+    vector<int> __MoveSeats(Board& board);
 };
 
 class Pawn : public Piece {
@@ -146,7 +139,7 @@ public:
     {
         return color() == bottomColor ? bottomPawnSeats : topPawnSeats;
     }
-    vector<int> __MoveSeats(Board* board);
+    vector<int> __MoveSeats(Board& board);
 };
 
 class NullPie : public Piece {
@@ -161,9 +154,9 @@ class Pieces {
 public:
     Pieces();
 
-    Piece* getKingPie(PieceColor color);
-    Piece* getOthPie(Piece* pie);
-    Piece* getFreePie(wchar_t ch);
+    Piece& getKingPie(PieceColor color);
+    Piece& getOthPie(Piece& pie);
+    Piece& getFreePie(wchar_t ch);
     //成员函数，类内声明，类外定义
     vector<Piece*> getPies() { return pies; }
     vector<Piece*> getLivePies();

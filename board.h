@@ -1,6 +1,7 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include "info.h"
 #include "piece.h"
 
 #include <string>
@@ -20,7 +21,8 @@ class Move;
 
 class Board {
 public:
-    Board(wstring fen = FEN);
+    Board();
+    Board(Info& info);
 
     Piece* getPiece(int seat) { return pieSeats[seat]; }
     bool isBlank(int seat) { return getPiece(seat)->isBlank(); }
@@ -42,8 +44,8 @@ public:
     bool isKilled(PieceColor color); //判断是否将军
     bool isDied(PieceColor color); //判断是否被将死
 
-    wstring setFEN();
-    void setFrom(wstring fen);
+    void setFEN(Info& info);
+    void setFrom(Info& info);
     void changeSide(ChangeType ct = ChangeType::exchange);
     const wstring toString();
 
@@ -53,9 +55,7 @@ public:
 private:
     vector<int> __getSeats(vector<Piece*> pies);
     void __setPiece(Piece* pie, int tseat);
-    void __setPieces(wstring chars);
 
-    wstring __FEN;
     Pieces pieces; // 一副棋子类
     vector<Piece*> pieSeats; // 棋盘容器，顺序号即为位置seat
 }; // Board class end.

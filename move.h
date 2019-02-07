@@ -5,10 +5,9 @@
 #include "piece.h"
 using namespace Board_base;
 
+#include <fstream>
 #include <vector>
 using std::vector;
-#include <c++/functional>
-using std::function;
 using std::wstring;
 #include <utility>
 using std::pair;
@@ -16,19 +15,20 @@ using std::pair;
 using std::shared_ptr;
 
 enum class PieceColor;
+class Info;
 class Piece;
 class Board;
 
 enum class RecFormat { ICCS,
     zh,
+    CC,
     JSON,
-    CC };
+    XQF };
 
 // 着法节点类
 class Move {
 
 public:
-
     int fseat() { return fromseat; }
     int tseat() { return toseat; }
     void setSeat(pair<int, int> seats)
@@ -69,7 +69,8 @@ private:
 class Moves {
 public:
     Moves();
-    Moves(wstring moveStr, RecFormat fmt, Board& board);
+    Moves(wstring moveStr, Info& info, Board& board);
+    Moves(std::ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys, Board& board);
 
     PieceColor currentColor();
     bool isStart() { return currentMove->prev() == nullptr; }
@@ -86,9 +87,15 @@ public:
     void toFirst(Board& board);
     void toLast(Board& board);
     void go(Board& board, int inc);
-
     void cutNext();
     void cutOther();
+
+    wstring toString();
+    wstring toLocaleString();
+
+    static wstring test();
+
+private:
     const wstring getICCS(int fseat, int tseat);
     const pair<int, int> getSeat__ICCS(wstring ICCS);
     const wstring getZh(int fseat, int tseat, Board& board) const; //(fseat, tseat)->中文纵线着法, 着法未走状态
@@ -97,17 +104,10 @@ public:
     void fromICCSZh(wstring moveStr, RecFormat fmt);
     void fromJSON(wstring moveJSON);
     void fromCC(wstring moveStr);
-    void setFrom(wstring moveStr, RecFormat fmt, Board& board);
-
-    wstring toString();
-    wstring toLocaleString();
-
-    static wstring test();
-
-private:
-    void __clear();
+    void fromXQF(std::ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys);
     void __initSetSeat(RecFormat fmt, Board& board);
     void __initSetNum(Board& board);
+    void __clear();
 
     //vector<shared_ptr<Move>> moves;
     shared_ptr<Move> rootMove;

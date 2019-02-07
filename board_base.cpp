@@ -1,6 +1,9 @@
 #include "board_base.h"
-//#include "piece.h"
 
+#include <cstdlib>
+#include <io.h>
+#include <locale>
+#include <codecvt>
 #include <string>
 using std::string;
 using std::wstring;
@@ -326,12 +329,12 @@ vector<int> Board_base::sortPawnSeats(bool isBottomSide, vector<int> seats)
     // 筛除只有一个位置的列, 整合成一个数组
     auto pos = res.begin();
     for_each(temp.begin(), temp.end(), [&](pair<int, vector<int>> col_seats) {
-        if (col_seats.second.size() > 1){
+        if (col_seats.second.size() > 1) {
             std::sort(col_seats.second.begin(), col_seats.second.end()); // 每列排序
             pos = copy(col_seats.second.begin(), col_seats.second.end(), pos); //按列存入
         }
     });
-    res = vector<int>{ res.begin(), pos };    
+    res = vector<int>{ res.begin(), pos };
     if (isBottomSide)
         reverse(res.begin(), res.end()); // 根据棋盘顶底位置,是否反序
     return res;
@@ -346,7 +349,35 @@ wstring Board_base::print_vector_int(vector<int> vi)
     return wss.str();
 }
 
-wstring Board_base::readTxt(const char* fileName)
+std::string Board_base::ws2s(const std::wstring& ws)
+{
+    //std::string curLocale = setlocale(LC_ALL, NULL); // curLocale = "C";
+    //setlocale(LC_ALL, "");
+    const wchar_t* _Source = ws.c_str();
+    size_t _Dsize = 2 * ws.size() + 1;
+    char* _Dest = new char[_Dsize]();
+    wcstombs(_Dest, _Source, _Dsize);
+    std::string result = _Dest;
+    delete[] _Dest;
+    //setlocale(LC_ALL, curLocale.c_str());
+    return result;
+}
+
+std::wstring Board_base::s2ws(const std::string& s)
+{
+    //setlocale(LC_ALL, "chs");
+    const char* _Source = s.c_str();
+    size_t _Dsize = s.size() + 1;
+    wchar_t* _Dest = new wchar_t[_Dsize];
+    mbstowcs(_Dest, _Source, _Dsize);
+    std::wstring result = _Dest;
+    delete[] _Dest;
+    //setlocale(LC_ALL, "C");
+    return result;
+}
+
+
+wstring Board_base::readTxt(string fileName)
 {
     wstringstream wss;
     wchar_t buf[1024];
@@ -359,22 +390,28 @@ wstring Board_base::readTxt(const char* fileName)
     return wss.str();
 }
 
-void Board_base::writeTxt(const char* fileName, wstring ws)
+void Board_base::writeTxt(string fileName, wstring ws)
 {
     wofstream wofs(fileName);
     wofs << ws;
     wofs.close();
 }
 
-pair<map<wstring, wstring>, wstring> Board_base::getHead_Body(const char* filename)
-{
-    map<wstring, wstring> minfo;
-    wregex pat{ LR"(\[(\w+)\s+\"(.*)\"\]\s+)" };
-    wstring ws{ readTxt(filename) };
-    for (wsregex_iterator p(ws.begin(), ws.end(), pat); p != wsregex_iterator{};
-         ++p)
-        minfo[(*p)[1]] = (*p)[2];
-    return make_pair(minfo, std::regex_replace(ws, pat, L""));
+void Board_base::getFiles(string path, vector<string>& files)
+{    
+    long hFile = 0;//文件句柄    
+    struct _finddata_t fileinfo;//文件信息
+    string p;
+    if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1) {
+        do { //如果是目录,迭代之  //如果不是,加入列表
+            if (fileinfo.attrib & _A_SUBDIR) {
+                if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
+                    getFiles(p.assign(path).append("\\").append(fileinfo.name), files);
+            } else
+                files.push_back(p.assign(path).append("\\").append(fileinfo.name));
+        } while (_findnext(hFile, &fileinfo) == 0);
+        _findclose(hFile);
+    }
 }
 
 // 测试

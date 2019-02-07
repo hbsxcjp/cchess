@@ -89,17 +89,19 @@ inline wchar_t getNumChar(PieceColor color, int col) { return getNumChars(color)
 
 inline int getIndex(wchar_t ch)
 {
-    map<wchar_t, int> ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
-        { L'四', 3 }, { L'五', 4 }, { L'前', 0 },
-        { L'中', 1 }, { L'后', 1 } };
+    static map<wchar_t, int> ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
+        { L'四', 3 }, { L'五', 4 }, { L'前', 0 }, { L'中', 1 }, { L'后', 1 },
+        { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
     return ChNum_Indexs[ch];
 }
-
+/*
 inline int getNum(wchar_t ch)
 {
-    map<wchar_t, int> Direction_Nums{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
-    return Direction_Nums[ch];
-}
+    static map<wchar_t, int>  ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
+        { L'四', 3 }, { L'五', 4 }, { L'前', 0 }, { L'中', 1 }, { L'后', 1 },
+        { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
+    return ChNum_Indexs[ch];
+}*/
 
 // 函数
 inline int getRow(int seat) { return seat / 9; }
@@ -117,7 +119,7 @@ inline int find_index(vector<int> seats, int seat)
             return i;
     return 0;
 }
-
+inline int __subbyte(int a, int b) { return (a - b + 1024) % 256; }
 vector<int> getSameColSeats(int seat, int othseat);
 
 // 位置行走函数
@@ -134,9 +136,11 @@ vector<int> getPawnMoveSeats(bool isBottomSide, int seat);
 vector<int> sortPawnSeats(bool isBottomSide, vector<int> pawnSeats);
 
 wstring print_vector_int(vector<int> vi);
-wstring readTxt(const char* fileName);
-void writeTxt(const char* fileName, wstring ws);
-pair<map<wstring, wstring>, wstring> getHead_Body(const char* filename);
+std::string ws2s(const std::wstring& ws);
+std::wstring s2ws(const std::string& s);
+wstring readTxt(string fileName);
+void writeTxt(string fileName, wstring ws);
+void getFiles(string path, vector<string>& files);
 
 // 测试函数
 wstring test();
