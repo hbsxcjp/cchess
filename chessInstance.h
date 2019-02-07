@@ -11,12 +11,6 @@ using std::string;
 using std::wstring;
 
 
-#include <utility>
-using std::pair;
-
-#include <map>
-using std::map;
-
 class ChessInstance {
 public:
     ChessInstance(string filename);

@@ -352,6 +352,9 @@ void Moves::fromCC(wstring moveStr)
 void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
 {
     int version{ Keys[0] }, KeyXYf{ Keys[1] }, KeyXYt{ Keys[2] }, KeyRMKSize{ Keys[3] };
+    wcout << L"ver_XYf_XYt_Size: " << version << L'/'
+          << KeyXYf << L'/' << KeyXYt << L'/' << KeyRMKSize << endl;
+
     function<void(Move&)> __readmove = [&](Move& move) {
         auto __byteToSeat = [&](int a, int b) {
             int xy = __subbyte(a, b);
@@ -365,13 +368,12 @@ void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
                     byteStr[i] = __subbyte(byteStr[i], F32Keys[(pos + i) % 32]);
         };
         auto __readremarksize = [&]() {
-            char byteSize[4];
-            __readbytes(byteSize, 4);
-            int size{ *(int*)byteSize };
-
-            wcout << byteSize[0] << L'/' << byteSize[1] << L'/'
-                  << byteSize[2] << L'/' << byteSize[3] << L'/'
+            intUnion byteSize;
+            __readbytes(byteSize.buf, 4);
+            int size = byteSize.number;
+            wcout << L"remsize: " << byteSize.buf << L'/'
                   << size << L'/' << KeyRMKSize << L'/' << size - KeyRMKSize << endl;
+
             return size - KeyRMKSize;
         };
 
@@ -381,7 +383,7 @@ void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
         auto seats = make_pair(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
         move.setSeat(seats);
 
-        wcout << move.fseat() << L'/' << move.tseat() << endl;
+        wcout << L"fs_ts: " << move.fseat() << L'/' << move.tseat() << endl;
 
         char ChildTag = data[2];
         int RemarkSize = 0;
@@ -403,7 +405,7 @@ void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
             __readbytes(rem, RemarkSize);
             move.remark = s2ws(rem);
 
-            wcout << move.remark << L'/' << endl;
+            wcout << L"remark: " << move.remark << L'/' << endl;
         }
 
         if (ChildTag & 0x80) { //# 有左子树
@@ -449,6 +451,17 @@ void Moves::__initSetSeat(RecFormat fmt, Board& board)
         case RecFormat::XQF: {
             move.ICCS = getICCS(move.fseat(), move.tseat());
             move.zh = getZh(move.fseat(), move.tseat(), board);
+
+            //*
+            auto seats = getSeat__Zh(move.zh, board);
+            // wcout << move.toString() << L'\n';
+            if ((seats.first != move.fseat()) || (seats.second != move.tseat())) {
+                wcout << L"move.fs_ts: " << move.fseat() << L' ' << move.tseat() << L'\n'
+                      << L"getSeat__Zh( ): " << move.zh << L'\n'
+                      << move.toString() << L'\n' << board.toString() << endl;
+                return;
+            } //*/
+
             break;
         }
         }

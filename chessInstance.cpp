@@ -1,16 +1,16 @@
 #include "chessInstance.h"
-#include "info.h"
 
-#include <codecvt>
-#include <fstream>
 #include <iostream>
-#include <locale>
-#include <regex>
-#include <sstream>
-#include <utility>
+#include <fstream>
+//#include <sstream>
+//#include <locale>
+//#include <regex>
+//#include <codecvt>
+//#include <utility>
 
 using namespace std;
 using namespace Board_base;
+
 
 ChessInstance::ChessInstance(string filename)
 {
@@ -33,6 +33,7 @@ ChessInstance::ChessInstance(string filename)
 
         wcout << info.toString() << endl;
         wcout << board.toString() << endl;
+
         moves = Moves(ifs, Keys, F32Keys, board);
     }
 }

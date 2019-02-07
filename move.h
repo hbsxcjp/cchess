@@ -25,6 +25,11 @@ enum class RecFormat { ICCS,
     JSON,
     XQF };
 
+union intUnion {
+    char buf[4];
+    int number;
+};
+
 // 着法节点类
 class Move {
 

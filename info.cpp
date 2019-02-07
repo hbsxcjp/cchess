@@ -93,18 +93,18 @@ Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
     if (Signature[0] != 0x58 || Signature[1] != 0x51)
         wcout << s2ws(Signature) << L" 文件标记不对。Signature != (0x58, 0x51)\n";
     if ((headKeysSum[0] + headKeyXY[0] + headKeyXYf[0] + headKeyXYt[0]) % 256 != 0)
-        cout << headKeysSum[0] << headKeyXY[0] << headKeyXYf[0] << headKeyXYt[0] << " 检查密码校验和不对，不等于0。\n";
+        wcout << headKeysSum[0] << headKeyXY[0] << headKeyXYf[0] << headKeyXYt[0] << L" 检查密码校验和不对，不等于0。\n";
     if (version > 18)
-        cout << version << " 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
+        wcout << version << L" 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
 
     int KeyXY, KeyXYf, KeyXYt, KeyRMKSize;
     if (version <= 10) { // 兼容1.0以前的版本
         KeyXY = KeyXYf = KeyXYt = KeyRMKSize = 0;
     } else {
-        KeyXY = __calkey(headKeyXY[0], headKeyXY[0]);
-        KeyXYf = __calkey(headKeyXYf[0], KeyXY);
-        KeyXYt = __calkey(headKeyXYt[0], KeyXYf);
-        KeyRMKSize = ((headKeysSum[0] * 256 + headKeyXY[0]) % 65536 % 32000) + 767;
+        KeyXY = __calkey((unsigned char)(headKeyXY[0]), (unsigned char)(headKeyXY[0]));
+        KeyXYf = __calkey((unsigned char)(headKeyXYf[0]), KeyXY);
+        KeyXYt = __calkey((unsigned char)(headKeyXYt[0]), KeyXYf);
+        KeyRMKSize = (((unsigned char)(headKeysSum[0]) * 256 + (unsigned char)(headKeyXY[0])) % 32000) + 767; // % 65536
         if (version >= 12) { // 棋子位置循环移动
             vector<char> Qixy(begin(headQiziXY), end(headQiziXY));
             for (int i = 0; i != 32; ++i)
@@ -113,6 +113,9 @@ Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
         for (int i = 0; i != 32; ++i) // 棋子位置解密
             headQiziXY[i] = __subbyte(headQiziXY[i], KeyXY); // 保持为8位无符号整数，<256
     }
+    wcout << L"XY_XYf_XYt_Sum_Size: " << 0 + (unsigned char)(headKeyXY[0]) << L'/'
+          << 0 + (unsigned char)(headKeyXYf[0]) << L'/' << 0 + (unsigned char)(headKeyXYt[0]) << L'/'
+           << 0 + (unsigned char)(headKeysSum[0]) << L'/' << KeyRMKSize << endl;
 
     char KeyBytes[4];
     KeyBytes[0] = (headKeysSum[0] & headKeyMask[0]) | headKeyOrA[0];
