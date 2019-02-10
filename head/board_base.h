@@ -1,18 +1,13 @@
 #ifndef BOARD_BASE_H
 #define BOARD_BASE_H
 
-#include <string>
-using std::string;
-using std::wstring;
-#include <vector>
-using std::vector;
-#include <map>
-using std::map;
-#include <utility>
-using std::pair;
 #include <algorithm>
-using std::find;
-using std::reverse;
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
+using namespace std;
 
 // 棋子站队
 enum class PieceColor { blank,
@@ -119,7 +114,6 @@ inline int find_index(vector<int> seats, int seat)
             return i;
     return 0;
 }
-inline int __subbyte(int a, int b) { return (a - b + 1024) % 256; }
 vector<int> getSameColSeats(int seat, int othseat);
 
 // 位置行走函数
@@ -135,12 +129,17 @@ vector<int> getPawnMoveSeats(bool isBottomSide, int seat);
 // '多兵排序'
 vector<int> sortPawnSeats(bool isBottomSide, vector<int> pawnSeats);
 
+inline int __subbyte(int a, int b) { return (256 + a - b) % 256; }
+inline string& trim(string& str);
+inline wstring& wtrim(wstring& str);
 wstring print_vector_int(vector<int> vi);
 std::string ws2s(const std::wstring& ws);
 std::wstring s2ws(const std::string& s);
 wstring readTxt(string fileName);
 void writeTxt(string fileName, wstring ws);
 void getFiles(string path, vector<string>& files);
+int copyFile(const char* SourceFile, const char* NewFile);
+string getExt(string filename);
 
 // 测试函数
 wstring test();

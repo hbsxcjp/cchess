@@ -24,7 +24,6 @@ enum class RecFormat { ICCS,
     CC,
     JSON,
     XQF };
-    
 
 // 着法节点类
 class Move {
@@ -95,6 +94,12 @@ public:
     wstring toLocaleString();
 
     static wstring test();
+    int movCount{ 0 }; //着法数量
+    int remCount{ 0 }; //注解数量
+    int remLenMax{ 0 }; //注解最大长度
+    int othCol{ 0 }; //# 存储最大变着层数
+    int maxRow{ 0 }; //# 存储最大着法深度
+    int maxCol{ 0 }; //# 存储视图最大列数
 
 private:
     const wstring getICCS(int fseat, int tseat);
@@ -106,20 +111,13 @@ private:
     void fromJSON(wstring moveJSON);
     void fromCC(wstring moveStr);
     void fromXQF(std::ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys);
-    void __initSetSeat(RecFormat fmt, Board& board);
-    void __initSetNum(Board& board);
-    void __clear();
+    void __initSet(RecFormat fmt, Board& board);
+    void __init__();
 
     //vector<shared_ptr<Move>> moves;
     shared_ptr<Move> rootMove;
     shared_ptr<Move> currentMove; // board对应状态：该着已执行
     PieceColor firstColor; // 棋局载入时需要设置此属性！
-    int movCount; //着法数量
-    int remCount; //注解数量
-    int remLenMax; //注解最大长度
-    int othCol; //# 存储最大变着层数
-    int maxRow; //# 存储最大着法深度
-    int maxCol; //# 存储视图最大列数
 };
 
 #endif

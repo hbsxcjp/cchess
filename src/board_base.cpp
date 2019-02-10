@@ -1,41 +1,24 @@
 #include "board_base.h"
 
-#include <cstdlib>
-#include <io.h>
-#include <locale>
-#include <codecvt>
-#include <string>
-using std::string;
-using std::wstring;
-
-#include <vector>
-using std::vector;
-
-#include <map>
-using std::map;
-
-#include <regex>
-using std::wregex;
-using std::wsregex_iterator;
-
-#include <utility>
-using std::pair;
-
-#include <fstream>
-using std::wifstream;
-using std::wofstream;
-#include <sstream>
-using std::wstringstream;
-
 #include <algorithm>
-using std::find;
-using std::reverse;
-
-#include <iomanip>
-using std::boolalpha;
-using std::setw;
-
+#include <cctype>
 #include <chrono>
+#include <codecvt>
+#include <cstdlib>
+#include <direct.h>
+#include <fstream>
+#include <io.h>
+#include <iomanip>
+#include <iostream>
+#include <locale>
+#include <map>
+#include <regex>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
+using namespace std;
 using namespace std::chrono;
 
 vector<int> Board_base::getSameColSeats(int seat, int othseat)
@@ -349,6 +332,41 @@ wstring Board_base::print_vector_int(vector<int> vi)
     return wss.str();
 }
 
+inline string& Board_base::trim(string& str)
+{
+    string::iterator pl = find_if(str.begin(), str.end(), not1(ptr_fun<int, int>(isspace)));
+    str.erase(str.begin(), pl);
+    string::reverse_iterator pr = find_if(str.rbegin(), str.rend(), not1(ptr_fun<int, int>(isspace)));
+    str.erase(pr.base(), str.end());
+    return str;
+}
+
+inline wstring& Board_base::wtrim(wstring& str)
+{
+    //*
+    wstring::iterator pl = find_if(str.begin(), str.end(), not1(ptr_fun<int, int>(isspace)));
+    str.erase(str.begin(), pl);
+    wstring::reverse_iterator pr = find_if(str.rbegin(), str.rend(), not1(ptr_fun<int, int>(isspace)));
+    str.erase(pr.base(), str.end());
+    return str;
+    /*/
+    //
+    size_t first{}, last{ str.size() };
+    for (auto& c : str)
+        if (isspace(c))
+            ++first;
+        else
+            break;
+    for (int i = last - 1; i >= 0; --i)
+        if (isspace(str[i]))
+            --last;
+        else
+            break;
+    str = str.substr(first, last - first);
+    return str;
+   // */
+}
+
 std::string Board_base::ws2s(const std::wstring& ws)
 {
     //std::string curLocale = setlocale(LC_ALL, NULL); // curLocale = "C";
@@ -363,23 +381,23 @@ std::string Board_base::ws2s(const std::wstring& ws)
     return result;
 }
 
-std::wstring Board_base::s2ws(const std::string& s)
+std::wstring Board_base::s2ws(const std::string& src)
 {
     //setlocale(LC_ALL, "chs");
-    const char* _Source = s.c_str();
-    size_t _Dsize = s.size() + 1;
+    //string s{ src };
+    const char* _Source = src.c_str();
+    size_t _Dsize = src.size() + 1;
     wchar_t* _Dest = new wchar_t[_Dsize];
     mbstowcs(_Dest, _Source, _Dsize);
     std::wstring result = _Dest;
     delete[] _Dest;
     //setlocale(LC_ALL, "C");
-    return result;
+    return wtrim(result); //result; //
 }
-
 
 wstring Board_base::readTxt(string fileName)
 {
-    wstringstream wss;
+    wstringstream wss{};
     wchar_t buf[1024];
     wifstream wifs(fileName);
     while (!wifs.eof()) {
@@ -398,10 +416,10 @@ void Board_base::writeTxt(string fileName, wstring ws)
 }
 
 void Board_base::getFiles(string path, vector<string>& files)
-{    
-    long hFile = 0;//文件句柄    
-    struct _finddata_t fileinfo;//文件信息
-    string p;
+{
+    long hFile = 0; //文件句柄
+    struct _finddata_t fileinfo; //文件信息
+    string p{};
     if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1) {
         do { //如果是目录,迭代之  //如果不是,加入列表
             if (fileinfo.attrib & _A_SUBDIR) {
@@ -412,6 +430,55 @@ void Board_base::getFiles(string path, vector<string>& files)
         } while (_findnext(hFile, &fileinfo) == 0);
         _findclose(hFile);
     }
+}
+
+/*****************************************************************************************
+Function:       CopyFile
+Description:    复制文件
+Input:          SourceFile:原文件路径 NewFile:复制后的文件路径
+Return:         1:成功 0:失败
+******************************************************************************************/
+int Board_base::copyFile(const char* SourceFile, const char* NewFile)
+{
+    std::ifstream in;
+    std::ofstream out;
+
+    //try
+    //{
+    in.open(SourceFile, std::ios::binary); //打开源文件
+    if (in.fail()) //打开源文件失败
+    {
+        std::cout << "Error 1: Fail to open the source file." << std::endl;
+        in.close();
+        out.close();
+        return 0;
+    }
+    out.open(NewFile, std::ios::binary); //创建目标文件
+    if (out.fail()) //创建文件失败
+    {
+        std::cout << "Error 2: Fail to create the new file." << std::endl;
+        out.close();
+        in.close();
+        return 0;
+    } else //复制文件
+    {
+        out << in.rdbuf();
+        out.close();
+        in.close();
+        return 1;
+    }
+    //}
+    //catch (std::exception e)
+    //{
+    //}
+}
+
+string Board_base::getExt(string filename)
+{
+    string ext{ filename.substr(filename.rfind('.')) };
+    for (auto& c : ext)
+        c = tolower(c);
+    return ext;
 }
 
 // 测试

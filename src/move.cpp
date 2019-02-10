@@ -4,15 +4,12 @@
 #include "info.h"
 
 #include <iostream>
-using std::endl;
-using std::wcout;
-
-#include <algorithm>
+#include <sstream>
 #include <fstream>
+#include <algorithm>
 #include <functional>
 #include <iomanip>
 #include <regex>
-#include <sstream>
 using namespace std;
 
 void Move::setNext(shared_ptr<Move> next)
@@ -21,9 +18,7 @@ void Move::setNext(shared_ptr<Move> next)
     if (next) {
         next->stepNo = stepNo + 1; // 步数
         next->othCol = othCol; // 变着层数
-        auto pre = make_shared<Move>();
-        *pre = *this;
-        next->setPrev(pre);
+        next->setPrev(make_shared<Move>(*this));
     }
 }
 
@@ -33,9 +28,7 @@ void Move::setOther(shared_ptr<Move> other)
     if (other) {
         other->stepNo = stepNo; // 与premove的步数相同
         other->othCol = othCol + 1; // 变着层数
-        auto pre = make_shared<Move>();
-        *pre = *this;
-        other->setPrev(pre);
+        other->setPrev(make_shared<Move>(*this));
     }
 }
 
@@ -55,7 +48,7 @@ wstring Move::toString()
 }
 
 // Moves
-Moves::Moves() { __clear(); }
+Moves::Moves() { __init__(); }
 
 Moves::Moves(wstring moveStr, Info& info, Board& board)
     : Moves()
@@ -71,16 +64,14 @@ Moves::Moves(wstring moveStr, Info& info, Board& board)
         else
             fromICCSZh(moveStr, fmt);
     }
-    __initSetSeat(fmt, board);
-    __initSetNum(board);
+    __initSet(fmt, board);
 }
 
 Moves::Moves(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys, Board& board)
     : Moves()
 {
     fromXQF(ifs, Keys, F32Keys);
-    __initSetSeat(RecFormat::XQF, board);
-    __initSetNum(board);
+    __initSet(RecFormat::XQF, board);
 }
 
 inline PieceColor Moves::currentColor()
@@ -352,8 +343,8 @@ void Moves::fromCC(wstring moveStr)
 void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
 {
     int version{ Keys[0] }, KeyXYf{ Keys[1] }, KeyXYt{ Keys[2] }, KeyRMKSize{ Keys[3] };
-    wcout << L"ver_XYf_XYt_Size: " << version << L'/'
-          << KeyXYf << L'/' << KeyXYt << L'/' << KeyRMKSize << endl;
+    //wcout << L"ver_XYf_XYt_Size: " << version << L'/'
+    //      << KeyXYf << L'/' << KeyXYt << L'/' << KeyRMKSize << endl;
 
     function<void(Move&)> __readmove = [&](Move& move) {
         auto __byteToSeat = [&](int a, int b) {
@@ -368,19 +359,18 @@ void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
                     byteStr[i] = __subbyte((unsigned char)(byteStr[i]), F32Keys[(pos + i) % 32]);
         };
         auto __readremarksize = [&]() {
-            char byteSize[4];
+            char byteSize[4]{}; // 一定要初始化:{}
             __readbytes(byteSize, 4);
-            int size{ *(int*)(unsigned char*)(byteSize) };
+            int size{ *(int*)(unsigned char*)byteSize };
             return size - KeyRMKSize;
         };
 
-        char data[4];
+        char data[4]{};
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
         auto seats = make_pair(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
         move.setSeat(seats);
-
-        wcout << L"fs_ts: " << move.fseat() << L'/' << move.tseat() << endl;
+        //wcout << L"fs_ts: " << move.fseat() << L'/' << move.tseat() << endl;
 
         char ChildTag = data[2];
         int RemarkSize = 0;
@@ -398,11 +388,10 @@ void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
                 RemarkSize = __readremarksize();
         }
         if (RemarkSize > 0) { // # 如果有注解
-            char rem[RemarkSize + 1];
+            char rem[RemarkSize + 1]{};
             __readbytes(rem, RemarkSize);
             move.remark = s2ws(rem);
-
-            wcout << L"remark: " << move.remark << L'/' << endl;
+            //wcout << L"remark: " << move.remark << L'/' << endl;
         }
 
         if (ChildTag & 0x80) { //# 有左子树
@@ -420,8 +409,16 @@ void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
 }
 
 // （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
-void Moves::__initSetSeat(RecFormat fmt, Board& board)
+void Moves::__initSet(RecFormat fmt, Board& board)
 {
+    auto __setRem = [&](Move& move) {
+        int length = move.remark.size();
+        if (length > 0) {
+            remCount += 1;
+            if (length > remLenMax)
+                remLenMax = length;
+        }
+    };
     function<void(Move&)> __set = [&](Move& move) {
         switch (fmt) {
         case RecFormat::ICCS: {
@@ -432,7 +429,9 @@ void Moves::__initSetSeat(RecFormat fmt, Board& board)
         case RecFormat::zh:
         case RecFormat::CC: {
             move.setSeat(getSeat__Zh(move.zh, board));
-            //*
+            move.ICCS = getICCS(move.fseat(), move.tseat());
+            break;
+            /*
             wstring zh{ getZh(move.fseat(), move.tseat(), board) };
             // wcout << move.toString() << L'\n';
             if (move.zh != zh) {
@@ -441,15 +440,13 @@ void Moves::__initSetSeat(RecFormat fmt, Board& board)
                       << move.toString() << L'\n' << board.toString() << endl;
                 return;
             } //*/
-            move.ICCS = getICCS(move.fseat(), move.tseat());
-            break;
         }
         case RecFormat::JSON:
         case RecFormat::XQF: {
             move.ICCS = getICCS(move.fseat(), move.tseat());
             move.zh = getZh(move.fseat(), move.tseat(), board);
-
-            //*
+            break;
+            /*
             auto seats = getSeat__Zh(move.zh, board);
             // wcout << move.toString() << L'\n';
             if ((seats.first != move.fseat()) || (seats.second != move.tseat())) {
@@ -458,65 +455,43 @@ void Moves::__initSetSeat(RecFormat fmt, Board& board)
                       << move.toString() << L'\n' << board.toString() << endl;
                 return;
             } //*/
-
-            break;
         }
         }
 
-        board.go(move);
-        if (move.next())
-            __set(*move.next());
-        board.back(move);
-        if (move.other())
-            __set(*move.other());
-    };
-
-    if (rootMove->next())
-        __set(*rootMove->next()); // 驱动函数
-    toFirst(board); // 复原board
-}
-
-void Moves::__initSetNum(Board& board)
-{
-    function<void(Move&)> __setNums = [&](Move& move) {
         movCount += 1;
-        if (move.remark.size()) {
-            remCount += 1;
-            int length = move.remark.size();
-            if (length > remLenMax)
-                remLenMax = length;
-        }
+        __setRem(move);
         move.maxCol = maxCol; // # 本着在视图中的列数
         if (move.othCol > othCol)
             othCol = move.othCol;
         if (move.stepNo > maxRow)
             maxRow = move.stepNo;
+
         board.go(move);
         if (move.next())
-            __setNums(*move.next());
+            __set(*move.next());
         board.back(move);
-        if (move.other()) {
+        if (move.other()){
             maxCol += 1;
-            __setNums(*move.other());
+            __set(*move.other());
         }
     };
 
+    __setRem(*rootMove);
     if (rootMove->next())
-        __setNums(*rootMove->next()); // # 驱动调用递归函数
+        __set(*rootMove->next()); // 驱动函数
     toFirst(board); // 复原board
 }
 
-void Moves::__clear()
+void Moves::__init__()
 {
     rootMove = make_shared<Move>();
     currentMove = rootMove;
     firstColor = PieceColor::red; // 棋局载入时需要设置此属性！
-    movCount = remCount = remLenMax = othCol = maxRow = maxCol = 0;
 }
 
 wstring Moves::toString()
 {
-    wstringstream wss;
+    wstringstream wss{};
     function<void(Move&)> __remark = [&](Move& move) {
         if (move.remark.size() > 0)
             wss << L"\n{" << move.remark << L"}\n";

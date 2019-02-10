@@ -1,10 +1,9 @@
 #include "info.h"
 #include "board_base.h"
 
-#include <sstream>
-using std::wstringstream;
+#include <functional>
 #include <regex>
-
+#include <sstream>
 using namespace std;
 
 using namespace Board_base;
@@ -47,7 +46,7 @@ Info::Info(const wstring& pgnTxt)
 
 Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
 {
-    auto __calkey = [](int bKey, int cKey) {
+    function<unsigned char(unsigned char, unsigned char)> __calkey = [](unsigned char bKey, unsigned char cKey) {
         return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey % 256; // 保持为<256
     };
     wstring pieChars = L"RNBAKABNRCCPPPPPrnbakabnrccppppp"; // QiziXY设定的棋子顺序
@@ -90,32 +89,37 @@ Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
     info[L"RMKWriter"] = s2ws(RMKWriter);
     info[L"Author"] = s2ws(Author);
 
+    unsigned char head_KeyXY{ (unsigned char)(headKeyXY[0]) }, head_KeyXYf{ (unsigned char)(headKeyXYf[0]) },
+        head_KeyXYt{ (unsigned char)(headKeyXYt[0]) }, head_KeysSum{ (unsigned char)(headKeysSum[0]) };
+    unsigned char* head_QiziXY{ (unsigned char*)headQiziXY };
     if (Signature[0] != 0x58 || Signature[1] != 0x51)
         wcout << s2ws(Signature) << L" 文件标记不对。Signature != (0x58, 0x51)\n";
-    if ((headKeysSum[0] + headKeyXY[0] + headKeyXYf[0] + headKeyXYt[0]) % 256 != 0)
-        wcout << headKeysSum[0] << headKeyXY[0] << headKeyXYf[0] << headKeyXYt[0] << L" 检查密码校验和不对，不等于0。\n";
+    if ((head_KeysSum + head_KeyXY + head_KeyXYf + head_KeyXYt) % 256 != 0)
+        wcout << head_KeysSum << head_KeyXY << head_KeyXYf << head_KeyXYt << L" 检查密码校验和不对，不等于0。\n";
     if (version > 18)
         wcout << version << L" 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
 
-    int KeyXY, KeyXYf, KeyXYt, KeyRMKSize;
+    unsigned char KeyXY, KeyXYf, KeyXYt;
+    int KeyRMKSize;
     if (version <= 10) { // 兼容1.0以前的版本
-        KeyXY = KeyXYf = KeyXYt = KeyRMKSize = 0;
+        KeyXY = KeyXYf = KeyXYt = 0;
+        KeyRMKSize = 0;
     } else {
-        KeyXY = __calkey((unsigned char)(headKeyXY[0]), (unsigned char)(headKeyXY[0]));
-        KeyXYf = __calkey((unsigned char)(headKeyXYf[0]), KeyXY);
-        KeyXYt = __calkey((unsigned char)(headKeyXYt[0]), KeyXYf);
-        KeyRMKSize = (((unsigned char)(headKeysSum[0]) * 256 + (unsigned char)(headKeyXY[0])) % 32000) + 767; // % 65536
+        KeyXY = __calkey(head_KeyXY, head_KeyXY);
+        KeyXYf = __calkey(head_KeyXYf, KeyXY);
+        KeyXYt = __calkey(head_KeyXYt, KeyXYf);
+        KeyRMKSize = ((head_KeysSum * 256 + head_KeyXY) % 32000) + 767; // % 65536
         if (version >= 12) { // 棋子位置循环移动
-            vector<char> Qixy(begin(headQiziXY), end(headQiziXY));
+            vector<unsigned char> Qixy(begin(headQiziXY), end(headQiziXY)); // head_QiziXY 不是数组，不能用
             for (int i = 0; i != 32; ++i)
-                headQiziXY[(i + KeyXY + 1) % 32] = Qixy[i];
+                head_QiziXY[(i + KeyXY + 1) % 32] = Qixy[i];
         }
         for (int i = 0; i != 32; ++i) // 棋子位置解密
-            headQiziXY[i] = __subbyte(headQiziXY[i], KeyXY); // 保持为8位无符号整数，<256
+            head_QiziXY[i] = __subbyte(head_QiziXY[i], KeyXY); // 保持为8位无符号整数，<256
     }
-    wcout << L"XY_XYf_XYt_Sum_Size: " << 0 + (unsigned char)(headKeyXY[0]) << L'/'
-          << 0 + (unsigned char)(headKeyXYf[0]) << L'/' << 0 + (unsigned char)(headKeyXYt[0]) << L'/'
-           << 0 + (unsigned char)(headKeysSum[0]) << L'/' << KeyRMKSize << endl;
+    //wcout << L"XY_XYf_XYt_Sum_Size: " << 0 + head_KeyXY << L'/'
+      //    << 0 + head_KeyXYf << L'/' << 0 + head_KeyXYt << L'/'
+        //  << 0 + head_KeysSum << L'/' << KeyRMKSize << endl;
 
     char KeyBytes[4];
     KeyBytes[0] = (headKeysSum[0] & headKeyMask[0]) | headKeyOrA[0];
@@ -129,7 +133,7 @@ Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
     Keys = vector<int>{ version, KeyXYf, KeyXYt, KeyRMKSize };
     wstring pieceChars(90, L'_');
     for (int i = 0; i != 32; ++i) {
-        int xy = (unsigned char)(headQiziXY[i]);
+        int xy = head_QiziXY[i];
         if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
