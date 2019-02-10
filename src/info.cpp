@@ -44,7 +44,7 @@ Info::Info(const wstring& pgnTxt)
         info[L"FEN"] = wstring{ fen, 0, fen.find(L' ') };
 }
 
-Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
+Info::Info(istream& is, vector<int>& Keys, vector<int>& F32Keys)
 {
     function<unsigned char(unsigned char, unsigned char)> __calkey = [](unsigned char bKey, unsigned char cKey) {
         return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey % 256; // 保持为<256
@@ -65,15 +65,15 @@ Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
         Opening[65], Redtime[17], Blktime[17], Reservedh[33],
         RMKWriter[17], Author[17]; // 棋谱评论员/文件的作者
 
-    ifs.read(Signature, 2).read(Version_xqf, 1).read(headKeyMask, 1).read(ProductId, 4); // = 8 bytes
-    ifs.read(headKeyOrA, 1).read(headKeyOrB, 1).read(headKeyOrC, 1).read(headKeyOrD, 1).read(headKeysSum, 1).read(headKeyXY, 1).read(headKeyXYf, 1).read(headKeyXYt, 1); // = 16 bytes
-    ifs.read(headQiziXY, 32); // = 48 bytes
-    ifs.read(PlayStepNo, 2).read(headWhoPlay, 1).read(headPlayResult, 1).read(PlayNodes, 4).read(PTreePos, 4).read(Reserved1, 4); // = 64 bytes
-    ifs.read(headCodeA_H, 16).read(TitleA, 64).read(TitleB, 64); // 80 + 128 = 208 bytes
-    ifs.read(Event, 64).read(Date, 16).read(Site, 16).read(Red, 16).read(Black, 16); // = 336 bytes
-    ifs.read(Opening, 64).read(Redtime, 16).read(Blktime, 16).read(Reservedh, 32); // = 464 bytes
-    ifs.read(RMKWriter, 16).read(Author, 16); // = 496 bytes
-    ifs.ignore(528); // = 1024 bytes
+    is.read(Signature, 2).read(Version_xqf, 1).read(headKeyMask, 1).read(ProductId, 4); // = 8 bytes
+    is.read(headKeyOrA, 1).read(headKeyOrB, 1).read(headKeyOrC, 1).read(headKeyOrD, 1).read(headKeysSum, 1).read(headKeyXY, 1).read(headKeyXYf, 1).read(headKeyXYt, 1); // = 16 bytes
+    is.read(headQiziXY, 32); // = 48 bytes
+    is.read(PlayStepNo, 2).read(headWhoPlay, 1).read(headPlayResult, 1).read(PlayNodes, 4).read(PTreePos, 4).read(Reserved1, 4); // = 64 bytes
+    is.read(headCodeA_H, 16).read(TitleA, 64).read(TitleB, 64); // 80 + 128 = 208 bytes
+    is.read(Event, 64).read(Date, 16).read(Site, 16).read(Red, 16).read(Black, 16); // = 336 bytes
+    is.read(Opening, 64).read(Redtime, 16).read(Blktime, 16).read(Reservedh, 32); // = 464 bytes
+    is.read(RMKWriter, 16).read(Author, 16); // = 496 bytes
+    is.ignore(528); // = 1024 bytes
 
     int version{ Version_xqf[0] };
     info[L"Version_xqf"] = to_wstring(version);
@@ -118,8 +118,8 @@ Info::Info(istream& ifs, vector<int>& Keys, vector<int>& F32Keys)
             head_QiziXY[i] = __subbyte(head_QiziXY[i], KeyXY); // 保持为8位无符号整数，<256
     }
     //wcout << L"XY_XYf_XYt_Sum_Size: " << 0 + head_KeyXY << L'/'
-      //    << 0 + head_KeyXYf << L'/' << 0 + head_KeyXYt << L'/'
-        //  << 0 + head_KeysSum << L'/' << KeyRMKSize << endl;
+    //    << 0 + head_KeyXYf << L'/' << 0 + head_KeyXYt << L'/'
+    //  << 0 + head_KeysSum << L'/' << KeyRMKSize << endl;
 
     char KeyBytes[4];
     KeyBytes[0] = (headKeysSum[0] & headKeyMask[0]) | headKeyOrA[0];
@@ -178,7 +178,17 @@ wstring Info::getPieChars()
     return chars;
 }
 
-// 类外定义
+void Info::toBin(ostream& os)
+{
+    char length[]{ char(info.size()) };
+    os.write(length, 1);
+    for (auto& kv : info) {
+        string keys{ ws2s(kv.first) }, values{ ws2s(kv.second) };
+        char klen[]{ char(keys.size() + 1) }, vlen[]{ char(values.size() + 1) };
+        os.write(klen, 1).write(keys.c_str(), *klen).write(vlen, 1).write(values.c_str(), *vlen);
+    }
+}
+
 wstring Info::toString()
 {
     wstring ws{};

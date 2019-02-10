@@ -90,8 +90,9 @@ public:
     void cutNext();
     void cutOther();
 
-    wstring toString();
-    wstring toLocaleString();
+    wstring toString_zh(RecFormat fmt = RecFormat::zh);
+    wstring toString_ICCS();
+    wstring toString_CC();
 
     static wstring test();
     int movCount{ 0 }; //着法数量

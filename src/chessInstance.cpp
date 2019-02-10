@@ -1,9 +1,9 @@
 #include "chessInstance.h"
 
-#include <direct.h>
 #include <fstream>
-#include <functional>
 #include <iostream>
+#include <functional>
+#include <direct.h>
 //#include <sstream>
 //#include <locale>
 //#include <regex>
@@ -22,7 +22,6 @@ ChessInstance::ChessInstance(string filename)
         info = Info(pgnTxt.substr(0, pos));
         board = Board(info);
         moves = Moves(pgnTxt.substr(pos), info, board);
-    } else if (ext == ".json") {
     } else if (ext == ".xqf") {
         vector<int> Keys(4, 0);
         vector<int> F32Keys(32, 0);
@@ -32,30 +31,38 @@ ChessInstance::ChessInstance(string filename)
         //wcout << info.toString() << endl;
         //wcout << board.toString() << endl;
         moves = Moves(ifs, Keys, F32Keys, board);
+    } else if (ext == ".bin") {
+    } else if (ext == ".json") {
     }
 }
 
-wstring ChessInstance::toString()
+void ChessInstance::write(string filename, string ext, RecFormat fmt)
 {
-    return info.toString() + L"\n" + moves.toString();
+    if (ext == ".pgn") {
+        wstring ws{};
+        switch (fmt) {
+        case RecFormat::zh:
+            ws = info.toString() + L"\n" + moves.toString_zh();
+            break;
+        case RecFormat::CC:
+            ws = info.toString() + L"\n" + board.toString() + L"\n" + moves.toString_CC();
+            break;
+        default:
+            ws = info.toString() + L"\n" + moves.toString_ICCS();
+            break;
+        }
+        writeTxt(filename + "_" + to_string(static_cast<int>(fmt)) + ext, ws);
+    } else if (ext == ".bin") {
+    } else if (ext == ".json") {
+    }
 }
 
-wstring ChessInstance::toLocaleString()
+void ChessInstance::transDir(string dirfrom, string ext, RecFormat fmt)
 {
-    return info.toString() + L"\n" + moves.toLocaleString(); //board.toString() + L"\n" +
-}
-
-void ChessInstance::write(string filename, RecFormat fmt)
-{
-    if (fmt == RecFormat::zh)
-        writeTxt(filename, toString()); // toLocaleString()
-}
-
-void ChessInstance::transdir(string dirfrom, string ext, RecFormat fmt)
-{
-    string extensions{ ".xqf.bin.xml.pgn" };
+    string extensions{ ".xqf.pgn.bin.json" };
     int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
     string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + ext };
+    string ext_old{};
     function<void(string, string)> __trans = [&](string dirfrom, string dirto) {
         long hFile = 0; //文件句柄
         struct _finddata_t fileinfo; //文件信息
@@ -70,19 +77,19 @@ void ChessInstance::transdir(string dirfrom, string ext, RecFormat fmt)
                         __trans(dirfrom + "/" + fname, dirto + "/" + fname);
                     }
                 } else { //如果是文件,执行转换
-                    string filefrom{ dirfrom + "/" + fname };
+                    string filename{ dirfrom + "/" + fname };
                     string fileto{ dirto + "/" + fname.substr(0, fname.rfind('.')) };
-                    string ext_old{ getExt(fname) };
+                    ext_old = getExt(fname);
                     fcount += 1;
                     if (extensions.find(ext_old) != string::npos) {
-                        ChessInstance ci(filefrom);
-                        ci.write(fileto + ext, fmt);
+                        ChessInstance ci(filename);
+                        ci.write(fileto, ext, fmt);
                         movcount += ci.moves.movCount;
                         remcount += ci.moves.remCount;
                         if (ci.moves.remLenMax > remlenmax)
                             remlenmax = ci.moves.remLenMax;
                     } else
-                        copyFile(filefrom.c_str(), (fileto + ext_old).c_str());
+                        copyFile(filename.c_str(), (fileto + ext_old).c_str());
                 }
             } while (_findnext(hFile, &fileinfo) == 0);
             _findclose(hFile);
@@ -90,7 +97,28 @@ void ChessInstance::transdir(string dirfrom, string ext, RecFormat fmt)
     };
 
     __trans(dirfrom, dirto);
-    cout << dirfrom + ": " << fcount << "个文件, "
-         << dcount << "个目录转换成功！\n着法数量: "
+    cout << dirfrom + " =>" << static_cast<int>(fmt) << ext << ": 转换" << fcount << "个文件, "
+         << dcount << "个目录成功！\n   着法数量: "
          << movcount << ", 注释数量: " << remcount << ", 最大注释长度: " << remlenmax << endl;
+}
+
+void ChessInstance::testTransDir()
+{
+    vector<string> dirfroms{ "c:\\棋谱\\示例文件",
+        "c:\\棋谱\\象棋杀着大全",
+        "c:\\棋谱\\疑难文件",
+        "c:\\棋谱\\中国象棋棋谱大全" };
+    vector<string> fexts{ ".xqf", ".pgn", ".bin", ".json" };
+    vector<string> texts{ ".pgn", ".bin", ".json" };
+    RecFormat fmts[]{ RecFormat::ICCS, RecFormat::zh, RecFormat::CC };
+
+    int dc{ 2 }, fec{ 2 }, tec{ 1 }, fmc{ 3 };
+    for (int i = 0; i != dc; ++i)
+        for (int j = 0; j != fec; ++j)
+            for (int k = 0; k != tec; ++k)
+                if (texts[k] == fexts[j])
+                    continue;
+                else
+                    for (int n = 0; n != fmc; ++n)
+                        transDir(dirfroms[i] + fexts[j], texts[k], fmts[n]);
 }

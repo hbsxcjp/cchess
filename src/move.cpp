@@ -433,11 +433,11 @@ void Moves::__initSet(RecFormat fmt, Board& board)
             break;
             /*
             wstring zh{ getZh(move.fseat(), move.tseat(), board) };
-            // wcout << move.toString() << L'\n';
+            // wcout << move.toString_zh() << L'\n';
             if (move.zh != zh) {
                 wcout << L"move.zh: " << move.zh << L'\n'
                       << L"getZh( ): " << zh << L'\n'
-                      << move.toString() << L'\n' << board.toString() << endl;
+                      << move.toString_zh() << L'\n' << board.toString() << endl;
                 return;
             } //*/
         }
@@ -448,11 +448,11 @@ void Moves::__initSet(RecFormat fmt, Board& board)
             break;
             /*
             auto seats = getSeat__Zh(move.zh, board);
-            // wcout << move.toString() << L'\n';
+            // wcout << move.toString_zh() << L'\n';
             if ((seats.first != move.fseat()) || (seats.second != move.tseat())) {
                 wcout << L"move.fs_ts: " << move.fseat() << L' ' << move.tseat() << L'\n'
                       << L"getSeat__Zh( ): " << move.zh << L'\n'
-                      << move.toString() << L'\n' << board.toString() << endl;
+                      << move.toString_zh() << L'\n' << board.toString() << endl;
                 return;
             } //*/
         }
@@ -489,7 +489,7 @@ void Moves::__init__()
     firstColor = PieceColor::red; // 棋局载入时需要设置此属性！
 }
 
-wstring Moves::toString()
+wstring Moves::toString_zh(RecFormat fmt)
 {
     wstringstream wss{};
     function<void(Move&)> __remark = [&](Move& move) {
@@ -507,7 +507,7 @@ wstring Moves::toString()
             wss << L" ";
         else
             wss << boutNum << L". ";
-        wss << move.zh << L' ';
+        wss << (fmt == RecFormat::zh ? move.zh : move.ICCS) << L' ';
         __remark(move);
         if (move.other()) {
             __moveStr(*move.other(), true);
@@ -523,7 +523,12 @@ wstring Moves::toString()
     return wss.str();
 }
 
-wstring Moves::toLocaleString()
+wstring Moves::toString_ICCS()
+{
+    return toString_zh(RecFormat::ICCS);
+}
+
+wstring Moves::toString_CC()
 {
     wstringstream remstrs{};
     wstring lstr((maxCol + 1) * 5, L'　');

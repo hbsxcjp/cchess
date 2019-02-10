@@ -14,11 +14,9 @@ class ChessInstance {
 public:
     ChessInstance(string filename);
 
-    wstring toString();
-    wstring toLocaleString();
-
-    void write(string filename, RecFormat fmt=RecFormat::zh);
-    static void transdir(string dirfrom, string ext, RecFormat fmt=RecFormat::zh);
+    void write(string filename, string ext, RecFormat fmt = RecFormat::zh);
+    static void transDir(string dirfrom, string ext, RecFormat fmt = RecFormat::zh);
+    static void testTransDir();
 
     // void loadViews(views);
     // void notifyViews();
