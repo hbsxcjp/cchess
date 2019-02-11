@@ -23,6 +23,7 @@ piece.o: board.h piece.cpp
 board_base.o: board_base.h board_base.cpp
 	gcc -c -o obj/board_base.o -std=c++11 -fexec-charset=gbk -iquote head -Wall src/board_base.cpp
 
+
 .PHONY: clean
 clean:
 	rm a.exe $(objects)
