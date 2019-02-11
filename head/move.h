@@ -3,16 +3,13 @@
 
 #include "board_base.h"
 #include "piece.h"
-using namespace Board_base;
-
-#include <fstream>
+#include <iostream>
 #include <vector>
-using std::vector;
-using std::wstring;
 #include <utility>
-using std::pair;
 #include <memory>
-using std::shared_ptr;
+
+using namespace std;
+using namespace Board_base;
 
 enum class PieceColor;
 class Info;
@@ -71,7 +68,8 @@ class Moves {
 public:
     Moves();
     Moves(wstring moveStr, Info& info, Board& board);
-    Moves(std::ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys, Board& board);
+    Moves(istream& is, vector<int>& Keys, vector<int>& F32Keys, Board& board);
+    Moves(istream& is);
 
     PieceColor currentColor();
     bool isStart() { return currentMove->prev() == nullptr; }
@@ -94,6 +92,7 @@ public:
     wstring toString_zh(RecFormat fmt = RecFormat::zh);
     wstring toString_ICCS();
     wstring toString_CC();
+    void toBin(ostream& os);
 
     static wstring test();
     int movCount{ 0 }; //着法数量
@@ -112,7 +111,7 @@ private:
     void fromICCSZh(wstring moveStr, RecFormat fmt);
     void fromJSON(wstring moveJSON);
     void fromCC(wstring moveStr);
-    void fromXQF(std::ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys);
+    void fromXQF(std::istream& is, vector<int>& Keys, vector<int>& F32Keys);
     void __initSet(RecFormat fmt, Board& board);
     void __init__();
 

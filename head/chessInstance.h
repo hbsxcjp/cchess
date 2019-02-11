@@ -15,6 +15,7 @@ public:
     ChessInstance(string filename);
 
     void write(string filename, string ext, RecFormat fmt = RecFormat::zh);
+    
     static void transDir(string dirfrom, string ext, RecFormat fmt = RecFormat::zh);
     static void testTransDir();
 

@@ -32,6 +32,13 @@ ChessInstance::ChessInstance(string filename)
         //wcout << board.toString() << endl;
         moves = Moves(ifs, Keys, F32Keys, board);
     } else if (ext == ".bin") {
+        ifstream ifs(filename, ios_base::binary);
+        info = Info(ifs);
+        board = Board(info);
+        //wcout << info.toString() << endl;
+        //wcout << board.toString() << endl;
+        moves = Moves(ifs);
+        ifs.close();
     } else if (ext == ".json") {
     }
 }
@@ -53,6 +60,10 @@ void ChessInstance::write(string filename, string ext, RecFormat fmt)
         }
         writeTxt(filename + "_" + to_string(static_cast<int>(fmt)) + ext, ws);
     } else if (ext == ".bin") {
+        ofstream ofs(filename + ext, ios_base::binary);
+        info.toBin(ofs);
+        moves.toBin(ofs);
+        ofs.close();
     } else if (ext == ".json") {
     }
 }
@@ -112,7 +123,7 @@ void ChessInstance::testTransDir()
     vector<string> texts{ ".pgn", ".bin", ".json" };
     RecFormat pgn_fmts[]{ RecFormat::ICCS, RecFormat::zh, RecFormat::CC };
 
-    int dc{ 2 }, fec{ 2 }, tec{ 1 }, fmc{ 3 };
+    int dc{ 2 }, fec{ 2 }, tec{ 2 }, fmc{ 3 };
     for (int i = 0; i != dc; ++i)
         for (int j = 0; j != fec; ++j)
             for (int k = 0; k != tec; ++k)
@@ -121,10 +132,8 @@ void ChessInstance::testTransDir()
                 else if (texts[k] == ".pgn") {
                     for (int n = 0; n != fmc; ++n)
                         transDir(dirfroms[i] + fexts[j], texts[k], pgn_fmts[n]);
-                } else if (texts[k] == ".xqf")
-                    transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::XQF);
+                } else if (texts[k] == ".bin")
+                    transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::bin);
                 else if (texts[k] == ".json")
                     transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::JSON);
-                else if (texts[k] == ".bin")
-                    transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::bin);
 }

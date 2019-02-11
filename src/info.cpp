@@ -2,6 +2,7 @@
 #include "board_base.h"
 
 #include <functional>
+#include <iomanip>
 #include <regex>
 #include <sstream>
 using namespace std;
@@ -140,6 +141,20 @@ Info::Info(istream& is, vector<int>& Keys, vector<int>& F32Keys)
     toFEN(pieceChars);
 }
 
+Info::Info(istream& is)
+{
+    char size{}, klen{}, vlen{};
+    is.get(size);
+    for (int i = 0; i != size; ++i) {
+        is.get(klen);
+        char key[klen + 1]{};
+        is.read(key, klen);
+        is.get(vlen);
+        char value[vlen + 1]{};
+        is.read(value, vlen);
+    }
+}
+
 void Info::toFEN(wstring& pieceChars)
 {
     //'下划线字符串对应数字字符'
@@ -180,12 +195,13 @@ wstring Info::getPieChars()
 
 void Info::toBin(ostream& os)
 {
-    char length[]{ char(info.size()) };
-    os.write(length, 1);
+    os.put(char(info.size()));
+    //wos << int(info.size());
     for (auto& kv : info) {
+        //wos << int(kv.first.size()) << kv.first << int(kv.second.size()) << kv.second;
         string keys{ ws2s(kv.first) }, values{ ws2s(kv.second) };
-        char klen[]{ char(keys.size() + 1) }, vlen[]{ char(values.size() + 1) };
-        os.write(klen, 1).write(keys.c_str(), *klen).write(vlen, 1).write(values.c_str(), *vlen);
+        char klen{ char(keys.size()) }, vlen{ char(values.size()) };
+        os.put(klen).write(keys.c_str(), klen).put(vlen).write(values.c_str(), vlen);
     }
 }
 
@@ -195,15 +211,4 @@ wstring Info::toString()
     for (const auto m : info)
         ws += m.first + L": " + m.second + L"\n";
     return ws;
-}
-
-wstring Info::test()
-{
-    Info ainfo{};
-    wstringstream wss;
-    wss << L"test info.h\n"
-        << L"-----------------------------------------------------\n"
-        << L"Info::toString:\n";
-    wss << ainfo.toString() << L'\n';
-    return wss.str();
 }

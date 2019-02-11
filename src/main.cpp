@@ -1,6 +1,8 @@
 #include "chessInstance.h"
 
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 #include <locale>
 #include <chrono>
 

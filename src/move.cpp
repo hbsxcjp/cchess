@@ -4,12 +4,11 @@
 #include "info.h"
 
 #include <algorithm>
-#include <fstream>
 #include <functional>
-#include <iomanip>
 #include <iostream>
 #include <regex>
 #include <sstream>
+
 using namespace std;
 
 void Move::setNext(shared_ptr<Move> next)
@@ -67,10 +66,10 @@ Moves::Moves(wstring moveStr, Info& info, Board& board)
     __initSet(fmt, board);
 }
 
-Moves::Moves(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys, Board& board)
+Moves::Moves(istream& is, vector<int>& Keys, vector<int>& F32Keys, Board& board)
     : Moves()
 {
-    fromXQF(ifs, Keys, F32Keys);
+    fromXQF(is, Keys, F32Keys);
     __initSet(RecFormat::XQF, board);
 }
 
@@ -340,20 +339,20 @@ void Moves::fromCC(wstring moveStr)
 {
 }
 
-void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
+void Moves::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
 {
     int version{ Keys[0] }, KeyXYf{ Keys[1] }, KeyXYt{ Keys[2] }, KeyRMKSize{ Keys[3] };
     //wcout << L"ver_XYf_XYt_Size: " << version << L'/'
     //      << KeyXYf << L'/' << KeyXYt << L'/' << KeyRMKSize << endl;
 
-    function<void(Move&)> __readmove = [&](Move& move) {
+    function<void(Move&)> __readMove = [&](Move& move) {
         auto __byteToSeat = [&](int a, int b) {
             int xy = __subbyte(a, b);
             return getSeat(xy % 10, xy / 10);
         };
         auto __readbytes = [&](char* byteStr, int size) {
-            int pos = ifs.tellg();
-            ifs.read(byteStr, size);
+            int pos = is.tellg();
+            is.read(byteStr, size);
             if (version > 10) // '字节串解密'
                 for (int i = 0; i != size; ++i)
                     byteStr[i] = __subbyte((unsigned char)(byteStr[i]), F32Keys[(pos + i) % 32]);
@@ -396,16 +395,16 @@ void Moves::fromXQF(ifstream& ifs, vector<int>& Keys, vector<int>& F32Keys)
 
         if (ChildTag & 0x80) { //# 有左子树
             move.setNext(make_shared<Move>());
-            __readmove(*move.next());
+            __readMove(*move.next());
         }
         if (ChildTag & 0x40) { // # 有右子树
             move.setOther(make_shared<Move>());
-            __readmove(*move.other());
+            __readMove(*move.other());
         }
     };
 
-    //ifs.seekg(1024);
-    __readmove(*rootMove);
+    //is.seekg(1024);
+    __readMove(*rootMove);
 }
 
 // （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
@@ -490,6 +489,57 @@ void Moves::__init__()
     rootMove = make_shared<Move>();
     currentMove = rootMove;
     firstColor = PieceColor::red; // 棋局载入时需要设置此属性！
+}
+
+Moves::Moves(istream& is)
+{
+    function<void(Move&)> __readMove = [&](Move& move) {
+        char fseat{}, tseat{}, hasNext{}, hasOther{};
+        is.get(fseat).get(tseat).get(hasNext).get(hasOther);
+        move.setSeat(make_pair(int(fseat), int(tseat)));
+
+        char len[sizeof(int)]{};
+        is.read(len, sizeof(int));
+        int length{ *(int*)len };
+        if (length > 0) {
+            char rem[length + 1]{};
+            is.read(rem, length);
+            move.remark = s2ws(string(rem));
+        }
+
+        if (hasNext) { //# 有左子树
+            move.setNext(make_shared<Move>());
+            __readMove(*move.next());
+        }
+        if (hasOther) { // # 有右子树
+            move.setOther(make_shared<Move>());
+            __readMove(*move.other());
+        }
+    };
+
+    __readMove(*rootMove);
+}
+
+void Moves::toBin(ostream& os)
+{
+    function<void(Move&)> __toMove = [&](Move& move) {
+        os.put(char(move.fseat()));
+        os.put(char(move.tseat()));
+        os.put(char(move.next() ? true : false));
+        os.put(char(move.other() ? true : false));
+
+        int len[]{ int(move.remark.size() ) }; 
+        os.write((char*)len, sizeof(int));
+        if (*len > 0)
+            os.write(ws2s(move.remark).c_str(), *len);
+
+        if (move.next())
+            __toMove(*move.next());
+        if (move.other())
+            __toMove(*move.other());
+    };
+
+    __toMove(*rootMove);
 }
 
 wstring Moves::toString_zh(RecFormat fmt)
