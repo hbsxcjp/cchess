@@ -3,13 +3,13 @@
 #include "board.h"
 #include "info.h"
 
-#include <iostream>
-#include <sstream>
-#include <fstream>
 #include <algorithm>
+#include <fstream>
 #include <functional>
 #include <iomanip>
+#include <iostream>
 #include <regex>
+#include <sstream>
 using namespace std;
 
 void Move::setNext(shared_ptr<Move> next)
@@ -456,6 +456,9 @@ void Moves::__initSet(RecFormat fmt, Board& board)
                 return;
             } //*/
         }
+        case RecFormat::bin: {
+            break;
+        }
         }
 
         movCount += 1;
@@ -470,7 +473,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
         if (move.next())
             __set(*move.next());
         board.back(move);
-        if (move.other()){
+        if (move.other()) {
             maxCol += 1;
             __set(*move.other());
         }

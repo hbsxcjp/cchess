@@ -1,9 +1,9 @@
 #include "chessInstance.h"
 
-#include <fstream>
-#include <iostream>
-#include <functional>
 #include <direct.h>
+#include <fstream>
+#include <functional>
+#include <iostream>
 //#include <sstream>
 //#include <locale>
 //#include <regex>
@@ -110,7 +110,7 @@ void ChessInstance::testTransDir()
         "c:\\棋谱\\中国象棋棋谱大全" };
     vector<string> fexts{ ".xqf", ".pgn", ".bin", ".json" };
     vector<string> texts{ ".pgn", ".bin", ".json" };
-    RecFormat fmts[]{ RecFormat::ICCS, RecFormat::zh, RecFormat::CC };
+    RecFormat pgn_fmts[]{ RecFormat::ICCS, RecFormat::zh, RecFormat::CC };
 
     int dc{ 2 }, fec{ 2 }, tec{ 1 }, fmc{ 3 };
     for (int i = 0; i != dc; ++i)
@@ -118,7 +118,13 @@ void ChessInstance::testTransDir()
             for (int k = 0; k != tec; ++k)
                 if (texts[k] == fexts[j])
                     continue;
-                else
+                else if (texts[k] == ".pgn") {
                     for (int n = 0; n != fmc; ++n)
-                        transDir(dirfroms[i] + fexts[j], texts[k], fmts[n]);
+                        transDir(dirfroms[i] + fexts[j], texts[k], pgn_fmts[n]);
+                } else if (texts[k] == ".xqf")
+                    transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::XQF);
+                else if (texts[k] == ".json")
+                    transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::JSON);
+                else if (texts[k] == ".bin")
+                    transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::bin);
 }

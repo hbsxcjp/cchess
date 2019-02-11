@@ -22,8 +22,9 @@ class Board;
 enum class RecFormat { ICCS,
     zh,
     CC,
+    XQF,
     JSON,
-    XQF };
+    bin };
 
 // 着法节点类
 class Move {
