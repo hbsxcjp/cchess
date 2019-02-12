@@ -332,7 +332,7 @@ wstring Board_base::print_vector_int(vector<int> vi)
     return wss.str();
 }
 
-inline string& Board_base::trim(string& str)
+inline string Board_base::trim(string& str)
 {
     string::iterator pl = find_if(str.begin(), str.end(), not1(ptr_fun<int, int>(isspace)));
     str.erase(str.begin(), pl);
@@ -341,9 +341,9 @@ inline string& Board_base::trim(string& str)
     return str;
 }
 
-inline wstring& Board_base::wtrim(wstring& str)
+inline wstring Board_base::wtrim(wstring& str)
 {
-    //*
+    /*
     wstring::iterator pl = find_if(str.begin(), str.end(), not1(ptr_fun<int, int>(isspace)));
     str.erase(str.begin(), pl);
     wstring::reverse_iterator pr = find_if(str.rbegin(), str.rend(), not1(ptr_fun<int, int>(isspace)));
@@ -362,8 +362,7 @@ inline wstring& Board_base::wtrim(wstring& str)
             --last;
         else
             break;
-    str = str.substr(first, last - first);
-    return str;
+    return str.substr(first, last - first);
    // */
 }
 

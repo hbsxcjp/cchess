@@ -504,7 +504,7 @@ Moves::Moves(istream& is)
         if (length > 0) {
             char rem[length + 1]{};
             is.read(rem, length);
-            move.remark = s2ws(string(rem));
+            move.remark = s2ws(rem);
         }
 
         if (hasNext) { //# 有左子树
@@ -528,7 +528,7 @@ void Moves::toBin(ostream& os)
         os.put(char(move.next() ? true : false));
         os.put(char(move.other() ? true : false));
 
-        int len[]{ int(move.remark.size() ) }; 
+        int len[]{ int(move.remark.size()) };
         os.write((char*)len, sizeof(int));
         if (*len > 0)
             os.write(ws2s(move.remark).c_str(), *len);

@@ -49,13 +49,13 @@ void ChessInstance::write(string filename, string ext, RecFormat fmt)
         wstring ws{};
         switch (fmt) {
         case RecFormat::zh:
-            ws = info.toString() + L"\n" + moves.toString_zh();
+            ws = info.toString(fmt) + L"\n" + moves.toString_zh();
             break;
         case RecFormat::CC:
-            ws = info.toString() + L"\n" + board.toString() + L"\n" + moves.toString_CC();
+            ws = info.toString(fmt) + L"\n" + board.toString() + L"\n" + moves.toString_CC();
             break;
         default:
-            ws = info.toString() + L"\n" + moves.toString_ICCS();
+            ws = info.toString(fmt) + L"\n" + moves.toString_ICCS();
             break;
         }
         writeTxt(filename + "_" + to_string(static_cast<int>(fmt)) + ext, ws);
@@ -121,19 +121,24 @@ void ChessInstance::testTransDir()
         "c:\\棋谱\\中国象棋棋谱大全" };
     vector<string> fexts{ ".xqf", ".pgn", ".bin", ".json" };
     vector<string> texts{ ".pgn", ".bin", ".json" };
-    RecFormat pgn_fmts[]{ RecFormat::ICCS, RecFormat::zh, RecFormat::CC };
 
-    int dc{ 2 }, fec{ 2 }, tec{ 2 }, fmc{ 3 };
-    for (int i = 0; i != dc; ++i)
-        for (int j = 0; j != fec; ++j)
-            for (int k = 0; k != tec; ++k)
-                if (texts[k] == fexts[j])
-                    continue;
-                else if (texts[k] == ".pgn") {
-                    for (int n = 0; n != fmc; ++n)
-                        transDir(dirfroms[i] + fexts[j], texts[k], pgn_fmts[n]);
-                } else if (texts[k] == ".bin")
-                    transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::bin);
-                else if (texts[k] == ".json")
-                    transDir(dirfroms[i] + fexts[j], texts[k], RecFormat::JSON);
+    // 调节三个循环变量的初值、终值，控制转换目录
+    for (int dirIndex = 0; dirIndex != 3; ++dirIndex)
+        for (int fextIndex = 1; fextIndex != 2; ++fextIndex)
+            for (int textIndex = 0; textIndex != 1; ++textIndex) {
+                string filename{ dirfroms[dirIndex] + fexts[fextIndex] };
+                if (texts[textIndex] == fexts[fextIndex]) {
+                    if (texts[textIndex] == ".pgn")
+                        transDir(filename, ".pgn", RecFormat::CC);
+                } else {
+                    if (texts[textIndex] == ".pgn") {
+                        transDir(filename, ".pgn", RecFormat::zh);
+                        //transDir(filename, ".pgn", RecFormat::CC);
+                        //transDir(filename, ".pgn", RecFormat::ICCS);
+                    } else if (texts[textIndex] == ".bin")
+                        transDir(filename, ".bin", RecFormat::bin);
+                    else if (texts[textIndex] == ".json")
+                        transDir(filename, ".json", RecFormat::JSON);
+                }
+            }
 }

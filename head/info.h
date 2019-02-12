@@ -1,6 +1,7 @@
 #ifndef INFO_H
 #define INFO_H
 
+#include "board_base.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -17,7 +18,7 @@ public:
 
     void toFEN(wstring& pieceChars);
     wstring getPieChars();
-    wstring toString();
+    wstring toString(RecFormat fmt);
     void toBin(ostream& os);
 
     map<wstring, wstring> info;

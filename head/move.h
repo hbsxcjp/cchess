@@ -16,12 +16,6 @@ class Info;
 class Piece;
 class Board;
 
-enum class RecFormat { ICCS,
-    zh,
-    CC,
-    XQF,
-    JSON,
-    bin };
 
 // 着法节点类
 class Move {

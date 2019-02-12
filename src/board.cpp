@@ -107,14 +107,14 @@ void Board::__setPiece(Piece* pie, int tseat)
 
 void Board::setFEN(Info& info)
 {
-    wstring fen{};
+    wstring pieceChars{};
     for (int row = MaxRow; row >= MinRow; --row) {
         for (int col = MinCol; col <= MaxCol; ++col)
-            fen += getPiece(getSeat(row, col))->wchar();
+            pieceChars += getPiece(getSeat(row, col))->wchar();
         if (row != MinRow)
-            fen += L'/';
+            pieceChars += L'/';
     }
-    info.toFEN(fen);
+    info.toFEN(pieceChars);
 }
 
 void Board::setFrom(Info &info)

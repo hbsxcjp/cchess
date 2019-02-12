@@ -14,6 +14,14 @@ enum class PieceColor { blank,
     red,
     black };
 
+enum class RecFormat { ICCS,
+    zh,
+    CC,
+    XQF,
+    JSON,
+    bin };
+
+    
 namespace Board_base {
 // 空位置
 const int nullSeat{ -1 };
@@ -130,8 +138,8 @@ vector<int> getPawnMoveSeats(bool isBottomSide, int seat);
 vector<int> sortPawnSeats(bool isBottomSide, vector<int> pawnSeats);
 
 inline int __subbyte(int a, int b) { return (256 + a - b) % 256; }
-inline string& trim(string& str);
-inline wstring& wtrim(wstring& str);
+inline string trim(string& str);
+inline wstring wtrim(wstring& str);
 wstring print_vector_int(vector<int> vi);
 std::string ws2s(const std::wstring& ws);
 std::wstring s2ws(const std::string& s);

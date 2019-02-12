@@ -1,5 +1,4 @@
 #include "info.h"
-#include "board_base.h"
 
 #include <functional>
 #include <iomanip>
@@ -16,7 +15,7 @@ Info::Info()
         { L"Date", L"" },
         { L"ECCO", L"" },
         { L"Event", L"" },
-        { L"FEN", L"" },
+        { L"FEN", FENPro },
         { L"Format", L"zh" },
         { L"Game", L"Chinese Chess" },
         { L"Opening", L"" },
@@ -34,15 +33,11 @@ Info::Info()
 }
 
 Info::Info(const wstring& pgnTxt)
+    : Info()
 {
     wregex pat{ LR"(\[(\w+)\s+\"(.*)\"\]\s+)" };
     for (wsregex_iterator p(pgnTxt.begin(), pgnTxt.end(), pat); p != wsregex_iterator{}; ++p)
         info[(*p)[1]] = (*p)[2];
-    wstring fen{ info[L"FEN"] };
-    if (fen.size() == 0)
-        info[L"FEN"] = FEN;
-    else
-        info[L"FEN"] = wstring{ fen, 0, fen.find(L' ') };
 }
 
 Info::Info(istream& is, vector<int>& Keys, vector<int>& F32Keys)
@@ -142,6 +137,7 @@ Info::Info(istream& is, vector<int>& Keys, vector<int>& F32Keys)
 }
 
 Info::Info(istream& is)
+    : Info()
 {
     char size{}, klen{}, vlen{};
     is.get(size);
@@ -152,6 +148,7 @@ Info::Info(istream& is)
         is.get(vlen);
         char value[vlen + 1]{};
         is.read(value, vlen);
+        info[s2ws(key)] = s2ws(value);
     }
 }
 
@@ -183,6 +180,7 @@ wstring Info::getPieChars()
         { L'3', L"___" }, { L'2', L"__" }, { L'1', L"_" }
     };
     wstring chars{}, fen{ info[L"FEN"] };
+    fen = fen.substr(0, fen.find(L' '));
     wregex sp{ LR"(/)" };
     for (wsregex_token_iterator wti{ fen.begin(), fen.end(), sp, -1 }; wti != wsregex_token_iterator{}; ++wti)
         chars.insert(0, *wti);
@@ -196,19 +194,28 @@ wstring Info::getPieChars()
 void Info::toBin(ostream& os)
 {
     os.put(char(info.size()));
-    //wos << int(info.size());
     for (auto& kv : info) {
-        //wos << int(kv.first.size()) << kv.first << int(kv.second.size()) << kv.second;
         string keys{ ws2s(kv.first) }, values{ ws2s(kv.second) };
         char klen{ char(keys.size()) }, vlen{ char(values.size()) };
         os.put(klen).write(keys.c_str(), klen).put(vlen).write(values.c_str(), vlen);
     }
 }
 
-wstring Info::toString()
+wstring Info::toString(RecFormat fmt)
 {
-    wstring ws{};
+    wstringstream wss{};
+    switch (fmt) {
+    case RecFormat::zh:
+        info[L"Format"] = L"zh";
+        break;
+    case RecFormat::CC:
+        info[L"Format"] = L"CC";
+        break;
+    default:
+        info[L"Format"] = L"ICCS";
+        break;
+    }
     for (const auto m : info)
-        ws += m.first + L": " + m.second + L"\n";
-    return ws;
+        wss << L'[' << m.first << L" \"" << m.second << L"\"]\n";
+    return wss.str();
 }
