@@ -35,7 +35,7 @@ Info::Info()
 Info::Info(const wstring& pgnTxt)
     : Info()
 {
-    wregex pat{ LR"(\[(\w+)\s+\"(.*)\"\]\s+)" };
+    wregex pat{ LR"(\[(\w+)\s+\"(.*)\"\])" };
     for (wsregex_iterator p(pgnTxt.begin(), pgnTxt.end(), pat); p != wsregex_iterator{}; ++p)
         info[(*p)[1]] = (*p)[2];
 }

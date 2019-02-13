@@ -17,11 +17,24 @@ ChessInstance::ChessInstance(string filename)
 {
     string ext{ getExt(filename) };
     if (ext == ".pgn") {
-        wstring pgnTxt{ readTxt(filename) };
-        auto pos = pgnTxt.find(L"1.");
-        info = Info(pgnTxt.substr(0, pos));
+        wstring pgnTxt{ readTxt(filename) }, infoTxt{}, movesTxt{};
+        auto pos = pgnTxt.find(L"\n1. ");
+        infoTxt = pgnTxt.substr(0, pos);
+        movesTxt = pos < pgnTxt.size() ? pgnTxt.substr(pos) : L"";
+
+        cout << filename << endl;//------------------------------------------------------\n"
+             //<< ws2s(infoTxt) << "------------------------------------------------------"
+             //<< ws2s(movesTxt) << endl;
+
+        info = Info(infoTxt);
+        cout << "Info OK!" << endl;
+
         board = Board(info);
-        moves = Moves(pgnTxt.substr(pos), info, board);
+        cout << "Board OK!" << endl;
+
+        moves = Moves(movesTxt, info, board);
+        cout << "Moves OK!" << endl;
+
     } else if (ext == ".xqf") {
         vector<int> Keys(4, 0);
         vector<int> F32Keys(32, 0);

@@ -4,6 +4,7 @@
 #include "info.h"
 
 #include <algorithm>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <regex>
@@ -41,7 +42,7 @@ wstring Move::toString()
 {
     wstringstream wss{};
     wss << L"<rcm:" << stepNo << L' ' << othCol << L' '
-        << maxCol << L" ft:" << fromseat << L' ' << toseat << L" e:" << eatPie_ptr->chName() << L" I:" << ICCS << L" z:" << zh
+        << maxCol << L" f_t:" << fromseat << L' ' << toseat << L" e:" << eatPie_ptr->chName() << L" I:" << ICCS << L" z:" << zh
         << L",r:" << remark << L">";
     return wss.str();
 }
@@ -170,8 +171,8 @@ inline void Moves::cutOther()
 const wstring Moves::getICCS(int fseat, int tseat)
 {
     wstringstream wss{};
-    wss << getCol(fseat) << ColChars[getRow(fseat)] << getCol(tseat)
-        << ColChars[getRow(tseat)];
+    wss << getRow(fseat) << ColChars[getCol(fseat)] << getRow(tseat)
+        << ColChars[getCol(tseat)];
     return wss.str();
 }
 
@@ -225,7 +226,7 @@ const pair<int, int> Moves::getSeat__Zh(wstring zhStr, Board& board) const
     int index, fseat, tseat;
     vector<int> seats{};
     // 根据最后一个字符判断该着法属于哪一方
-    PieceColor color{ find_char(getNumChars(PieceColor::red), zhStr[zhStr.size() - 1])
+    PieceColor color{ find_char(getNumChars(PieceColor::red), zhStr.back())
             ? PieceColor::red
             : PieceColor::black };
     bool isBottomSide = board.isBottomSide(color);
@@ -239,10 +240,13 @@ const pair<int, int> Moves::getSeat__Zh(wstring zhStr, Board& board) const
 
         if (seats.size() < 1)
             wcout << L"棋子列表少于1个:" << zhStr << L' ' << static_cast<int>(color) << name
-                  << __getCol(__getNum(zhStr[1])) << L' ' << L'\n' << board.toString();
+                  << __getCol(__getNum(zhStr[1])) << L' ' << L'\n' << board.toString() << endl;
 
         //# 排除：士、象同列时不分前后，以进、退区分棋子
-        index = (seats.size() == 2 && find_char(Pieces::advbisNames, name) && (zhStr[2] == L'退') == isBottomSide) ? seats.size() - 1 : 0;
+        index = (seats.size() == 2 && find_char(Pieces::advbisNames, name)
+                    && (zhStr[2] == L'退') == isBottomSide)
+            ? seats.size() - 1
+            : 0;
     } else {
         //# 未获得棋子, 查找某个排序（前后中一二三四五）某方某个名称棋子
         index = getIndex(zhStr[0]);
@@ -287,10 +291,13 @@ const pair<int, int> Moves::getSeat__Zh(wstring zhStr, Board& board) const
 
 void Moves::fromICCSZh(wstring moveStr, RecFormat fmt)
 {
-    wregex moveReg{ LR"((?:\d+\.)?\s+(["
-            "帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平"
-            "]{4}\b)(?:\s+\{([\s\S]*?)\})?)" };
+    wstring preStr{ LR"((?:\d+\.)?\s+([)" };
+    wstring mvStr{ fmt == RecFormat::ICCS ? LR"(abcdefghi\d)"
+                                          : LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)" };
     //# 走棋信息 (?:pattern)匹配pattern,但不获取匹配结果;  注解[\s\S]*?: 非贪婪
+    wstring lastStr{ LR"(]{4}\b)(?:\s+\{([\s\S]*?)\})?)" };
+    wregex moveReg{ preStr + mvStr + lastStr };
+
     auto setMoves = [&](shared_ptr<Move> move, wstring mvstr, bool isOther) { //# 非递归
         vector<pair<wstring, wstring>> mrStrs{};
         for (wsregex_iterator p(mvstr.begin(), mvstr.end(), moveReg);
@@ -299,7 +306,12 @@ void Moves::fromICCSZh(wstring moveStr, RecFormat fmt)
         for (auto mr : mrStrs) {
             auto newMove = make_shared<Move>();
             newMove->zh = mr.first;
-            newMove->remark = mr.second;
+            wcout << mr.first << endl;
+
+            if (mr.second.size() > 0) {
+                wcout << mr.second << endl;
+                newMove->remark = mr.second;
+            }
             if (isOther) { // # 第一步为变着
                 move->setOther(newMove);
                 isOther = false;
@@ -310,10 +322,10 @@ void Moves::fromICCSZh(wstring moveStr, RecFormat fmt)
         return move;
     };
 
-    shared_ptr<Move> move;
     bool isOther{ false }; // 首次非变着
+    shared_ptr<Move> move;
     vector<shared_ptr<Move>> othMoves{ rootMove };
-    wregex rempat{ LR"(\{([\s\S]*?)\}\s*\d+\.\s+)" }, spleft{ LR"(\(\s*\d+\.)" }, spright{ LR"(\))" };
+    wregex rempat{ LR"(\{([\s\S]*?)\}\s+1\.\s+)" }, spleft{ LR"(\(\d+\.\b)" }, spright{ LR"(\s+\)\b)" };
     wsregex_token_iterator wtleft{ moveStr.begin(), moveStr.end(), spleft, -1 }, end{};
     wsmatch res;
     if (regex_search((*wtleft).first, (*wtleft).second, res, rempat))
@@ -329,6 +341,7 @@ void Moves::fromICCSZh(wstring moveStr, RecFormat fmt)
         othMoves.push_back(move);
         isOther = true;
     }
+    wcout << L"fromICCSZh OK!" << endl;
 }
 
 void Moves::fromJSON(wstring moveJSON)
@@ -418,6 +431,8 @@ void Moves::__initSet(RecFormat fmt, Board& board)
                 remLenMax = length;
         }
     };
+
+    wfstream wfs{ "a.txt" };
     function<void(Move&)> __set = [&](Move& move) {
         switch (fmt) {
         case RecFormat::ICCS: {
@@ -429,22 +444,21 @@ void Moves::__initSet(RecFormat fmt, Board& board)
         case RecFormat::CC: {
             move.setSeat(getSeat__Zh(move.zh, board));
             move.ICCS = getICCS(move.fseat(), move.tseat());
-            break;
-            /*
+            //*
             wstring zh{ getZh(move.fseat(), move.tseat(), board) };
             // wcout << move.toString_zh() << L'\n';
             if (move.zh != zh) {
                 wcout << L"move.zh: " << move.zh << L'\n'
                       << L"getZh( ): " << zh << L'\n'
-                      << move.toString_zh() << L'\n' << board.toString() << endl;
+                      << move.toString() << L'\n' << board.toString() << endl;
                 return;
             } //*/
+            break;
         }
         case RecFormat::JSON:
         case RecFormat::XQF: {
             move.ICCS = getICCS(move.fseat(), move.tseat());
             move.zh = getZh(move.fseat(), move.tseat(), board);
-            break;
             /*
             auto seats = getSeat__Zh(move.zh, board);
             // wcout << move.toString_zh() << L'\n';
@@ -454,6 +468,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
                       << move.toString_zh() << L'\n' << board.toString() << endl;
                 return;
             } //*/
+            break;
         }
         case RecFormat::bin: {
             break;
@@ -469,9 +484,14 @@ void Moves::__initSet(RecFormat fmt, Board& board)
             maxRow = move.stepNo;
 
         board.go(move);
-        if (move.next())
+
+        wfs << move.toString() << L'\n' << board.toString() << endl;
+
+        if (move.next()) 
             __set(*move.next());
+
         board.back(move);
+
         if (move.other()) {
             maxCol += 1;
             __set(*move.other());
