@@ -2,16 +2,11 @@
 #include "board.h"
 
 #include <sstream>
-using std::wstringstream;
-
 #include <iomanip>
-using std::boolalpha;
-using std::setw;
-
 #include <algorithm>
-using std::remove_if;
 #include <iterator>
-using std::back_inserter;
+using namespace std;
+
 
 vector<int> Piece::getCanMoveSeats(Board& board)
 {

@@ -22,19 +22,16 @@ ChessInstance::ChessInstance(string filename)
         infoTxt = pgnTxt.substr(0, pos);
         movesTxt = pos < pgnTxt.size() ? pgnTxt.substr(pos) : L"";
 
-        cout << filename << endl;//------------------------------------------------------\n"
+        //cout << filename << endl;//------------------------------------------------------\n"
              //<< ws2s(infoTxt) << "------------------------------------------------------"
              //<< ws2s(movesTxt) << endl;
 
         info = Info(infoTxt);
-        cout << "Info OK!" << endl;
-
+        //cout << "Info OK!" << endl;
         board = Board(info);
-        cout << "Board OK!" << endl;
-
+        //cout << "Board OK!" << endl;
         moves = Moves(movesTxt, info, board);
-        cout << "Moves OK!" << endl;
-
+        //cout << "Moves OK!" << endl;
     } else if (ext == ".xqf") {
         vector<int> Keys(4, 0);
         vector<int> F32Keys(32, 0);
@@ -106,6 +103,9 @@ void ChessInstance::transDir(string dirfrom, string ext, RecFormat fmt)
                     ext_old = getExt(fname);
                     fcount += 1;
                     if (extensions.find(ext_old) != string::npos) {
+
+                        cout << filename << endl;
+
                         ChessInstance ci(filename);
                         ci.write(fileto, ext, fmt);
                         movcount += ci.moves.movCount;
@@ -136,22 +136,22 @@ void ChessInstance::testTransDir()
     vector<string> texts{ ".pgn", ".bin", ".json" };
 
     // 调节三个循环变量的初值、终值，控制转换目录
-    for (int dirIndex = 0; dirIndex != 3; ++dirIndex)
+    for (int dirIndex = 0; dirIndex != 1; ++dirIndex)
         for (int fextIndex = 1; fextIndex != 2; ++fextIndex)
             for (int textIndex = 0; textIndex != 1; ++textIndex) {
-                string filename{ dirfroms[dirIndex] + fexts[fextIndex] };
-                if (texts[textIndex] == fexts[fextIndex]) {
-                    if (texts[textIndex] == ".pgn")
-                        transDir(filename, ".pgn", RecFormat::CC);
-                } else {
+                string dirName{ dirfroms[dirIndex] + fexts[fextIndex] };
+                if (texts[textIndex] != fexts[fextIndex]) {
                     if (texts[textIndex] == ".pgn") {
-                        transDir(filename, ".pgn", RecFormat::zh);
-                        //transDir(filename, ".pgn", RecFormat::CC);
-                        //transDir(filename, ".pgn", RecFormat::ICCS);
+                        transDir(dirName, ".pgn", RecFormat::zh);
+                        //transDir(dirName, ".pgn", RecFormat::CC);
+                        //transDir(dirName, ".pgn", RecFormat::ICCS);
                     } else if (texts[textIndex] == ".bin")
-                        transDir(filename, ".bin", RecFormat::bin);
+                        transDir(dirName, ".bin", RecFormat::bin);
                     else if (texts[textIndex] == ".json")
-                        transDir(filename, ".json", RecFormat::JSON);
+                        transDir(dirName, ".json", RecFormat::JSON);
+                } else {
+                    if (texts[textIndex] == ".pgn")
+                        transDir(dirName, ".pgn", RecFormat::CC);
                 }
             }
 }

@@ -73,23 +73,17 @@ bool Board::isDied(PieceColor color)
     return true;
 }
 
-Piece* Board::go(Move& move)
-{
-    move.setEatPiece(move_go(move.fseat(), move.tseat()));
-    return move.eatPiece();
-}
+void Board::go(Move& move) { move.setEatPiece(move_go(move.fseat(), move.tseat())); }
 
-void Board::back(Move& move)
-{
-    move_back(move.fseat(), move.tseat(), move.eatPiece());
-}
+void Board::back(Move& move) { move_back(move.fseat(), move.tseat(), move.eatPiece()); }
 
 Piece* Board::move_go(int fseat, int tseat)
 {
     Piece* eatPiece = pieSeats[tseat];
     eatPiece->setSeat(nullSeat);
     __setPiece(getPiece(fseat), tseat);
-    __setPiece(Pieces::nullPiePtr, fseat);
+    pieSeats[fseat] = Pieces::nullPiePtr;
+    //__setPiece(Pieces::nullPiePtr, fseat);
     return eatPiece;
 }
 
@@ -117,9 +111,9 @@ void Board::setFEN(Info& info)
     info.toFEN(pieceChars);
 }
 
-void Board::setFrom(Info &info)
+void Board::setFrom(Info& info)
 {
-    wstring chars{info.getPieChars()};
+    wstring chars{ info.getPieChars() };
     pieces.clear();
     std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
     for (int s = 0; s != 90; ++s)
