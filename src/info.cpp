@@ -7,7 +7,6 @@
 using namespace std;
 using namespace Board_base;
 
-
 Info::Info()
     : info{ { L"Author", L"" },
         { L"Black", L"" },
@@ -152,6 +151,11 @@ Info::Info(istream& is)
     }
 }
 
+Info::Info(wistream& wis)
+    : Info()
+{
+}
+
 void Info::setRecFormat(RecFormat fmt)
 {
     switch (fmt) {
@@ -240,6 +244,10 @@ void Info::toBin(ostream& os)
         char klen{ char(keys.size()) }, vlen{ char(values.size()) };
         os.put(klen).write(keys.c_str(), klen).put(vlen).write(values.c_str(), vlen);
     }
+}
+
+void Info::toJSON(wostream& wos)
+{
 }
 
 wstring Info::toString(RecFormat fmt)

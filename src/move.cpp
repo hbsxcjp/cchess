@@ -55,6 +55,13 @@ Moves::Moves()
     firstColor = PieceColor::red; // 棋局载入时需要设置此属性！
 }
 
+Moves::Moves(istream& is, vector<int>& Keys, vector<int>& F32Keys, Board& board)
+    : Moves()
+{
+    fromXQF(is, Keys, F32Keys);
+    __initSet(RecFormat::XQF, board);
+}
+
 Moves::Moves(wstring moveStr, Info& info, Board& board)
     : Moves()
 {
@@ -64,23 +71,11 @@ Moves::Moves(wstring moveStr, Info& info, Board& board)
     case RecFormat::ZH:
         fromICCSZH(moveStr, fmt);
         break;
-    case RecFormat::CC:
-        fromCC(moveStr);
-        break;
-    case RecFormat::JSON:
-        fromJSON(moveStr);
-        break;
     default:
+        fromCC(moveStr);
         break;
     }
     __initSet(fmt, board);
-}
-
-Moves::Moves(istream& is, vector<int>& Keys, vector<int>& F32Keys, Board& board)
-    : Moves()
-{
-    fromXQF(is, Keys, F32Keys);
-    __initSet(RecFormat::XQF, board);
 }
 
 Moves::Moves(istream& is, Board& board)
@@ -88,6 +83,13 @@ Moves::Moves(istream& is, Board& board)
 {
     fromBIN(is);
     __initSet(RecFormat::BIN, board);
+}
+
+Moves::Moves(wistream& wis, Board& board)
+    : Moves()
+{
+    fromJSON(wis);
+    __initSet(RecFormat::JSON, board);
 }
 
 inline PieceColor Moves::currentColor()
@@ -450,6 +452,10 @@ void Moves::fromBIN(istream& is)
     __readMove(*rootMove);
 }
 
+void Moves::fromJSON(wistream& wis)
+{
+}
+
 void Moves::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
 {
     int version{ Keys[0] }, KeyXYf{ Keys[1] }, KeyXYt{ Keys[2] }, KeyRMKSize{ Keys[3] };
@@ -516,10 +522,6 @@ void Moves::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
 
     //is.seekg(1024);
     __readMove(*rootMove);
-}
-
-void Moves::fromJSON(wstring moveJSON)
-{
 }
 
 // （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
@@ -622,6 +624,10 @@ void Moves::toBin(ostream& os)
     };
 
     __toMove(*rootMove);
+}
+
+void Moves::toJSON(wostream& wos)
+{
 }
 
 wstring Moves::toString(RecFormat fmt)

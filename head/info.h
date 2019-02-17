@@ -15,6 +15,7 @@ public:
     Info(istream& is, vector<int>& Keys, vector<int>& F32Keys);
     Info(const wstring& strPgn);
     Info(istream& is);
+    Info(wistream& wis);
 
     void setRecFormat(RecFormat fmt);
     RecFormat getRecFormat();
@@ -22,6 +23,7 @@ public:
     wstring getPieChars();
     wstring toString(RecFormat fmt = RecFormat::ZH);
     void toBin(ostream& os);
+    void toJSON(wostream& wos);
 
     map<wstring, wstring> info;
 

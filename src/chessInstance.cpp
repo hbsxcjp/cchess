@@ -21,38 +21,26 @@ ChessInstance::ChessInstance(string filename)
         auto pos = pgnTxt.find(L"\n1. ");
         infoTxt = pgnTxt.substr(0, pos);
         movesTxt = pos < pgnTxt.size() ? pgnTxt.substr(pos) : L"";
-
-        //cout << filename << endl;//------------------------------------------------------\n"
-        //<< ws2s(infoTxt) << "------------------------------------------------------"
-        //<< ws2s(movesTxt) << endl;
-
         info = Info(infoTxt);
-        //cout << "Info OK!" << endl;
         board = Board(info);
-        //cout << "Board OK!" << endl;
         moves = Moves(movesTxt, info, board);
-        //cout << "Moves OK!" << endl;
     } else if (ext == ".xqf") {
         vector<int> Keys(4, 0);
         vector<int> F32Keys(32, 0);
         ifstream ifs(filename, ios_base::binary);
         info = Info(ifs, Keys, F32Keys);
         board = Board(info);
-        //wcout << info.toString() << endl;
-        //wcout << board.toString() << endl;
         moves = Moves(ifs, Keys, F32Keys, board);
     } else if (ext == ".bin") {
         ifstream ifs(filename, ios_base::binary);
         info = Info(ifs);
-        // cout << "Info OK!" << endl;
         board = Board(info);
-        //cout << "Board OK!" << endl;
-        //wcout << info.toString() << endl;
-        //wcout << board.toString() << endl;
         moves = Moves(ifs, board);
-        //cout << "Moves OK!" << endl;
-        ifs.close();
     } else if (ext == ".json") {
+        wifstream wifs(filename);
+        info = Info(wifs);
+        board = Board(info);
+        moves = Moves(wifs, board);
     }
 }
 
@@ -65,8 +53,10 @@ void ChessInstance::write(string filename, string ext, RecFormat fmt)
         ofstream ofs(filename + ext, ios_base::binary);
         info.toBin(ofs);
         moves.toBin(ofs);
-        ofs.close();
     } else if (ext == ".json") {
+        wofstream wofs(filename + ext);
+        info.toJSON(wofs);
+        moves.toJSON(wofs);
     }
 }
 

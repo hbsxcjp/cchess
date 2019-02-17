@@ -61,9 +61,10 @@ private:
 class Moves {
 public:
     Moves();
-    Moves(wstring moveStr, Info& info, Board& board);
     Moves(istream& is, vector<int>& Keys, vector<int>& F32Keys, Board& board);
+    Moves(wstring moveStr, Info& info, Board& board);
     Moves(istream& is, Board& board);
+    Moves(wistream& wis, Board& board);
 
     PieceColor currentColor();
     bool isStart() { return currentMove->prev() == nullptr; }
@@ -85,6 +86,7 @@ public:
 
     wstring toString(RecFormat fmt = RecFormat::ZH);
     void toBin(ostream& os);
+    void toJSON(wostream& wos);
 
     int movCount{ 0 }; //着法数量
     int remCount{ 0 }; //注解数量
@@ -102,8 +104,8 @@ private:
     void fromICCSZH(wstring moveStr, RecFormat fmt);
     void fromCC(wstring fullMoveStr);
     void fromBIN(istream& is);
+    void fromJSON(wistream& wis);
     void fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys);
-    void fromJSON(wstring moveJSON);
     void __initSet(RecFormat fmt, Board& board);
 
     wstring toString_ICCSZH(RecFormat fmt = RecFormat::ZH);
