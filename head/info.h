@@ -3,25 +3,28 @@
 
 #include "board_base.h"
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 using namespace std;
 
 class Info {
 
 public:
     Info();
+    Info(istream& is, vector<int>& Keys, vector<int>& F32Keys);
     Info(const wstring& strPgn);
-    Info(istream& is,  vector<int>& Keys, vector<int>& F32Keys);
-    Info(istream& is);    
+    Info(istream& is);
 
-    void toFEN(wstring& pieceChars);
+    void setRecFormat(RecFormat fmt);
+    RecFormat getRecFormat();
+    void setFEN(wstring& pieceChars);
     wstring getPieChars();
-    wstring toString(RecFormat fmt);
+    wstring toString(RecFormat fmt = RecFormat::ZH);
     void toBin(ostream& os);
 
     map<wstring, wstring> info;
+
 private:
 };
 

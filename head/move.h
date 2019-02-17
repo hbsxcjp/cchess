@@ -63,7 +63,7 @@ public:
     Moves();
     Moves(wstring moveStr, Info& info, Board& board);
     Moves(istream& is, vector<int>& Keys, vector<int>& F32Keys, Board& board);
-    Moves(istream& is);
+    Moves(istream& is, Board& board);
 
     PieceColor currentColor();
     bool isStart() { return currentMove->prev() == nullptr; }
@@ -83,12 +83,9 @@ public:
     void cutNext();
     void cutOther();
 
-    wstring toString_zh(RecFormat fmt = RecFormat::zh);
-    wstring toString_ICCS();
-    wstring toString_CC();
+    wstring toString(RecFormat fmt = RecFormat::ZH);
     void toBin(ostream& os);
 
-    static wstring test();
     int movCount{ 0 }; //着法数量
     int remCount{ 0 }; //注解数量
     int remLenMax{ 0 }; //注解最大长度
@@ -102,12 +99,15 @@ private:
     const wstring getZh(int fseat, int tseat, Board& board) const; //(fseat, tseat)->中文纵线着法, 着法未走状态
     const pair<int, int> getSeat__Zh(wstring Zh, Board& board) const; //中文纵线着法->(fseat, tseat), 着法未走状态
 
-    void fromICCSZh(wstring moveStr, RecFormat fmt);
+    void fromICCSZH(wstring moveStr, RecFormat fmt);
+    void fromCC(wstring fullMoveStr);
+    void fromBIN(istream& is);
+    void fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys);
     void fromJSON(wstring moveJSON);
-    void fromCC(wstring moveStr);
-    void fromXQF(std::istream& is, vector<int>& Keys, vector<int>& F32Keys);
     void __initSet(RecFormat fmt, Board& board);
-    void __init__();
+
+    wstring toString_ICCSZH(RecFormat fmt = RecFormat::ZH);
+    wstring toString_CC();
 
     //vector<shared_ptr<Move>> moves;
     shared_ptr<Move> rootMove;

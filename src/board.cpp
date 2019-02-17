@@ -108,7 +108,7 @@ void Board::setFEN(Info& info)
         if (row != MinRow)
             pieceChars += L'/';
     }
-    info.toFEN(pieceChars);
+    info.setFEN(pieceChars);
 }
 
 void Board::setFrom(Info& info)

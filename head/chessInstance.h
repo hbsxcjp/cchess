@@ -14,10 +14,10 @@ class ChessInstance {
 public:
     ChessInstance(string filename);
 
-    void write(string filename, string ext, RecFormat fmt = RecFormat::zh);
+    void write(string filename, string ext, RecFormat fmt = RecFormat::ZH);
     
-    static void transDir(string dirfrom, string ext, RecFormat fmt = RecFormat::zh);
-    static void testTransDir();
+    static void transDir(string dirfrom, string ext, RecFormat fmt = RecFormat::ZH);
+    static void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 
     // void loadViews(views);
     // void notifyViews();

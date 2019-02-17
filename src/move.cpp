@@ -48,21 +48,30 @@ wstring Move::toString()
 }
 
 // Moves
-Moves::Moves() { __init__(); }
+Moves::Moves()
+{
+    rootMove = make_shared<Move>();
+    currentMove = rootMove;
+    firstColor = PieceColor::red; // 棋局载入时需要设置此属性！
+}
 
 Moves::Moves(wstring moveStr, Info& info, Board& board)
     : Moves()
 {
-    RecFormat fmt{ info.info[L"Format"] == L"zh" ? RecFormat::zh
-                                                 : (info.info[L"Format"] == L"ICCS" ? RecFormat::ICCS
-                                                                                    : RecFormat::CC) };
-    if (fmt == RecFormat::JSON)
+    RecFormat fmt{ info.getRecFormat() };
+    switch (fmt) {
+    case RecFormat::ICCS:
+    case RecFormat::ZH:
+        fromICCSZH(moveStr, fmt);
+        break;
+    case RecFormat::CC:
+        fromCC(moveStr);
+        break;
+    case RecFormat::JSON:
         fromJSON(moveStr);
-    else {
-        if (fmt == RecFormat::CC)
-            fromCC(moveStr);
-        else
-            fromICCSZh(moveStr, fmt);
+        break;
+    default:
+        break;
     }
     __initSet(fmt, board);
 }
@@ -72,6 +81,13 @@ Moves::Moves(istream& is, vector<int>& Keys, vector<int>& F32Keys, Board& board)
 {
     fromXQF(is, Keys, F32Keys);
     __initSet(RecFormat::XQF, board);
+}
+
+Moves::Moves(istream& is, Board& board)
+    : Moves()
+{
+    fromBIN(is);
+    __initSet(RecFormat::BIN, board);
 }
 
 inline PieceColor Moves::currentColor()
@@ -289,10 +305,10 @@ const pair<int, int> Moves::getSeat__Zh(wstring zhStr, Board& board) const
     return make_pair(fseat, tseat);
 }
 
-void Moves::fromICCSZh(wstring moveStr, RecFormat fmt)
+void Moves::fromICCSZH(wstring moveStr, RecFormat fmt)
 {
     wstring preStr{ LR"((?:\d+\.)?\s*\b([)" };
-    wstring mvStr{ fmt == RecFormat::zh ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
+    wstring mvStr{ fmt == RecFormat::ZH ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
                                         : LR"(abcdefghi\d)" };
     //# 走棋信息 (?:pattern)匹配pattern,但不获取匹配结果;  注解[\s\S]*?: 非贪婪
     wstring lastStr{ LR"(]{4}\b)(?:\s+\{([\s\S]*?)\})?)" };
@@ -305,7 +321,7 @@ void Moves::fromICCSZh(wstring moveStr, RecFormat fmt)
             mrStrs.push_back(make_pair((*p)[1], (*p)[2]));
         for (auto mr : mrStrs) {
             auto newMove = make_shared<Move>();
-            if (fmt == RecFormat::zh)
+            if (fmt == RecFormat::ZH)
                 newMove->zh = mr.first;
             else
                 newMove->ICCS = mr.first;
@@ -353,12 +369,92 @@ void Moves::fromICCSZh(wstring moveStr, RecFormat fmt)
     //wcout << L"fromICCSZh OK!" << endl;
 }
 
-void Moves::fromJSON(wstring moveJSON)
+void Moves::fromCC(wstring fullMoveStr)
 {
+    auto pos = fullMoveStr.find(L"\n(");
+    wstring moveStr{ fullMoveStr.substr(0, pos) }, remStr{ pos < fullMoveStr.size() ? fullMoveStr.substr(pos) : L"" };
+    wregex spfat{ LR"(\n)" }, mstrfat{ LR"(.{5})" },
+        movefat{ LR"(([^…　]{4}[…　]))" }, remfat{ LR"(\(\s*(\d+,\d+)\): \{([\s\S]*?)\})" };
+    int row{ 0 };
+    vector<vector<wstring>> movv{};
+    wsregex_token_iterator msp{ moveStr.begin(), moveStr.end(), spfat, -1 }, end{};
+    for (; msp != end; ++msp)
+        if (++row % 2 == 0) {
+            vector<wstring> linev{};
+            for (wsregex_token_iterator mp{ (*msp).first, (*msp).second, mstrfat, 0 }; mp != end; ++mp)
+                linev.push_back(*mp);
+            movv.push_back(linev);
+        }
+    for (auto& ms : movv)
+        for (auto& m : ms)
+            wcout << m;
+
+    map<wstring, wstring> remm{};
+    if (remStr.size() > 0)
+        for (wsregex_iterator rp{ remStr.begin(), remStr.end(), remfat }; rp != wsregex_iterator{}; ++rp)
+            remm[(*rp)[1]] = (*rp)[2];
+    for (auto& m : remm)
+        wcout << m.first << m.second;
+
+    auto __setRem = [&](Move& move, int row, int col) {
+        wstring key{ to_wstring(row) + L',' + to_wstring(col) };
+        if (remm.find(key) != remm.end())
+            move.remark = remm[key];
+    };
+
+    function<void(Move&, int, int, bool)> __readMove = [&](Move& move, int row, int col, bool isOther) {
+        wstring zhStr{ movv[row][col] };
+        if (!regex_match(zhStr, movefat))
+            return;
+        auto newMove = make_shared<Move>();
+        newMove->zh = zhStr.substr(0, 4);
+        __setRem(*newMove, row, col);
+        if (isOther)
+            move.setOther(newMove);
+        else
+            move.setNext(newMove);
+
+        if (zhStr.back() == L'…') {
+            while (movv[row][++col][0] == L'…')
+                ; // 递增col
+            __readMove(*newMove, row, col, true);
+        }
+        if (int(movv.size()) - 1 > row)
+            __readMove(*newMove, row + 1, col, false);
+    };
+
+    __setRem(*rootMove, 0, 0);
+    if (int(movv.size()) > 0)
+        __readMove(*rootMove, 1, 0, false);
 }
 
-void Moves::fromCC(wstring moveStr)
+void Moves::fromBIN(istream& is)
 {
+    function<void(Move&)> __readMove = [&](Move& move) {
+        char fseat{}, tseat{}, hasNext{}, hasOther{};
+        is.get(fseat).get(tseat).get(hasNext).get(hasOther);
+        move.setSeat(make_pair(int(fseat), int(tseat)));
+
+        char len[sizeof(int)]{};
+        is.read(len, sizeof(int));
+        int length{ *(int*)len };
+        if (length > 0) {
+            char rem[length + 1]{};
+            is.read(rem, length);
+            move.remark = s2ws(rem);
+        }
+
+        if (hasNext) { //# 有左子树
+            move.setNext(make_shared<Move>());
+            __readMove(*move.next());
+        }
+        if (hasOther) { // # 有右子树
+            move.setOther(make_shared<Move>());
+            __readMove(*move.other());
+        }
+    };
+
+    __readMove(*rootMove);
 }
 
 void Moves::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
@@ -429,6 +525,10 @@ void Moves::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
     __readMove(*rootMove);
 }
 
+void Moves::fromJSON(wstring moveJSON)
+{
+}
+
 // （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
 void Moves::__initSet(RecFormat fmt, Board& board)
 {
@@ -440,6 +540,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
                 remLenMax = length;
         }
     };
+
     function<void(Move&)> __set = [&](Move& move) {
         switch (fmt) {
         case RecFormat::ICCS: {
@@ -447,7 +548,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
             move.zh = getZh(move.fseat(), move.tseat(), board);
             break;
         }
-        case RecFormat::zh:
+        case RecFormat::ZH:
         case RecFormat::CC: {
             move.setSeat(getSeat__Zh(move.zh, board));
             move.ICCS = getICCS(move.fseat(), move.tseat());
@@ -462,24 +563,24 @@ void Moves::__initSet(RecFormat fmt, Board& board)
             } //*/
             break;
         }
-        case RecFormat::JSON:
-        case RecFormat::XQF: {
+        case RecFormat::XQF:
+        case RecFormat::BIN:
+        case RecFormat::JSON: {
             move.ICCS = getICCS(move.fseat(), move.tseat());
             move.zh = getZh(move.fseat(), move.tseat(), board);
             /*
             auto seats = getSeat__Zh(move.zh, board);
-            // wcout << move.toString_zh() << L'\n';
+            // wcout << move.toString() << L'\n';
             if ((seats.first != move.fseat()) || (seats.second != move.tseat())) {
                 wcout << L"move.fs_ts: " << move.fseat() << L' ' << move.tseat() << L'\n'
                       << L"getSeat__Zh( ): " << move.zh << L'\n'
-                      << move.toString_zh() << L'\n' << board.toString() << endl;
+                      << move.toString() << L'\n' << board.toString() << endl;
                 return;
             } //*/
             break;
         }
-        case RecFormat::bin: {
+        default:
             break;
-        }
         }
 
         movCount += 1;
@@ -509,54 +610,17 @@ void Moves::__initSet(RecFormat fmt, Board& board)
     //toFirst(board); // 复原board
 }
 
-void Moves::__init__()
-{
-    rootMove = make_shared<Move>();
-    currentMove = rootMove;
-    firstColor = PieceColor::red; // 棋局载入时需要设置此属性！
-}
-
-Moves::Moves(istream& is)
-{
-    function<void(Move&)> __readMove = [&](Move& move) {
-        char fseat{}, tseat{}, hasNext{}, hasOther{};
-        is.get(fseat).get(tseat).get(hasNext).get(hasOther);
-        move.setSeat(make_pair(int(fseat), int(tseat)));
-
-        char len[sizeof(int)]{};
-        is.read(len, sizeof(int));
-        int length{ *(int*)len };
-        if (length > 0) {
-            char rem[length + 1]{};
-            is.read(rem, length);
-            move.remark = s2ws(rem);
-        }
-
-        if (hasNext) { //# 有左子树
-            move.setNext(make_shared<Move>());
-            __readMove(*move.next());
-        }
-        if (hasOther) { // # 有右子树
-            move.setOther(make_shared<Move>());
-            __readMove(*move.other());
-        }
-    };
-
-    __readMove(*rootMove);
-}
-
 void Moves::toBin(ostream& os)
 {
     function<void(Move&)> __toMove = [&](Move& move) {
-        os.put(char(move.fseat()));
-        os.put(char(move.tseat()));
-        os.put(char(move.next() ? true : false));
-        os.put(char(move.other() ? true : false));
+        os.put(char(move.fseat())).put(char(move.tseat()));
+        os.put(char(move.next() ? true : false)).put(char(move.other() ? true : false));
 
-        int len[]{ int(move.remark.size()) };
-        os.write((char*)len, sizeof(int));
-        if (*len > 0)
-            os.write(ws2s(move.remark).c_str(), *len);
+        string remark{ ws2s(move.remark) };
+        int len{ int(remark.size()) };
+        os.write((char*)&len, sizeof(int));
+        if (len > 0)
+            os.write(remark.c_str(), len);
 
         if (move.next())
             __toMove(*move.next());
@@ -567,7 +631,20 @@ void Moves::toBin(ostream& os)
     __toMove(*rootMove);
 }
 
-wstring Moves::toString_zh(RecFormat fmt)
+wstring Moves::toString(RecFormat fmt)
+{
+    switch (fmt) {
+    case RecFormat::ZH:
+    case RecFormat::ICCS:
+        return toString_ICCSZH(fmt);
+    case RecFormat::CC:
+        return toString_CC();
+    default:
+        return toString_CC();
+    }
+}
+
+wstring Moves::toString_ICCSZH(RecFormat fmt)
 {
     wstringstream wss{};
     function<void(Move&)> __remark = [&](Move& move) {
@@ -585,7 +662,7 @@ wstring Moves::toString_zh(RecFormat fmt)
             wss << L" ";
         else
             wss << boutNum << L". ";
-        wss << (fmt == RecFormat::zh ? move.zh : move.ICCS) << L' ';
+        wss << (fmt == RecFormat::ZH ? move.zh : move.ICCS) << L' ';
         __remark(move);
         if (move.other()) {
             __moveStr(*move.other(), true);
@@ -599,11 +676,6 @@ wstring Moves::toString_zh(RecFormat fmt)
     if (rootMove->next())
         __moveStr(*rootMove->next(), false);
     return wss.str();
-}
-
-wstring Moves::toString_ICCS()
-{
-    return toString_zh(RecFormat::ICCS);
 }
 
 wstring Moves::toString_CC()
@@ -632,11 +704,14 @@ wstring Moves::toString_CC()
     __setChar(*rootMove);
 
     wstringstream wss{};
-    wss << L"\n着法深度：" << maxRow << L", 变着广度：" << othCol
+    wss << L"\n【着法深度：" << maxRow << L", 变着广度：" << othCol
         << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
-        << L", 注解数量：" << remCount << L", 注解最长：" << remLenMax << L"\n";
-    lineStr[0][2] = L'开';
-    lineStr[0][3] = L'始';
+        << L", 注解数量：" << remCount << L", 注解最长：" << remLenMax << L"】\n";
+    lineStr[0][0] = L'1';
+    lineStr[0][1] = L'.';
+    lineStr[0][2] = L' ';
+    lineStr[0][3] = L'开';
+    lineStr[0][4] = L'始';
     for (auto line : lineStr)
         wss << line << L'\n';
     return wss.str() + remstrs.str();

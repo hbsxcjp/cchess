@@ -5,8 +5,8 @@
 #include <regex>
 #include <sstream>
 using namespace std;
-
 using namespace Board_base;
+
 
 Info::Info()
     : info{ { L"Author", L"" },
@@ -16,7 +16,7 @@ Info::Info()
         { L"ECCO", L"" },
         { L"Event", L"" },
         { L"FEN", FENPro },
-        { L"Format", L"zh" },
+        { L"Format", L"ZH" },
         { L"Game", L"Chinese Chess" },
         { L"Opening", L"" },
         { L"PlayType", L"" },
@@ -133,7 +133,7 @@ Info::Info(istream& is, vector<int>& Keys, vector<int>& F32Keys)
         if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
-    toFEN(pieceChars);
+    setFEN(pieceChars);
 }
 
 Info::Info(istream& is)
@@ -152,7 +152,48 @@ Info::Info(istream& is)
     }
 }
 
-void Info::toFEN(wstring& pieceChars)
+void Info::setRecFormat(RecFormat fmt)
+{
+    switch (fmt) {
+    case RecFormat::XQF:
+        info[L"Format"] = L"XQF";
+        break;
+    case RecFormat::ICCS:
+        info[L"Format"] = L"ICCS";
+        break;
+    case RecFormat::ZH:
+        info[L"Format"] = L"ZH";
+        break;
+    case RecFormat::CC:
+        info[L"Format"] = L"CC";
+        break;
+    case RecFormat::BIN:
+        info[L"Format"] = L"BIN";
+        break;
+    default:
+        info[L"Format"] = L"JSON";
+        break;
+    }
+}
+
+RecFormat Info::getRecFormat()
+{
+    wstring wsfmt{ info[L"Format"] };
+    if (wsfmt == L"XQF")
+        return RecFormat::XQF;
+    else if (wsfmt == L"ICCS")
+        return RecFormat::ICCS;
+    else if (wsfmt == L"ZH")
+        return RecFormat::ZH;
+    else if (wsfmt == L"CC")
+        return RecFormat::CC;
+    else if (wsfmt == L"BIN")
+        return RecFormat::BIN;
+    else
+        return RecFormat::JSON;
+}
+
+void Info::setFEN(wstring& pieceChars)
 {
     //'下划线字符串对应数字字符'
     vector<pair<wstring, wstring>> line_nums{
@@ -204,17 +245,7 @@ void Info::toBin(ostream& os)
 wstring Info::toString(RecFormat fmt)
 {
     wstringstream wss{};
-    switch (fmt) {
-    case RecFormat::zh:
-        info[L"Format"] = L"zh";
-        break;
-    case RecFormat::CC:
-        info[L"Format"] = L"CC";
-        break;
-    default:
-        info[L"Format"] = L"ICCS";
-        break;
-    }
+    setRecFormat(fmt);
     for (const auto m : info)
         wss << L'[' << m.first << L" \"" << m.second << L"\"]\n";
     return wss.str();

@@ -10,18 +10,21 @@
 using namespace std;
 
 // 棋子站队
-enum class PieceColor { blank,
+enum class PieceColor {
+    blank,
     red,
-    black };
+    black
+};
 
-enum class RecFormat { ICCS,
-    zh,
-    CC,
+enum class RecFormat {
     XQF,
-    JSON,
-    bin };
+    ICCS,
+    ZH,
+    CC,
+    BIN,
+    JSON
+};
 
-    
 namespace Board_base {
 // 空位置
 const int nullSeat{ -1 };

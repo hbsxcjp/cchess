@@ -1,10 +1,10 @@
 #include "chessInstance.h"
 
-#include <iostream>
+#include <chrono>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <locale>
-#include <chrono>
 
 using namespace std;
 using namespace std::chrono;
@@ -17,8 +17,9 @@ int main(int argc, char const* argv[])
     std::ios_base::sync_with_stdio(false);
 
     auto time0 = steady_clock::now();
-    
-    ChessInstance::testTransDir();
+
+    ChessInstance::testTransDir(stoi(argv[1]), stoi(argv[2]),
+        stoi(argv[3]), stoi(argv[4]), stoi(argv[5]), stoi(argv[6]));
 
     auto time_d = steady_clock::now() - time0;
     cout << "use time: " << duration_cast<milliseconds>(time_d).count() / 1000.0 << "s\n";
