@@ -385,42 +385,35 @@ void Moves::fromCC(wstring fullMoveStr)
                 linev.push_back(*mp);
             movv.push_back(linev);
         }
-    for (auto& ms : movv)
-        for (auto& m : ms)
-            wcout << m;
-
     map<wstring, wstring> remm{};
     if (remStr.size() > 0)
         for (wsregex_iterator rp{ remStr.begin(), remStr.end(), remfat }; rp != wsregex_iterator{}; ++rp)
             remm[(*rp)[1]] = (*rp)[2];
-    for (auto& m : remm)
-        wcout << m.first << m.second;
 
     auto __setRem = [&](Move& move, int row, int col) {
         wstring key{ to_wstring(row) + L',' + to_wstring(col) };
         if (remm.find(key) != remm.end())
             move.remark = remm[key];
     };
-
     function<void(Move&, int, int, bool)> __readMove = [&](Move& move, int row, int col, bool isOther) {
         wstring zhStr{ movv[row][col] };
-        if (!regex_match(zhStr, movefat))
-            return;
-        auto newMove = make_shared<Move>();
-        newMove->zh = zhStr.substr(0, 4);
-        __setRem(*newMove, row, col);
-        if (isOther)
-            move.setOther(newMove);
-        else
-            move.setNext(newMove);
-
-        if (zhStr.back() == L'…') {
-            while (movv[row][++col][0] == L'…')
-                ; // 递增col
-            __readMove(*newMove, row, col, true);
+        if (regex_match(zhStr, movefat)) {
+            auto newMove = make_shared<Move>();
+            newMove->zh = zhStr.substr(0, 4);
+            __setRem(*newMove, row, col);
+            if (isOther)
+                move.setOther(newMove);
+            else
+                move.setNext(newMove);
+            if (zhStr.back() == L'…')
+                __readMove(*newMove, row, col + 1, true);
+            if (int(movv.size()) - 1 > row)
+                __readMove(*newMove, row + 1, col, false);
+        } else if (isOther) {
+            while (movv[row][col][0] == L'…')
+                ++col;
+            __readMove(move, row, col, true);
         }
-        if (int(movv.size()) - 1 > row)
-            __readMove(*newMove, row + 1, col, false);
     };
 
     __setRem(*rootMove, 0, 0);
@@ -704,8 +697,8 @@ wstring Moves::toString_CC()
     __setChar(*rootMove);
 
     wstringstream wss{};
-    wss << L"\n【着法深度：" << maxRow << L", 变着广度：" << othCol
-        << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
+    wss << L"【着法深度：" << maxRow << L", 变着广度：" << othCol
+        << L", 视图宽度：" << maxCol << L", \n　着法数量：" << movCount
         << L", 注解数量：" << remCount << L", 注解最长：" << remLenMax << L"】\n";
     lineStr[0][0] = L'1';
     lineStr[0][1] = L'.';

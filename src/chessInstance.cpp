@@ -93,9 +93,8 @@ void ChessInstance::transDir(string dirfrom, string ext, RecFormat fmt)
                     string filename{ dirfrom + "/" + fname };
                     string fileto{ dirto + "/" + fname.substr(0, fname.rfind('.')) };
                     ext_old = getExt(fname);
-                    fcount += 1;
                     if (extensions.find(ext_old) != string::npos) {
-
+                        fcount += 1;
                         //cout << filename << endl;
 
                         ChessInstance ci(filename);
@@ -133,22 +132,24 @@ void ChessInstance::testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
         for (int fIndex = ff; fIndex != ft; ++fIndex)
             for (int tIndex = tf; tIndex != tt; ++tIndex) {
                 string dirName{ dirfroms[dir] + exts[fIndex] };
-                if (tIndex == fIndex)
-                    continue;
-                switch (tIndex) {
-                case 1:
-                    transDir(dirName, ".pgn", RecFormat::ICCS);
-                    transDir(dirName, ".pgn", RecFormat::ZH);
-                    transDir(dirName, ".pgn", RecFormat::CC);
-                    break;
-                case 2:
-                    transDir(dirName, ".bin", RecFormat::BIN);
-                    break;
-                case 3:
-                    transDir(dirName, ".json", RecFormat::JSON);
-                    break;
-                default:
-                    break;
+                if (tIndex != fIndex)
+                    switch (tIndex) {
+                    case 1:
+                        transDir(dirName, ".pgn", RecFormat::ICCS);
+                        transDir(dirName, ".pgn", RecFormat::ZH);
+                        transDir(dirName, ".pgn", RecFormat::CC);
+                        break;
+                    case 2:
+                        transDir(dirName, ".bin", RecFormat::BIN);
+                        break;
+                    case 3:
+                        transDir(dirName, ".json", RecFormat::JSON);
+                        break;
+                    default:
+                        break;
+                    }
+                else if (tIndex == 1) {
+                    //transDir(dirName, ".pgn", RecFormat::CC);
                 }
             }
 }
