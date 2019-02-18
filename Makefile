@@ -1,7 +1,7 @@
-objects = obj/board_base.o obj/piece.o obj/info.o \
+objects = obj/jsoncpp.o obj/board_base.o obj/piece.o obj/info.o \
             obj/board.o obj/move.o obj/chessInstance.o obj/main.o 
 
-vpath %.h head
+vpath %.h head src/json
 vpath %.cpp src
 vpath %.o obj
 
@@ -22,6 +22,8 @@ obj/piece.o: board.h piece.cpp
 	gcc -c -o obj/piece.o -std=c++11 -fexec-charset=gbk -iquote head -Wall src/piece.cpp
 obj/board_base.o: board_base.h board_base.cpp
 	gcc -c -o obj/board_base.o -std=c++11 -fexec-charset=gbk -iquote head -Wall src/board_base.cpp
+obj/jsoncpp.o: json.h json-forwards.h jsoncpp.cpp
+	gcc -c -o obj/jsoncpp.o -std=c++11 -fexec-charset=gbk -iquote head -Wall src/jsoncpp.cpp
 
 
 .PHONY: clean

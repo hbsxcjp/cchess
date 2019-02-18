@@ -1,5 +1,5 @@
 #include "chessInstance.h"
-
+#include "json/json.h"
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -18,8 +18,19 @@ int main(int argc, char const* argv[])
 
     auto time0 = steady_clock::now();
 
-    ChessInstance::testTransDir(stoi(argv[1]), stoi(argv[2]),
-        stoi(argv[3]), stoi(argv[4]), stoi(argv[5]), stoi(argv[6]));
+    //ChessInstance::testTransDir(stoi(argv[1]), stoi(argv[2]),
+    //    stoi(argv[3]), stoi(argv[4]), stoi(argv[5]), stoi(argv[6]));
+
+    Json::Value jsonRoot{}; //定义根节点
+    Json::Value jsonItem{}; //定义一个子对象
+    jsonItem["item1"] = "one"; //添加数据
+    jsonItem["item2"] = 2;
+    jsonRoot.append(jsonItem);
+    jsonItem.clear(); //清除jsonItem
+    jsonItem["item1.0"] = 1.0;
+    jsonItem["item2.0"] = 2.0;
+    jsonRoot["item"] = jsonItem;
+    cout << jsonRoot.toStyledString() << endl; //输出到控制台
 
     auto time_d = steady_clock::now() - time0;
     cout << "use time: " << duration_cast<milliseconds>(time_d).count() / 1000.0 << "s\n";

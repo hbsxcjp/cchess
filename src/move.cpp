@@ -1,7 +1,8 @@
 //#include "piece.h"
+#include "info.h"
+#include "json/json.h"
 #include "move.h"
 #include "board.h"
-#include "info.h"
 
 #include <algorithm>
 #include <fstream>
