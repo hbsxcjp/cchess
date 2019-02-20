@@ -1,11 +1,14 @@
 #include "info.h"
+#include "json.h"
 
 #include <functional>
 #include <iomanip>
 #include <regex>
 #include <sstream>
+
 using namespace std;
 using namespace Board_base;
+
 
 Info::Info()
     : info{ { L"Author", L"" },
@@ -151,9 +154,16 @@ Info::Info(istream& is)
     }
 }
 
-Info::Info(wistream& wis)
+//Info::Info(wistream& wis)    : Info(){}
+
+Info::Info(Json::Value& root)
     : Info()
 {
+    if (!root.isMember("info"))
+        return;
+    auto infoItem = root["info"];
+    for (auto& key : infoItem.getMemberNames())
+        info[s2ws(key)] = s2ws(infoItem[key].asString());
 }
 
 void Info::setRecFormat(RecFormat fmt)
@@ -246,8 +256,14 @@ void Info::toBin(ostream& os)
     }
 }
 
-void Info::toJSON(wostream& wos)
+//void Info::toJSON(wostream& wos){}
+
+void Info::toJson(Json::Value& root)
 {
+    Json::Value infoItem;
+    for (auto& k_v : info)
+        infoItem[ws2s(k_v.first)] = ws2s(k_v.second);
+    root["info"] = infoItem;
 }
 
 wstring Info::toString(RecFormat fmt)

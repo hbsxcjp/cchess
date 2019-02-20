@@ -1,8 +1,8 @@
 //#include "piece.h"
-#include "info.h"
-#include "json/json.h"
 #include "move.h"
-#include "board.h"
+//#include "board.h"
+//#include "info.h"
+//#include "json.h"
 
 #include <algorithm>
 #include <fstream>
@@ -47,7 +47,7 @@ wstring Move::toString()
         << L",r:" << remark << L">";
     return wss.str();
 }
-
+/*
 // Moves
 Moves::Moves()
 {
@@ -86,10 +86,10 @@ Moves::Moves(istream& is, Board& board)
     __initSet(RecFormat::BIN, board);
 }
 
-Moves::Moves(wistream& wis, Board& board)
+Moves::Moves(Json::Value& root, Board& board)
     : Moves()
 {
-    fromJSON(wis);
+    fromJson(root["moves"]);
     __initSet(RecFormat::JSON, board);
 }
 
@@ -398,7 +398,7 @@ void Moves::fromCC(wstring fullMoveStr)
         if (remm.find(key) != remm.end())
             move.remark = remm[key];
     };
-    function<void(Move&, int, int, bool)> __readMove = [&](Move& move, int row, int col, bool isOther) {
+    function<void(Move&, int, int, bool)> __read = [&](Move& move, int row, int col, bool isOther) {
         wstring zhStr{ movv[row][col] };
         if (regex_match(zhStr, movefat)) {
             auto newMove = make_shared<Move>();
@@ -409,24 +409,24 @@ void Moves::fromCC(wstring fullMoveStr)
             else
                 move.setNext(newMove);
             if (zhStr.back() == L'…')
-                __readMove(*newMove, row, col + 1, true);
+                __read(*newMove, row, col + 1, true);
             if (int(movv.size()) - 1 > row)
-                __readMove(*newMove, row + 1, col, false);
+                __read(*newMove, row + 1, col, false);
         } else if (isOther) {
             while (movv[row][col][0] == L'…')
                 ++col;
-            __readMove(move, row, col, true);
+            __read(move, row, col, true);
         }
     };
 
     __setRem(*rootMove, 0, 0);
     if (int(movv.size()) > 0)
-        __readMove(*rootMove, 1, 0, false);
+        __read(*rootMove, 1, 0, false);
 }
 
 void Moves::fromBIN(istream& is)
 {
-    function<void(Move&)> __readMove = [&](Move& move) {
+    function<void(Move&)> __read = [&](Move& move) {
         char fseat{}, tseat{}, hasNext{}, hasOther{};
         is.get(fseat).get(tseat).get(hasNext).get(hasOther);
         move.setSeat(make_pair(int(fseat), int(tseat)));
@@ -442,19 +442,37 @@ void Moves::fromBIN(istream& is)
 
         if (hasNext) { //# 有左子树
             move.setNext(make_shared<Move>());
-            __readMove(*move.next());
+            __read(*move.next());
         }
         if (hasOther) { // # 有右子树
             move.setOther(make_shared<Move>());
-            __readMove(*move.other());
+            __read(*move.other());
         }
     };
 
-    __readMove(*rootMove);
+    __read(*rootMove);
 }
 
-void Moves::fromJSON(wistream& wis)
+void Moves::fromJson(Json::Value& rootItem)
 {
+    function<void(Move&, Json::Value&)> __read = [&](Move& move, Json::Value& item) {
+        int fseat{ item["f"].asInt() }, tseat{ item["t"].asInt() };
+        move.setSeat(make_pair(fseat, tseat));
+        if (item.isMember("r"))
+            move.remark = s2ws(item["r"].asString());
+
+        if (item.isMember("n")) { //# 有左子树
+            move.setNext(make_shared<Move>());
+            __read(*move.next(), item["n"]);
+        }
+        if (item.isMember("o")) { // # 有右子树
+            move.setOther(make_shared<Move>());
+            __read(*move.other(), item["o"]);
+        }
+    };
+
+    if (!rootItem.isNull())
+        __read(*rootMove, rootItem);
 }
 
 void Moves::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
@@ -463,7 +481,7 @@ void Moves::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
     //wcout << L"ver_XYf_XYt_Size: " << version << L'/'
     //      << KeyXYf << L'/' << KeyXYt << L'/' << KeyRMKSize << endl;
 
-    function<void(Move&)> __readMove = [&](Move& move) {
+    function<void(Move&)> __read = [&](Move& move) {
         auto __byteToSeat = [&](int a, int b) {
             int xy = __subbyte(a, b);
             return getSeat(xy % 10, xy / 10);
@@ -513,16 +531,16 @@ void Moves::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
 
         if (ChildTag & 0x80) { //# 有左子树
             move.setNext(make_shared<Move>());
-            __readMove(*move.next());
+            __read(*move.next());
         }
         if (ChildTag & 0x40) { // # 有右子树
             move.setOther(make_shared<Move>());
-            __readMove(*move.other());
+            __read(*move.other());
         }
     };
 
     //is.seekg(1024);
-    __readMove(*rootMove);
+    __read(*rootMove);
 }
 
 // （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
@@ -548,7 +566,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
         case RecFormat::CC: {
             move.setSeat(getSeat__Zh(move.zh, board));
             move.ICCS = getICCS(move.fseat(), move.tseat());
-            //*
+            //
             wstring zh{ getZh(move.fseat(), move.tseat(), board) };
             // wcout << move.toString_zh() << L'\n';
             if (move.zh != zh) {
@@ -556,7 +574,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
                       << L"getZh( ): " << zh << L'\n'
                       << move.toString() << L'\n' << board.toString() << endl;
                 return;
-            } //*/
+            } ///
             break;
         }
         case RecFormat::XQF:
@@ -564,7 +582,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
         case RecFormat::JSON: {
             move.ICCS = getICCS(move.fseat(), move.tseat());
             move.zh = getZh(move.fseat(), move.tseat(), board);
-            /*
+            /
             auto seats = getSeat__Zh(move.zh, board);
             // wcout << move.toString() << L'\n';
             if ((seats.first != move.fseat()) || (seats.second != move.tseat())) {
@@ -572,7 +590,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
                       << L"getSeat__Zh( ): " << move.zh << L'\n'
                       << move.toString() << L'\n' << board.toString() << endl;
                 return;
-            } //*/
+            } ///
             break;
         }
         default:
@@ -608,7 +626,7 @@ void Moves::__initSet(RecFormat fmt, Board& board)
 
 void Moves::toBin(ostream& os)
 {
-    function<void(Move&)> __toMove = [&](Move& move) {
+    function<void(Move&)> __write = [&](Move& move) {
         os.put(char(move.fseat())).put(char(move.tseat()));
         os.put(char(move.next() ? true : false)).put(char(move.other() ? true : false));
 
@@ -619,16 +637,36 @@ void Moves::toBin(ostream& os)
             os.write(remark.c_str(), len);
 
         if (move.next())
-            __toMove(*move.next());
+            __write(*move.next());
         if (move.other())
-            __toMove(*move.other());
+            __write(*move.other());
     };
 
-    __toMove(*rootMove);
+    __write(*rootMove);
 }
 
-void Moves::toJSON(wostream& wos)
+void Moves::toJson(Json::Value& root)
 {
+    function<void(Move&, Json::Value&)> __write = [&](Move& move, Json::Value& item) {
+        item["f"] = move.fseat();
+        item["t"] = move.tseat();
+        if (move.remark.size() > 0)
+            item["r"] = ws2s(move.remark);
+        if (move.next()) {
+            Json::Value newItem{};
+            __write(*move.next(), newItem);
+            item["n"] = newItem;
+        }
+        if (move.other()) {
+            Json::Value newItem{};
+            __write(*move.other(), newItem);
+            item["o"] = newItem;
+        }
+    };
+
+    Json::Value rootItem;
+    __write(*rootMove, rootItem);
+    root["moves"] = rootItem;
 }
 
 wstring Moves::toString(RecFormat fmt)
@@ -716,3 +754,4 @@ wstring Moves::toString_CC()
         wss << line << L'\n';
     return wss.str() + remstrs.str();
 }
+*/
