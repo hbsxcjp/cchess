@@ -1,5 +1,4 @@
 #include "chessInstance.h"
-#include "json.h"
 
 #include <direct.h>
 #include <fstream>
@@ -26,51 +25,34 @@ ChessInstance::ChessInstance()
 ChessInstance::ChessInstance(string filename)
     : ChessInstance()
 {
-    string ext{ getExt(filename) };
-    if (ext == ".pgn") {
-        wstring pgnTxt{ readTxt(filename) }, infoTxt{}, movesTxt{};
-        auto pos = pgnTxt.find(L"\n1. ");
-        infoTxt = pgnTxt.substr(0, pos);
-        movesTxt = pos < pgnTxt.size() ? pgnTxt.substr(pos) : L"";
-        info = Info(infoTxt);
-        board = Board(info);
-        __init(movesTxt, info);
-    } else if (ext == ".xqf") {
-        vector<int> Keys(4, 0);
-        vector<int> F32Keys(32, 0);
-        ifstream ifs(filename, ios_base::binary);
-        info = Info(ifs, Keys, F32Keys);
-        board = Board(info);
-        __init(ifs, Keys, F32Keys);
-    } else if (ext == ".bin") {
-        ifstream ifs(filename, ios_base::binary);
-        info = Info(ifs);
-        board = Board(info);
-        __init(ifs);
-    } else if (ext == ".json") {
-        ifstream ifs(filename);
-        Json::CharReaderBuilder builder;
-        Json::Value root;
-        JSONCPP_STRING errs;
-        if (parseFromStream(builder, ifs, &root, &errs)) {
-            info = Info(root);
-            board = Board(info);
-            __init(root);
-        }
+    RecFormat fmt{ getRecFormat(getExt(filename)) };
+    switch (fmt) {
+    case RecFormat::XQF:
+        __init_xqf(filename);
+        break;
+    case RecFormat::BIN:
+        __init_bin(filename);
+        break;
+    case RecFormat::JSON:
+        __init_json(filename);
+        break;
+    default:
+        __init_pgn(filename, fmt);
+        break;
     }
+    __initSet(fmt);
 }
 
-void ChessInstance::write(string fname, string ext, RecFormat fmt)
+void ChessInstance::write(string fname, RecFormat fmt)
 {
-    string filename{ fname + ext };
-    if (ext == ".pgn") {
-        writeTxt(to_string(static_cast<int>(fmt)) + "_" + filename,
-            info.toString(fmt) + L"\n" + toString(fmt));
-    } else if (ext == ".bin") {
+    string filename{ fname + getExtName(fmt) };
+    switch (fmt) {
+    case RecFormat::BIN: {
         ofstream ofs(filename, ios_base::binary);
         info.toBin(ofs);
         toBin(ofs);
-    } else if (ext == ".json") {
+    } break;
+    case RecFormat::JSON: {
         ofstream ofs(filename);
         Json::Value root;
         Json::StreamWriterBuilder builder;
@@ -78,18 +60,35 @@ void ChessInstance::write(string fname, string ext, RecFormat fmt)
         info.toJson(root);
         toJson(root);
         writer->write(root, &ofs);
+    } break;
+    case RecFormat::ICCS:
+    case RecFormat::ZH:
+    case RecFormat::CC:
+        writeTxt(filename, info.toString(fmt) + L"\n" + toString(fmt));
+        break;
+    default:
+        break;
     }
 }
 
-void ChessInstance::__init(istream& is, vector<int>& Keys, vector<int>& F32Keys)
+void ChessInstance::__init_xqf(string filename)
 {
-    fromXQF(is, Keys, F32Keys);
-    __initSet(RecFormat::XQF);
+    ifstream ifs(filename, ios_base::binary);
+    vector<int> Keys(4, 0);
+    vector<int> F32Keys(32, 0);
+    info = Info(ifs, Keys, F32Keys);
+    board = Board(info);
+    fromXQF(ifs, Keys, F32Keys);
 }
 
-void ChessInstance::__init(wstring moveStr, Info& info)
+void ChessInstance::__init_pgn(string filename, RecFormat fmt)
 {
-    RecFormat fmt{ info.getRecFormat() };
+    wstring pgnTxt{ readTxt(filename) };
+    auto pos = pgnTxt.find(L"\n1. ");
+    wstring moveStr{ pos < pgnTxt.size() ? pgnTxt.substr(pos) : L"" };
+    info = Info(pgnTxt.substr(0, pos));
+    board = Board(info);
+    //RecFormat fmt{ info.getRecFormat() };
     switch (fmt) {
     case RecFormat::ICCS:
     case RecFormat::ZH:
@@ -99,19 +98,65 @@ void ChessInstance::__init(wstring moveStr, Info& info)
         fromCC(moveStr);
         break;
     }
-    __initSet(fmt);
 }
 
-void ChessInstance::__init(istream& is)
+void ChessInstance::__init_bin(string filename)
 {
-    fromBIN(is);
-    __initSet(RecFormat::BIN);
+    ifstream ifs(filename, ios_base::binary);
+    info = Info(ifs);
+    board = Board(info);
+    fromBIN(ifs);
 }
 
-void ChessInstance::__init(Json::Value& root)
+void ChessInstance::__init_json(string filename)
 {
+    ifstream ifs(filename);
+    Json::CharReaderBuilder builder;
+    Json::Value root;
+    JSONCPP_STRING errs;
+    if (!parseFromStream(builder, ifs, &root, &errs))
+        return;
+    info = Info(root["info"]);
+    board = Board(info);
     fromJson(root["moves"]);
-    __initSet(RecFormat::JSON);
+}
+
+RecFormat ChessInstance::getRecFormat(string ext)
+{
+    if (ext == ".xqf")
+        return RecFormat::XQF;
+    else if (ext == ".bin")
+        return RecFormat::BIN;
+    else if (ext == ".json")
+        return RecFormat::JSON;
+    else if (ext == ".pgn1")
+        return RecFormat::ICCS;
+    else if (ext == ".pgn2")
+        return RecFormat::ZH;
+    else if (ext == ".pgn3")
+        return RecFormat::CC;
+    else
+        return RecFormat::CC;
+}
+
+string ChessInstance::getExtName(RecFormat fmt)
+{
+    switch (fmt) {
+    case RecFormat::XQF:
+        return ".xqf";
+    case RecFormat::BIN:
+        return ".bin";
+    case RecFormat::JSON:
+        return ".json";
+    case RecFormat::ICCS:
+        return ".pgn1";
+    case RecFormat::ZH:
+        return ".pgn2";
+    case RecFormat::CC:
+        return ".pgn3";
+    default:
+        return ".pgn3";
+    }
 }
 
 inline PieceColor ChessInstance::currentColor()
@@ -481,7 +526,6 @@ void ChessInstance::fromJson(Json::Value& rootItem)
         move.setSeat(fseat, tseat);
         if (item.isMember("r"))
             move.remark = s2ws(item["r"].asString());
-
         if (item.isMember("n")) { //# 有左子树
             move.setNext(make_shared<Move>());
             __read(*move.next(), item["n"]);
@@ -686,22 +730,17 @@ void ChessInstance::toJson(Json::Value& root)
         }
     };
 
-    Json::Value rootItem;
+    Json::Value rootItem{};
     __write(*rootMove, rootItem);
     root["moves"] = rootItem;
 }
 
 wstring ChessInstance::toString(RecFormat fmt)
 {
-    switch (fmt) {
-    case RecFormat::ZH:
-    case RecFormat::ICCS:
+    if (fmt == RecFormat::CC)
+        return toString_CC();
+    else
         return toString_ICCSZH(fmt);
-    case RecFormat::CC:
-        return toString_CC();
-    default:
-        return toString_CC();
-    }
 }
 
 wstring ChessInstance::toString_ICCSZH(RecFormat fmt)
@@ -777,12 +816,11 @@ wstring ChessInstance::toString_CC()
     return wss.str() + remstrs.str();
 }
 
-void ChessInstance::transDir(string dirfrom, string ext, RecFormat fmt)
+void ChessInstance::transDir(string dirfrom, RecFormat fmt)
 {
-    string extensions{ ".xqf.pgn.bin.json" };
     int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
-    string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + ext };
-    string ext_old{};
+    string extensions{ ".xqf.pgn1.pgn2.pgn3.bin.json" };
+    string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + getExtName(fmt) };
     function<void(string, string)> __trans = [&](string dirfrom, string dirto) {
         long hFile = 0; //文件句柄
         struct _finddata_t fileinfo; //文件信息
@@ -799,13 +837,13 @@ void ChessInstance::transDir(string dirfrom, string ext, RecFormat fmt)
                 } else { //如果是文件,执行转换
                     string filename{ dirfrom + "/" + fname };
                     string fileto{ dirto + "/" + fname.substr(0, fname.rfind('.')) };
-                    ext_old = getExt(fname);
+                    string ext_old{ getExt(fname) };
                     if (extensions.find(ext_old) != string::npos) {
                         fcount += 1;
                         //cout << filename << endl;
 
                         ChessInstance ci(filename);
-                        ci.write(fileto, ext, fmt);
+                        ci.write(fileto, fmt);
                         movcount += ci.movCount;
                         remcount += ci.remCount;
                         if (ci.remLenMax > remlenmax)
@@ -819,7 +857,7 @@ void ChessInstance::transDir(string dirfrom, string ext, RecFormat fmt)
     };
 
     __trans(dirfrom, dirto);
-    cout << dirfrom + " =>" << static_cast<int>(fmt) << ext << ": 转换" << fcount << "个文件, "
+    cout << dirfrom + " =>" << getExtName(fmt) << ": 转换" << fcount << "个文件, "
          << dcount << "个目录成功！\n   着法数量: "
          << movcount << ", 注释数量: " << remcount << ", 最大注释长度: " << remlenmax << endl;
 }
@@ -832,31 +870,13 @@ void ChessInstance::testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
         "c:\\棋谱\\疑难文件",
         "c:\\棋谱\\中国象棋棋谱大全"
     };
-    vector<string> exts{ ".xqf", ".pgn", ".bin", ".json" };
+    vector<RecFormat> fmts{ RecFormat::XQF, RecFormat::ICCS, RecFormat::ZH, RecFormat::CC,
+        RecFormat::BIN, RecFormat::JSON };
 
     // 调节三个循环变量的初值、终值，控制转换目录
     for (int dir = fd; dir != td; ++dir)
         for (int fIndex = ff; fIndex != ft; ++fIndex)
-            for (int tIndex = tf; tIndex != tt; ++tIndex) {
-                string dirName{ dirfroms[dir] + exts[fIndex] };
-                if (tIndex != fIndex) {
-                    switch (tIndex) {
-                    case 1:
-                        transDir(dirName, ".pgn", RecFormat::ICCS);
-                        transDir(dirName, ".pgn", RecFormat::ZH);
-                        transDir(dirName, ".pgn", RecFormat::CC);
-                        break;
-                    case 2:
-                        transDir(dirName, ".bin", RecFormat::BIN);
-                        break;
-                    case 3:
-                        transDir(dirName, ".json", RecFormat::JSON);
-                        break;
-                    default:
-                        break;
-                    }
-                }// else if (tIndex == 1) {
-                    //transDir(dirName, ".pgn", RecFormat::CC);
-                //}
-            }
+            for (int tIndex = tf; tIndex != tt; ++tIndex)
+                if (tIndex != fIndex)
+                    transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
 }

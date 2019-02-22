@@ -2,7 +2,7 @@
 #define INFO_H
 
 #include "board_base.h"
-#include "json.h"
+#include "../json/json.h"
 #include <iostream>
 #include <map>
 #include <string>
@@ -16,12 +16,13 @@ public:
     Info(istream& is, vector<int>& Keys, vector<int>& F32Keys);
     Info(const wstring& strPgn);
     Info(istream& is);
-    Info(Json::Value& root);
+    Info(Json::Value& infoItem);
 
     void setRecFormat(RecFormat fmt);
     RecFormat getRecFormat();
     void setFEN(wstring& pieceChars);
     wstring getPieChars();
+    
     wstring toString(RecFormat fmt = RecFormat::ZH);
     void toBin(ostream& os);
     void toJson(Json::Value& root);

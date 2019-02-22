@@ -45,7 +45,7 @@ public:
     wstring ICCS{}; // 着法数字字母描述
     wstring zh{}; // 着法中文描述
     wstring remark{}; // 注释
-    // 以下信息存储时不需保存
+    
     int stepNo{ 0 }; // 着法深度
     int othCol{ 0 }; // 变着广度
     int maxCol{ 0 }; // 图中列位置（需结合board确定）

@@ -1,5 +1,4 @@
 #include "info.h"
-#include "json.h"
 
 #include <functional>
 #include <iomanip>
@@ -156,12 +155,9 @@ Info::Info(istream& is)
 
 //Info::Info(wistream& wis)    : Info(){}
 
-Info::Info(Json::Value& root)
+Info::Info(Json::Value& infoItem)
     : Info()
 {
-    if (!root.isMember("info"))
-        return;
-    auto infoItem = root["info"];
     for (auto& key : infoItem.getMemberNames())
         info[s2ws(key)] = s2ws(infoItem[key].asString());
 }
@@ -248,6 +244,7 @@ wstring Info::getPieChars()
 
 void Info::toBin(ostream& os)
 {
+    setRecFormat(RecFormat::BIN);
     os.put(char(info.size()));
     for (auto& kv : info) {
         string keys{ ws2s(kv.first) }, values{ ws2s(kv.second) };
@@ -256,11 +253,10 @@ void Info::toBin(ostream& os)
     }
 }
 
-//void Info::toJSON(wostream& wos){}
-
 void Info::toJson(Json::Value& root)
 {
     Json::Value infoItem;
+    setRecFormat(RecFormat::JSON);
     for (auto& k_v : info)
         infoItem[ws2s(k_v.first)] = ws2s(k_v.second);
     root["info"] = infoItem;

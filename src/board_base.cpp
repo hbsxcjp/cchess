@@ -366,6 +366,7 @@ inline wstring Board_base::wtrim(wstring& str)
    // */
 }
 
+/*
 std::string Board_base::ws2s(const std::wstring& ws)
 {
     //std::string curLocale = setlocale(LC_ALL, NULL); // curLocale = "C";
@@ -383,7 +384,6 @@ std::string Board_base::ws2s(const std::wstring& ws)
 std::wstring Board_base::s2ws(const std::string& src)
 {
     //setlocale(LC_ALL, "chs");
-    //string s{ src };
     const char* _Source = src.c_str();
     size_t _Dsize = src.size() + 1;
     wchar_t* _Dest = new wchar_t[_Dsize];
@@ -391,8 +391,34 @@ std::wstring Board_base::s2ws(const std::string& src)
     std::wstring result = _Dest;
     delete[] _Dest;
     //setlocale(LC_ALL, "C");
-    return wtrim(result); //result; //
+    return result; //wtrim(result); //
+}*/
+
+
+//std::string中的UTF-8字节流转换成UTF-16并保存在std::wstring中
+std::wstring Board_base::s2ws(const std::string& s)
+{
+    const char* str = s.c_str();
+    size_t len = s.size() + 1;
+    wchar_t *wstr = new wchar_t[len];
+    std::mbstowcs(wstr, str, len);
+    std::wstring ret(wstr);
+    delete [] wstr;
+    return ret;
 }
+
+//std::wstring转换到std::string
+std::string Board_base::ws2s(const std::wstring& ws)
+{
+    const wchar_t* wstr = ws.c_str();
+    size_t len = 2 * ws.size() + 1;
+    char *str = new char[len];
+    std::wcstombs(str, wstr, len);
+    std::string ret(str);
+    delete [] str;
+    return ret;
+}
+
 
 wstring Board_base::readTxt(string fileName)
 {

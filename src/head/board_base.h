@@ -154,6 +154,7 @@ string getExt(string filename);
 
 // 测试函数
 wstring test();
+
 } // namespace Board_base
 
 #endif

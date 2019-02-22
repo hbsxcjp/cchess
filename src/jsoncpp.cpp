@@ -139,6 +139,7 @@ static inline String codePointToUTF8(unsigned int cp) {
     result[2] = static_cast<char>(0x80 | (0x3f & cp));
     result[1] = static_cast<char>(0x80 | (0x3f & (cp >> 6)));
     result[0] = static_cast<char>(0xE0 | (0xf & (cp >> 12)));
+    //*/
   } else if (cp <= 0x10FFFF) {
     result.resize(4);
     result[3] = static_cast<char>(0x80 | (0x3f & cp));
@@ -4468,7 +4469,7 @@ static String valueToQuotedStringN(const char* value, unsigned length) {
     // sequence.
     // Should add a flag to allow this compatibility mode and prevent this
     // sequence from occurring.
-    default: {
+    default: /*{
       unsigned int cp = utf8ToCodepoint(c, end);
       // don't escape non-control characters
       // (short escape sequence are applied above)
@@ -4485,7 +4486,9 @@ static String valueToQuotedStringN(const char* value, unsigned length) {
         result += "\\u";
         result += toHex16Bit((cp & 0x3FF) + 0xDC00);
       }
-    } break;
+    } */ //学习https://blog.csdn.net/lpy369369/article/details/84849532的解决方式
+    result += *c;
+    break;
     }
   }
   result += "\"";
