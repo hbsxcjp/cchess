@@ -100,14 +100,6 @@ inline int getIndex(wchar_t ch)
         { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
     return ChNum_Indexs[ch];
 }
-/*
-int getNum(wchar_t ch)
-{
-    static map<wchar_t, int>  ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
-        { L'四', 3 }, { L'五', 4 }, { L'前', 0 }, { L'中', 1 }, { L'后', 1 },
-        { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
-    return ChNum_Indexs[ch];
-}*/
 
 // 函数
 inline int getRow(int seat) { return seat / 9; }

@@ -1,12 +1,11 @@
 #ifndef INFO_H
 #define INFO_H
 
-//#include "board_base.h"
 #include "../json/json.h"
 #include <iostream>
-#include <map>
 #include <string>
 #include <vector>
+#include <map>
 using namespace std;
 
 enum class RecFormat;

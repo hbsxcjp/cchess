@@ -1,22 +1,12 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-//#include "board_base.h"
-//#include "json.h"
 #include "piece.h"
-
-#include <iostream>
 #include <memory>
-#include <utility>
-#include <vector>
 
 using namespace std;
-using namespace Board_base;
-
+//using namespace Board_base;
 enum class PieceColor;
-//class Info;
-//class Piece;
-//class Board;
 
 // 着法节点类
 class Move {
@@ -41,7 +31,6 @@ public:
     void setOther(shared_ptr<Move> other);
 
     wstring toString();
-    wstring toJSON(); // JSON
 
     wstring ICCS{}; // 着法数字字母描述
     wstring zh{}; // 着法中文描述
@@ -58,67 +47,5 @@ private:
     shared_ptr<Move> next_ptr{ nullptr };
     shared_ptr<Move> other_ptr{ nullptr };
 };
-
-/*
-// 棋局着法树类
-class Moves {
-public:
-    Moves();
-    Moves(istream& is, vector<int>& Keys, vector<int>& F32Keys, Board& board);
-    Moves(wstring moveStr, Info& info, Board& board);
-    Moves(istream& is, Board& board);
-    Moves(Json::Value& root, Board& board);
-
-    PieceColor currentColor();
-    bool isStart() { return currentMove->prev() == nullptr; }
-    bool isLast() { return currentMove->next() == nullptr; }
-
-    // 基本走法
-    vector<shared_ptr<Move>> getPrevMoves(shared_ptr<Move> move);
-    void forward(Board& board);
-    void backward(Board& board);
-    void forwardOther(Board& board);
-    // 复合走法
-    void backwardTo(shared_ptr<Move> move, Board& board);
-    void to(shared_ptr<Move> move, Board& board);
-    void toFirst(Board& board);
-    void toLast(Board& board);
-    void go(Board& board, int inc);
-    void cutNext();
-    void cutOther();
-
-    wstring toString(RecFormat fmt = RecFormat::ZH);
-    void toBin(ostream& os);
-    void toJson(Json::Value& rootItem);
-
-    int movCount{ 0 }; //着法数量
-    int remCount{ 0 }; //注解数量
-    int remLenMax{ 0 }; //注解最大长度
-    int othCol{ 0 }; //# 存储最大变着层数
-    int maxRow{ 0 }; //# 存储最大着法深度
-    int maxCol{ 0 }; //# 存储视图最大列数
-
-private:
-    const wstring getICCS(int fseat, int tseat);
-    const pair<int, int> getSeat__ICCS(wstring ICCS);
-    const wstring getZh(int fseat, int tseat, Board& board) const; //(fseat, tseat)->中文纵线着法, 着法未走状态
-    const pair<int, int> getSeat__Zh(wstring Zh, Board& board) const; //中文纵线着法->(fseat, tseat), 着法未走状态
-
-    void fromICCSZH(wstring moveStr, RecFormat fmt);
-    void fromCC(wstring fullMoveStr);
-    void fromBIN(istream& is);
-    void fromJson(Json::Value& root);
-    void fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys);
-    void __initSet(RecFormat fmt, Board& board);
-
-    wstring toString_ICCSZH(RecFormat fmt = RecFormat::ZH);
-    wstring toString_CC();
-
-    //vector<shared_ptr<Move>> moves;
-    shared_ptr<Move> rootMove;
-    shared_ptr<Move> currentMove; // board对应状态：该着已执行
-    PieceColor firstColor; // 棋局载入时需要设置此属性！
-};
-*/
 
 #endif

@@ -3,20 +3,16 @@
 
 #include "info.h"
 #include "piece.h"
-
-#include <string>
-using std::wstring;
 #include <memory>
-using std::shared_ptr;
+#include <string>
+using namespace std;
 
 // 棋盘端部
-enum class BoardSide { bottom,
-    top };
-enum class ChangeType { exchange,
-    rotate,
-    symmetry };
-class Piece;
-class Pieces;
+enum class BoardSide {
+    bottom,
+    top
+};
+
 class Move;
 
 class Board {
@@ -25,14 +21,12 @@ public:
     Board(Info& info);
 
     Piece* getPiece(int seat) { return pieSeats[seat]; }
+    Piece* getOthPie(Piece* piecep) { return pieces.getOthPie(piecep); }
+    vector<Piece*> getLivePies() { return pieces.getLivePies(); }
     bool isBlank(int seat) { return getPiece(seat)->isBlank(); }
     PieceColor getColor(int seat) { return getPiece(seat)->color(); }
     bool isBottomSide(PieceColor color) { return bottomColor == color; }
-    BoardSide getSide(PieceColor color)
-    {
-        return isBottomSide(color) ? BoardSide::bottom : BoardSide::top;
-    }
-
+    BoardSide getSide(PieceColor color) { return isBottomSide(color) ? BoardSide::bottom : BoardSide::top; }
     vector<int> getSideNameSeats(PieceColor color, wchar_t name);
     vector<int> getSideNameColSeats(PieceColor color, wchar_t name, int col);
 
@@ -40,13 +34,12 @@ public:
     void back(Move& move);
     Piece* move_go(int fseat, int tseat);
     void move_back(int fseat, int tseat, Piece* eatPiece);
-
     bool isKilled(PieceColor color); //判断是否将军
     bool isDied(PieceColor color); //判断是否被将死
 
     void setFEN(Info& info);
     void setFrom(Info& info);
-    void changeSide(ChangeType ct = ChangeType::exchange);
+    void setSeatPieces(vector<pair<int, Piece*>> seatPieces);
     const wstring toString();
 
     wstring test();

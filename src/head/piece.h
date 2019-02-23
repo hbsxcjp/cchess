@@ -154,9 +154,9 @@ class Pieces {
 public:
     Pieces();
 
-    Piece& getKingPie(PieceColor color);
-    Piece& getOthPie(Piece& pie);
-    Piece& getFreePie(wchar_t ch);
+    Piece* getKingPie(PieceColor color);
+    Piece* getOthPie(Piece* pie);
+    Piece* getFreePie(wchar_t ch);
     //成员函数，类内声明，类外定义
     vector<Piece*> getPies() { return pies; }
     vector<Piece*> getLivePies();

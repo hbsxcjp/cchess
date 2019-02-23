@@ -5,10 +5,14 @@
 #include "../json/json.h"
 #include "board.h"
 #include "move.h"
-
 #include <string>
-using std::string;
-using std::wstring;
+using namespace std;
+
+enum class ChangeType {
+    exchange,
+    rotate,
+    symmetry
+};
 
 class ChessInstance {
 public:
@@ -66,6 +70,7 @@ private:
     // (fseat, tseat)->中文纵线着法, 着法未走状态
     const wstring getZh(int fseat, int tseat);
 
+    void changeSide(ChangeType ct = ChangeType::exchange);
     wstring toString(RecFormat fmt = RecFormat::ZH);
     wstring toString_ICCSZH(RecFormat fmt = RecFormat::ZH);
     wstring toString_CC();

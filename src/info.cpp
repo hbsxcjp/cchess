@@ -1,10 +1,9 @@
 #include "board_base.h"
 #include "info.h"
-
+#include <sstream>
 #include <functional>
 #include <iomanip>
 #include <regex>
-#include <sstream>
 
 using namespace std;
 using namespace Board_base;
@@ -153,8 +152,6 @@ Info::Info(istream& is)
         info[s2ws(key)] = s2ws(value);
     }
 }
-
-//Info::Info(wistream& wis)    : Info(){}
 
 Info::Info(Json::Value& infoItem)
     : Info()

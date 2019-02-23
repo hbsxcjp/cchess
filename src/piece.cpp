@@ -133,31 +133,31 @@ Pieces::Pieces()
     Piece::curIndex = 0;
 }
 
-inline Piece& Pieces::getKingPie(PieceColor color)
+inline Piece* Pieces::getKingPie(PieceColor color)
 {
-    return *pies[color == PieceColor::red ? 0 : 1];
+    return pies[color == PieceColor::red ? 0 : 1];
 }
 
-inline Piece& Pieces::getOthPie(Piece& pie)
+inline Piece* Pieces::getOthPie(Piece* pie)
 {
-    int index{ pie.index() }, othIndex;
+    int index{ pie->index() }, othIndex{};
     if (index < 2)
         othIndex = index == 1 ? 0 : 1; //帅0将1
     else if (index > 21)
         othIndex = index > 26 ? index - 5 : index + 5; // 兵22-26卒27-31
     else
         othIndex = index % 4 < 2 ? index - 2 : index + 2; // 士象马车炮，每种棋4子
-    return *pies[othIndex];
+    return pies[othIndex];
 }
 
-Piece& Pieces::getFreePie(wchar_t ch)
+Piece* Pieces::getFreePie(wchar_t ch)
 {
     if (ch == Piece::nullChar)
-        return *nullPiePtr;
+        return nullPiePtr;
     for (auto &p : pies)
         if (p->wchar() == ch && p->seat() == nullSeat)
-            return *p;
-    return *nullPiePtr;
+            return p;
+    return nullPiePtr;
 }
 
 vector<Piece*> Pieces::getLivePies()
@@ -244,30 +244,30 @@ wstring Pieces::test()
     wss << toString() << L"共计：" << pies.size() << L"个\n";
 
     wss << L"Piece::getKingPie\\Piece::chName：\n红棋->"
-        << getKingPie(PieceColor::red).chName() << L' ' << L"黑棋->"
-        << getKingPie(PieceColor::black).chName();
+        << getKingPie(PieceColor::red)->chName() << L' ' << L"黑棋->"
+        << getKingPie(PieceColor::black)->chName();
 
     wss << L"\nPieces::getOthPie：\n";
     for (auto piePtr : pies)
-        wss << piePtr->chName() << L"->" << getOthPie(*piePtr).chName() << L' ';
+        wss << piePtr->chName() << L"->" << getOthPie(piePtr)->chName() << L' ';
 
     for (auto id : (vector<int>{ 0, 1, 2, 3, 4, 5, 9, 10, 17, 18 }))
         pies[id]->setSeat(id);
     wss << L"\nPieces::getLivePies：\n";
     wss << L"getLivePies()：";
-    for (auto piePtr : getLivePies())
+    for (auto& piePtr : getLivePies())
         wss << piePtr->chName() << L' ';
     wss << L"\ngetLivePies(PieceColor::red)：";
-    for (auto piePtr : getLivePies(PieceColor::red))
+    for (auto& piePtr : getLivePies(PieceColor::red))
         wss << piePtr->chName() << L' ';
     wss << L"\ngetLivePies(PieceColor::black)：";
-    for (auto piePtr : getLivePies(PieceColor::black))
+    for (auto& piePtr : getLivePies(PieceColor::black))
         wss << piePtr->chName() << L' ';
     wss << L"\ngetEatedPies()：";
-    for (auto piePtr : getEatedPies())
+    for (auto& piePtr : getEatedPies())
         wss << piePtr->chName() << L' ';
     wss << L"\ngetNamePies(PieceColor::red, L'N')：\n";
-    for (auto piePtr : getNamePies(PieceColor::red, L'马'))
+    for (auto& piePtr : getNamePies(PieceColor::red, L'马'))
         wss << piePtr->toString();
 
     wss << L"\ngetSeats(PieceColor::red)：\n";

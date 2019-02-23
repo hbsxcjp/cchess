@@ -4,9 +4,9 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <regex>
 //#include <sstream>
 //#include <locale>
-#include <regex>
 //#include <codecvt>
 //#include <utility>
 
@@ -89,16 +89,10 @@ void ChessInstance::__init_pgn(string filename, RecFormat fmt)
     wstring moveStr{ pos < pgnTxt.size() ? pgnTxt.substr(pos) : L"" };
     info = Info(pgnTxt.substr(0, pos));
     board = Board(info);
-    //RecFormat fmt{ info.getRecFormat() };
-    switch (fmt) {
-    case RecFormat::ICCS:
-    case RecFormat::ZH:
-        fromICCSZH(moveStr, fmt);
-        break;
-    default:
+    if (fmt == RecFormat::CC)
         fromCC(moveStr);
-        break;
-    }
+    else
+        fromICCSZH(moveStr, fmt);
 }
 
 void ChessInstance::__init_bin(string filename)
@@ -375,9 +369,7 @@ void ChessInstance::fromICCSZH(wstring moveStr, RecFormat fmt)
         rootMove->remark = res.str(1);
     bool isOther{ false }; // 首次非变着
     for (; wtleft != end; ++wtleft) {
-        //wcout << *wtleft << L"\n---------------------------------------------\n"
-        //      << endl;
-
+        //wcout << *wtleft << L"\n---------------------------------------------\n" << endl;
         wsregex_token_iterator wtright{ (*wtleft).first, (*wtleft).second, spright, -1 };
         for (; wtright != end; ++wtright) {
             //wcout << *wtright << L"\n---------------------------------------------\n" << endl;
@@ -389,7 +381,6 @@ void ChessInstance::fromICCSZH(wstring moveStr, RecFormat fmt)
         othMoves.push_back(move);
         isOther = true;
     }
-    //wcout << L"fromICCSZh OK!" << endl;
 }
 
 void ChessInstance::fromCC(wstring fullMoveStr)
@@ -497,9 +488,6 @@ void ChessInstance::fromJSON(Json::Value& rootItem)
 void ChessInstance::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
 {
     int version{ Keys[0] }, KeyXYf{ Keys[1] }, KeyXYt{ Keys[2] }, KeyRMKSize{ Keys[3] };
-    //wcout << L"ver_XYf_XYt_Size: " << version << L'/'
-    //      << KeyXYf << L'/' << KeyXYt << L'/' << KeyRMKSize << endl;
-
     function<void(Move&)> __read = [&](Move& move) {
         auto __byteToSeat = [&](int a, int b) {
             int xy = __subbyte(a, b);
@@ -522,11 +510,7 @@ void ChessInstance::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys
         char data[4]{};
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
-        //auto seats = make_pair(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
-        //move.setSeat(seats);
         move.setSeat(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
-        //wcout << L"fs_ts: " << move.fseat() << L'/' << move.tseat() << endl;
-
         char ChildTag = data[2];
         int RemarkSize = 0;
         if (version <= 0x0A) {
@@ -546,7 +530,6 @@ void ChessInstance::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys
             char rem[RemarkSize + 1]{};
             __readbytes(rem, RemarkSize);
             move.remark = s2ws(rem);
-            //wcout << L"remark: " << move.remark << L'/' << endl;
         }
 
         if (ChildTag & 0x80) { //# 有左子树
@@ -625,10 +608,7 @@ void ChessInstance::__initSet(RecFormat fmt)
         if (move.stepNo > maxRow)
             maxRow = move.stepNo;
         board.go(move);
-
-        //wcout << move.toString() << L"\n"
-        //      << board.toString() << endl;
-
+        //wcout << move.toString() << L"\n" << board.toString() << endl;
         if (move.next())
             __set(*move.next());
         board.back(move);
@@ -756,9 +736,8 @@ wstring ChessInstance::toString_CC()
 
     __setChar(*rootMove);
     wstringstream wss{};
-    wstring rootStr{ L"　开始" };
-    for (int i = 0; i != 3; ++i)
-        lineStr[0][i] = rootStr[i];
+    lineStr[0][0] = L'开';
+    lineStr[0][1] = L'始';
     for (auto line : lineStr)
         wss << line << L'\n';
     wss << remstrs.str();
@@ -793,12 +772,11 @@ void ChessInstance::transDir(string dirfrom, RecFormat fmt)
                     if (extensions.find(ext_old) != string::npos) {
                         fcount += 1;
                         //cout << filename << endl;
-
                         ChessInstance ci(filename);
                         ci.write(fileto, fmt);
                         movcount += ci.movCount;
                         remcount += ci.remCount;
-                        if (ci.remLenMax > remlenmax) 
+                        if (ci.remLenMax > remlenmax)
                             remlenmax = ci.remLenMax;
                     } else
                         copyFile(filename.c_str(), (fileto + ext_old).c_str());
@@ -814,6 +792,39 @@ void ChessInstance::transDir(string dirfrom, RecFormat fmt)
          << movcount << ", 注释数量: " << remcount << ", 最大注释长度: " << remlenmax << endl;
 }
 
+void ChessInstance::changeSide(ChangeType ct) // 未测试
+{
+    auto curmove = currentMove;
+    toFirst();
+    vector<pair<int, Piece*>> seatPieces{};
+    if (ct == ChangeType::exchange) {
+        firstColor = firstColor == PieceColor::red ? PieceColor::black : PieceColor::red;
+        for (auto& piecep : board.getLivePies())
+            seatPieces.push_back(make_pair((*piecep).seat(), board.getOthPie(piecep)));
+    } else {
+        function<void(Move&)> __seat = [&](Move& move) {
+            if (ct == ChangeType::rotate)
+                move.setSeat(rotateSeat(move.fseat()), rotateSeat(move.tseat()));
+            else
+                move.setSeat(symmetrySeat(move.fseat()), symmetrySeat(move.tseat()));
+            if (move.next())
+                __seat(*move.next());
+            if (move.other())
+                __seat(*move.other());
+        };
+        if (rootMove->next())
+            __seat(*rootMove->next()); // 驱动调用递归函数
+        for (auto& piecep : board.getLivePies()) {
+            auto seat = (*piecep).seat();
+            seatPieces.push_back(make_pair(ct == ChangeType::rotate ? rotateSeat(seat) : symmetrySeat(seat), piecep));
+        }
+    }
+    board.setSeatPieces(seatPieces);
+    if (ct != ChangeType::rotate)
+        __initSet(RecFormat::BIN); //借用？
+    to(curmove);
+}
+
 void ChessInstance::testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
 {
     vector<string> dirfroms{
@@ -824,7 +835,6 @@ void ChessInstance::testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
     };
     vector<RecFormat> fmts{ RecFormat::XQF, RecFormat::ICCS, RecFormat::ZH, RecFormat::CC,
         RecFormat::BIN, RecFormat::JSON };
-
     // 调节三个循环变量的初值、终值，控制转换目录
     for (int dir = fd; dir != td; ++dir)
         for (int fIndex = ff; fIndex != ft; ++fIndex)

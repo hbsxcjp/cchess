@@ -6,17 +6,17 @@
 #include <codecvt>
 #include <cstdlib>
 #include <direct.h>
+#include <iostream>
+#include <sstream>
 #include <fstream>
 #include <io.h>
 #include <iomanip>
-#include <iostream>
 #include <locale>
 #include <map>
 #include <regex>
-#include <sstream>
 #include <string>
-#include <utility>
 #include <vector>
+#include <utility>
 
 using namespace std;
 using namespace std::chrono;

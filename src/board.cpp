@@ -1,13 +1,12 @@
 #include "board.h"
 #include "info.h"
 #include "move.h"
-
-#include <iostream>
+#include "piece.h"
 
 #include <algorithm>
 #include <cctype>
-//#include <regex>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 using namespace std;
@@ -48,8 +47,8 @@ vector<int> Board::__getSeats(vector<Piece*> pies)
 bool Board::isKilled(PieceColor color)
 {
     PieceColor othColor = color == PieceColor::black ? PieceColor::red : PieceColor::black;
-    int kingSeat{ pieces.getKingPie(color).seat() },
-        othKingSeat{ pieces.getKingPie(othColor).seat() };
+    int kingSeat{ pieces.getKingPie(color)->seat() },
+        othKingSeat{ pieces.getKingPie(othColor)->seat() };
     if (isSameCol(kingSeat, othKingSeat)) {
         vector<int> ss{ getSameColSeats(kingSeat, othKingSeat) };
         if (std::all_of(ss.begin(), ss.end(),
@@ -117,59 +116,18 @@ void Board::setFrom(Info& info)
     pieces.clear();
     std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
     for (int s = 0; s != 90; ++s)
-        __setPiece(&pieces.getFreePie(chars[s]), s);
-    bottomColor = pieces.getKingPie(PieceColor::red).seat() < 45
+        __setPiece(pieces.getFreePie(chars[s]), s);
+    bottomColor = pieces.getKingPie(PieceColor::red)->seat() < 45
         ? PieceColor::red
         : PieceColor::black;
 }
 
-void Board::changeSide(ChangeType ct) {} // = ChangeType::exchange
-
-/*
-changeSide(chessInstance, changeType = 'exchange') {
-    let __changeSeat = (transfun) => {
-        //'根据transfun改置每个move的fseat,tseat'
-        function __seat(move) {
-            move.fseat = transfun(move.fseat);
-            move.tseat = transfun(move.tseat);
-            if (move.next)
-                __seat(move.next);
-            if (move.other)
-                __seat(move.other);
-        }
-
-        if (this.rootMove.next)
-            __seat(this.rootMove.next);
-    } //# 驱动调用递归函数
-
-    let currentMove = this.currentMove;
-    chessInstance.moves.toFirst();
-    let seatPieces;
-    if (changeType === 'exchange') {
-        //chessInstance.info.info['FEN'] 需要更改
-        chessInstance.moves.firstColor =
-chessInstance.moves.firstColor
-=== base.BLACK ? base.RED : base.BLACK; seatPieces =
-this.getLivePieces().map( p => [this.getSeat(piece),
-chessInstance.pieces.getOthSidePiece(piece)]); } else { let
-rotateSeat = (s)
-=> Math.abs(s - 89); let symmetrySeat = (s) => (Math.floor(s /
-9) + 1) * 9 - s % 9 - 1; let transfun = changeType === 'rotate' ?
-rotateSeat : symmetrySeat;
-        __changeSeat(transfun); // 转换move的seat值
-        seatPieces = this.getLivePieces().map(p =>
-[transfun(this.getSeat(piece)), piece]);
-    }
-    this.setSeatPieces(seatPieces);
-    if (changeType != 'rotate')
-        this.moves.setMoveInfo(this);
-    if (currentMove !== this.rootMove) {
-        this.moves.moveTo(currentMove);
-    }
+void Board::setSeatPieces(vector<pair<int, Piece*>> seatPieces)
+{
+    for (auto& stPie : seatPieces)
+        __setPiece(stPie.second, stPie.first);
+    bottomColor = getRow(pieces.getKingPie(PieceColor::red)->seat()) < 3 ? PieceColor::red : PieceColor::black;
 }
-
-}
-            */
 
 const wstring Board::toString()
 {
