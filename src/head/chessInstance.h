@@ -2,8 +2,8 @@
 #define CHESSINSTANCE_H
 // 中国象棋棋盘布局类型 by-cjp
 
-#include "board.h"
 #include "../json/json.h"
+#include "board.h"
 #include "move.h"
 
 #include <string>
@@ -20,11 +20,11 @@ public:
     bool isLast() { return currentMove->next() == nullptr; }
 
     // 基本走法
-    vector<shared_ptr<Move>> getPrevMoves(shared_ptr<Move> move);
     void forward();
     void backward();
     void forwardOther();
     // 复合走法
+    vector<shared_ptr<Move>> getPrevMoves(shared_ptr<Move> move);
     void backwardTo(shared_ptr<Move> move);
     void to(shared_ptr<Move> move);
     void toFirst();
@@ -34,8 +34,6 @@ public:
     void cutOther();
 
     void write(string filename, RecFormat fmt = RecFormat::ZH);
-    static RecFormat getRecFormat(string ext);
-    static string  getExtName(RecFormat fmt);
     static void transDir(string dirfrom, RecFormat fmt = RecFormat::XQF);
     static void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 
@@ -59,12 +57,14 @@ private:
     void fromICCSZH(wstring moveStr, RecFormat fmt);
     void fromCC(wstring fullMoveStr);
     void fromBIN(istream& is);
-    void fromJson(Json::Value& root);
+    void fromJSON(Json::Value& root);
     void __initSet(RecFormat fmt);
-    const wstring getICCS(int fseat, int tseat);
     const pair<int, int> getSeat__ICCS(wstring ICCS);
-    const wstring getZh(int fseat, int tseat);// const; //(fseat, tseat)->中文纵线着法, 着法未走状态
-    const pair<int, int> getSeat__Zh(wstring Zh);// const; //中文纵线着法->(fseat, tseat), 着法未走状态
+    const wstring getICCS(int fseat, int tseat);
+    // 中文纵线着法->(fseat, tseat), 着法未走状态
+    const pair<int, int> getSeat__Zh(wstring Zh);
+    // (fseat, tseat)->中文纵线着法, 着法未走状态
+    const wstring getZh(int fseat, int tseat);
 
     wstring toString(RecFormat fmt = RecFormat::ZH);
     wstring toString_ICCSZH(RecFormat fmt = RecFormat::ZH);

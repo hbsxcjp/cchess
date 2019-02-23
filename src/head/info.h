@@ -1,13 +1,15 @@
 #ifndef INFO_H
 #define INFO_H
 
-#include "board_base.h"
+//#include "board_base.h"
 #include "../json/json.h"
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
 using namespace std;
+
+enum class RecFormat;
 
 class Info {
 
@@ -23,7 +25,7 @@ public:
     void setFEN(wstring& pieceChars);
     wstring getPieChars();
     
-    wstring toString(RecFormat fmt = RecFormat::ZH);
+    wstring toString(RecFormat fmt);
     void toBin(ostream& os);
     void toJson(Json::Value& root);
 

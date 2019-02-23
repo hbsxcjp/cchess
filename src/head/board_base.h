@@ -101,7 +101,7 @@ inline int getIndex(wchar_t ch)
     return ChNum_Indexs[ch];
 }
 /*
-inline int getNum(wchar_t ch)
+int getNum(wchar_t ch)
 {
     static map<wchar_t, int>  ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
         { L'四', 3 }, { L'五', 4 }, { L'前', 0 }, { L'中', 1 }, { L'后', 1 },
@@ -141,16 +141,18 @@ vector<int> getPawnMoveSeats(bool isBottomSide, int seat);
 vector<int> sortPawnSeats(bool isBottomSide, vector<int> pawnSeats);
 
 inline int __subbyte(int a, int b) { return (256 + a - b) % 256; }
-inline string trim(string& str);
-inline wstring wtrim(wstring& str);
-wstring print_vector_int(vector<int> vi);
-std::string ws2s(const std::wstring& ws);
+string trim(string& str);
+wstring wtrim(wstring& str);
 std::wstring s2ws(const std::string& s);
+std::string ws2s(const std::wstring& ws);
+
+string getExtName(RecFormat fmt);
+RecFormat getRecFormat(string ext);
+string getExt(string filename);
 wstring readTxt(string fileName);
 void writeTxt(string fileName, wstring ws);
 void getFiles(string path, vector<string>& files);
 int copyFile(const char* SourceFile, const char* NewFile);
-string getExt(string filename);
 
 // 测试函数
 wstring test();

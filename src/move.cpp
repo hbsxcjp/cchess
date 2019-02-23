@@ -1,4 +1,5 @@
 //#include "piece.h"
+#include "board_base.h"
 #include "move.h"
 //#include "board.h"
 //#include "info.h"
@@ -33,12 +34,6 @@ void Move::setOther(shared_ptr<Move> other)
     }
 }
 
-wstring Move::toJSON()
-{
-    wstring res{};
-    return res;
-} // JSON
-
 wstring Move::toString()
 {
     wstringstream wss{};
@@ -47,6 +42,13 @@ wstring Move::toString()
         << L",r:" << remark << L">";
     return wss.str();
 }
+
+wstring Move::toJSON()
+{
+    wstring res{};
+    return res;
+} // JSON
+
 /*
 // Moves
 Moves::Moves()

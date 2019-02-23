@@ -323,16 +323,7 @@ vector<int> Board_base::sortPawnSeats(bool isBottomSide, vector<int> seats)
     return res;
 }
 
-wstring Board_base::print_vector_int(vector<int> vi)
-{
-    wstringstream wss{};
-    for (auto i : vi)
-        wss << setw(3) << i << L' ';
-    wss << L'\n';
-    return wss.str();
-}
-
-inline string Board_base::trim(string& str)
+string Board_base::trim(string& str)
 {
     string::iterator pl = find_if(str.begin(), str.end(), not1(ptr_fun<int, int>(isspace)));
     str.erase(str.begin(), pl);
@@ -341,7 +332,7 @@ inline string Board_base::trim(string& str)
     return str;
 }
 
-inline wstring Board_base::wtrim(wstring& str)
+wstring Board_base::wtrim(wstring& str)
 {
     /*
     wstring::iterator pl = find_if(str.begin(), str.end(), not1(ptr_fun<int, int>(isspace)));
@@ -365,35 +356,6 @@ inline wstring Board_base::wtrim(wstring& str)
     return str.substr(first, last - first);
    // */
 }
-
-/*
-std::string Board_base::ws2s(const std::wstring& ws)
-{
-    //std::string curLocale = setlocale(LC_ALL, NULL); // curLocale = "C";
-    //setlocale(LC_ALL, "");
-    const wchar_t* _Source = ws.c_str();
-    size_t _Dsize = 2 * ws.size() + 1;
-    char* _Dest = new char[_Dsize]();
-    wcstombs(_Dest, _Source, _Dsize);
-    std::string result = _Dest;
-    delete[] _Dest;
-    //setlocale(LC_ALL, curLocale.c_str());
-    return result;
-}
-
-std::wstring Board_base::s2ws(const std::string& src)
-{
-    //setlocale(LC_ALL, "chs");
-    const char* _Source = src.c_str();
-    size_t _Dsize = src.size() + 1;
-    wchar_t* _Dest = new wchar_t[_Dsize];
-    mbstowcs(_Dest, _Source, _Dsize);
-    std::wstring result = _Dest;
-    delete[] _Dest;
-    //setlocale(LC_ALL, "C");
-    return result; //wtrim(result); //
-}*/
-
 
 //std::string中的UTF-8字节流转换成UTF-16并保存在std::wstring中
 std::wstring Board_base::s2ws(const std::string& s)
@@ -419,6 +381,51 @@ std::string Board_base::ws2s(const std::wstring& ws)
     return ret;
 }
 
+RecFormat Board_base::getRecFormat(string ext)
+{
+    if (ext == ".xqf")
+        return RecFormat::XQF;
+    else if (ext == ".bin")
+        return RecFormat::BIN;
+    else if (ext == ".json")
+        return RecFormat::JSON;
+    else if (ext == ".pgn1")
+        return RecFormat::ICCS;
+    else if (ext == ".pgn2")
+        return RecFormat::ZH;
+    else if (ext == ".pgn3")
+        return RecFormat::CC;
+    else
+        return RecFormat::CC;
+}
+
+string Board_base::getExtName(RecFormat fmt)
+{
+    switch (fmt) {
+    case RecFormat::XQF:
+        return ".xqf";
+    case RecFormat::BIN:
+        return ".bin";
+    case RecFormat::JSON:
+        return ".json";
+    case RecFormat::ICCS:
+        return ".pgn1";
+    case RecFormat::ZH:
+        return ".pgn2";
+    case RecFormat::CC:
+        return ".pgn3";
+    default:
+        return ".pgn3";
+    }
+}
+
+string Board_base::getExt(string filename)
+{
+    string ext{ filename.substr(filename.rfind('.')) };
+    for (auto& c : ext)
+        c = tolower(c);
+    return ext;
+}
 
 wstring Board_base::readTxt(string fileName)
 {
@@ -496,14 +503,6 @@ int Board_base::copyFile(const char* SourceFile, const char* NewFile)
     //catch (std::exception e)
     //{
     //}
-}
-
-string Board_base::getExt(string filename)
-{
-    string ext{ filename.substr(filename.rfind('.')) };
-    for (auto& c : ext)
-        c = tolower(c);
-    return ext;
 }
 
 // 测试

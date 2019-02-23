@@ -1,3 +1,4 @@
+#include "board_base.h"
 #include "info.h"
 
 #include <functional>
@@ -242,9 +243,16 @@ wstring Info::getPieChars()
     return chars;
 }
 
+wstring Info::toString(RecFormat fmt)
+{
+    wstringstream wss{};
+    for (const auto m : info)
+        wss << L'[' << m.first << L" \"" << m.second << L"\"]\n";
+    return wss.str();
+}
+
 void Info::toBin(ostream& os)
 {
-    setRecFormat(RecFormat::BIN);
     os.put(char(info.size()));
     for (auto& kv : info) {
         string keys{ ws2s(kv.first) }, values{ ws2s(kv.second) };
@@ -256,17 +264,7 @@ void Info::toBin(ostream& os)
 void Info::toJson(Json::Value& root)
 {
     Json::Value infoItem;
-    setRecFormat(RecFormat::JSON);
     for (auto& k_v : info)
         infoItem[ws2s(k_v.first)] = ws2s(k_v.second);
     root["info"] = infoItem;
-}
-
-wstring Info::toString(RecFormat fmt)
-{
-    wstringstream wss{};
-    setRecFormat(fmt);
-    for (const auto m : info)
-        wss << L'[' << m.first << L" \"" << m.second << L"\"]\n";
-    return wss.str();
 }

@@ -1,7 +1,7 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-#include "board_base.h"
+//#include "board_base.h"
 //#include "json.h"
 #include "piece.h"
 
@@ -30,6 +30,7 @@ public:
         toseat = tseat;
     }
     void setSeat(pair<int, int> seats) { setSeat(seats.first, seats.second); }
+
     Piece* eatPiece() { return eatPie_ptr; }
     shared_ptr<Move> prev() { return prev_ptr; }
     shared_ptr<Move> next() { return next_ptr; }
@@ -39,13 +40,12 @@ public:
     void setNext(shared_ptr<Move> next);
     void setOther(shared_ptr<Move> other);
 
-    wstring toJSON(); // JSON
     wstring toString();
+    wstring toJSON(); // JSON
 
     wstring ICCS{}; // 着法数字字母描述
     wstring zh{}; // 着法中文描述
     wstring remark{}; // 注释
-    
     int stepNo{ 0 }; // 着法深度
     int othCol{ 0 }; // 变着广度
     int maxCol{ 0 }; // 图中列位置（需结合board确定）
