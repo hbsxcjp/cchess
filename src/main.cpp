@@ -1,10 +1,10 @@
 #include "chessInstance.h"
 
-#include <chrono>
+#include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <locale>
+#include <chrono>
 
 using namespace std;
 using namespace std::chrono;

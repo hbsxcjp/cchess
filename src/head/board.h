@@ -1,16 +1,19 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "info.h"
-#include "piece.h"
-#include <memory>
 #include <string>
+#include <vector>
+#include <memory>
 using namespace std;
+
+enum class PieceColor;
+class Piece;
+class Pieces;
 
 // 棋盘端部
 enum class BoardSide {
-    bottom,
-    top
+    BOTTOM,
+    TOP
 };
 
 class Move;
@@ -18,39 +21,38 @@ class Move;
 class Board {
 public:
     Board();
-    Board(Info& info);
+    Board(const wstring& pieceChars);
 
-    Piece* getPiece(int seat) { return pieSeats[seat]; }
-    Piece* getOthPie(Piece* piecep) { return pieces.getOthPie(piecep); }
-    vector<Piece*> getLivePies() { return pieces.getLivePies(); }
-    bool isBlank(int seat) { return getPiece(seat)->isBlank(); }
-    PieceColor getColor(int seat) { return getPiece(seat)->color(); }
-    bool isBottomSide(PieceColor color) { return bottomColor == color; }
-    BoardSide getSide(PieceColor color) { return isBottomSide(color) ? BoardSide::bottom : BoardSide::top; }
-    vector<int> getSideNameSeats(PieceColor color, wchar_t name);
-    vector<int> getSideNameColSeats(PieceColor color, wchar_t name, int col);
+    shared_ptr<Piece> getPiece(const int seat);
+    shared_ptr<Piece> getOthPie(const shared_ptr<Piece> piecep);
+    vector<shared_ptr<Piece>> getLivePies();
+    const bool isBlank(const int seat);
+    const PieceColor getColor(const int seat);
+    const bool isBottomSide(const PieceColor color) { return bottomColor == color; }
+    const BoardSide getSide(const PieceColor color) { return isBottomSide(color) ? BoardSide::BOTTOM : BoardSide::TOP; }
+    vector<int> getSideNameSeats(const PieceColor color, const wchar_t name);
+    vector<int> getSideNameColSeats(const PieceColor color, const wchar_t name, const int col);
 
     void go(Move& move);
     void back(Move& move);
-    Piece* move_go(int fseat, int tseat);
-    void move_back(int fseat, int tseat, Piece* eatPiece);
-    bool isKilled(PieceColor color); //判断是否将军
-    bool isDied(PieceColor color); //判断是否被将死
+    shared_ptr<Piece> move_go(const int fseat, const int tseat);
+    void move_back(const int fseat, const int tseat, shared_ptr<Piece> eatPiece);
+    const bool isKilled(const PieceColor color); //判断是否将军
+    const bool isDied(const PieceColor color); //判断是否被将死
 
-    void setFEN(Info& info);
-    void setFrom(Info& info);
-    void setSeatPieces(vector<pair<int, Piece*>> seatPieces);
+    const wstring getPieceChars();
+    void setSeatPieces(vector<pair<int, shared_ptr<Piece>>> seatPieces);
     const wstring toString();
 
-    wstring test();
+    const wstring test();
 
     PieceColor bottomColor; // 底端棋子颜色
 private:
-    vector<int> __getSeats(vector<Piece*> pies);
-    void __setPiece(Piece* pie, int tseat);
+    vector<int> __getSeats(vector<shared_ptr<Piece>> pies);
+    void __setPiece(shared_ptr<Piece> pie, const int tseat);
 
-    Pieces pieces; // 一副棋子类
-    vector<Piece*> pieSeats; // 棋盘容器，顺序号即为位置seat
+    shared_ptr<Pieces> pPieces; // 一副棋子类
+    vector<shared_ptr<Piece>> pieSeats; // 棋盘容器，顺序号即为位置seat
 }; // Board class end.
 
 #endif

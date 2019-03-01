@@ -1,62 +1,74 @@
 #include "board.h"
-#include "info.h"
-#include "move.h"
 #include "piece.h"
+#include "move.h"
 
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <sstream>
 
 using namespace std;
 using namespace Board_base;
 
-Board::Board() // 定义时不要指定默认实参
-    : bottomColor{ PieceColor::red }
-    , pieces{ Pieces() }
+Board::Board()
+    : bottomColor{ PieceColor::RED }
+    , pPieces{ shared_ptr<Pieces>() }
+    , pieSeats(RowNum * ColNum, Pieces::nullPiePtr)
 {
-    pieSeats.resize(RowNum * ColNum);
 }
 
-Board::Board(Info& info) // 定义时不要指定默认实参
+Board::Board(const wstring& pieceChars)
     : Board()
 {
-    setFrom(info);
+    pPieces->clear();
+    std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
+    for (int s = 0; s != 90; ++s)
+        __setPiece(pPieces->getFreePie(pieceChars[s]), s);
+    bottomColor = pPieces->getKingPie(PieceColor::RED)->seat() < 45
+        ? PieceColor::RED
+        : PieceColor::BLACK;
 }
 
-vector<int> Board::getSideNameSeats(PieceColor color, wchar_t name)
+shared_ptr<Piece> Board::getPiece(const int seat) { return pieSeats[seat]; }
+shared_ptr<Piece> Board::getOthPie(shared_ptr<Piece> piecep) { return pPieces->getOthPie(piecep); }
+vector<shared_ptr<Piece>> Board::getLivePies() { return pPieces->getLivePies(); }
+const bool Board::isBlank(const int seat) { return getPiece(seat)->isBlank(); }
+const PieceColor Board::getColor(const int seat) { return getPiece(seat)->color(); }
+
+vector<int> Board::getSideNameSeats(const PieceColor color, const wchar_t name)
 {
-    return __getSeats(pieces.getNamePies(color, name));
+    return __getSeats(pPieces->getNamePies(color, name));
 }
 
-vector<int> Board::getSideNameColSeats(PieceColor color, wchar_t name, int col)
+vector<int> Board::getSideNameColSeats(const PieceColor color, const wchar_t name, const int col)
 {
-    return __getSeats(pieces.getNameColPies(color, name, col));
+    return __getSeats(pPieces->getNameColPies(color, name, col));
 }
 
-vector<int> Board::__getSeats(vector<Piece*> pies)
+vector<int> Board::__getSeats(vector<shared_ptr<Piece>> pies)
 {
     vector<int> res{};
-    for_each(pies.begin(), pies.end(), [&](Piece*& p) { res.push_back(p->seat()); });
+    for_each(pies.begin(), pies.end(), [&](shared_ptr<Piece>& ppie) { res.push_back(ppie->seat()); });
     std::sort(res.begin(), res.end());
     return res;
 }
 
 //判断是否将军
-bool Board::isKilled(PieceColor color)
+const bool Board::isKilled(const PieceColor color)
 {
-    PieceColor othColor = color == PieceColor::black ? PieceColor::red : PieceColor::black;
-    int kingSeat{ pieces.getKingPie(color)->seat() },
-        othKingSeat{ pieces.getKingPie(othColor)->seat() };
+    PieceColor othColor = color == PieceColor::BLACK ? PieceColor::RED : PieceColor::BLACK;
+    int kingSeat{ pPieces->getKingPie(color)->seat() },
+        othKingSeat{ pPieces->getKingPie(othColor)->seat() };
     if (isSameCol(kingSeat, othKingSeat)) {
         vector<int> ss{ getSameColSeats(kingSeat, othKingSeat) };
         if (std::all_of(ss.begin(), ss.end(),
-                [this](int s) { return isBlank(s); }))
+                [this](const int s) { return isBlank(s); }))
             return true;
     }
-    for (auto pie : pieces.getLiveStrongePies(othColor)) {
-        auto ss = pie->getFilterMoveSeats(*this);
+    for (auto& ppie : pPieces->getLiveStrongePies(othColor)) {
+        auto ss = ppie->getFilterMoveSeats(*this);
         if (std::find(ss.begin(), ss.end(), kingSeat) != ss.end())
             return true;
     }
@@ -64,10 +76,10 @@ bool Board::isKilled(PieceColor color)
 }
 
 //判断是否被将死
-bool Board::isDied(PieceColor color)
+const bool Board::isDied(const PieceColor color)
 {
-    for (auto pie : pieces.getLivePies(color))
-        if (pie->getCanMoveSeats(*this).size() > 0)
+    for (auto& ppie : pPieces->getLivePies(color))
+        if (ppie->getCanMoveSeats(*this).size() > 0)
             return false;
     return true;
 }
@@ -76,9 +88,9 @@ void Board::go(Move& move) { move.setEatPiece(move_go(move.fseat(), move.tseat()
 
 void Board::back(Move& move) { move_back(move.fseat(), move.tseat(), move.eatPiece()); }
 
-Piece* Board::move_go(int fseat, int tseat)
+shared_ptr<Piece> Board::move_go(const int fseat, const int tseat)
 {
-    Piece* eatPiece = pieSeats[tseat];
+    shared_ptr<Piece> eatPiece = pieSeats[tseat];
     eatPiece->setSeat(nullSeat);
     __setPiece(getPiece(fseat), tseat);
     pieSeats[fseat] = Pieces::nullPiePtr;
@@ -86,19 +98,19 @@ Piece* Board::move_go(int fseat, int tseat)
     return eatPiece;
 }
 
-void Board::move_back(int fseat, int tseat, Piece* eatPiece)
+void Board::move_back(const int fseat, const int tseat, shared_ptr<Piece> eatPiece)
 {
     __setPiece(getPiece(tseat), fseat);
     __setPiece(eatPiece, tseat);
 }
 
-void Board::__setPiece(Piece* pie, int tseat)
+void Board::__setPiece(shared_ptr<Piece> ppie, const int tseat)
 {
-    pie->setSeat(tseat);
-    pieSeats[tseat] = pie;
+    ppie->setSeat(tseat);
+    pieSeats[tseat] = ppie;
 }
 
-void Board::setFEN(Info& info)
+const wstring Board::getPieceChars()
 {
     wstring pieceChars{};
     for (int row = MaxRow; row >= MinRow; --row) {
@@ -107,65 +119,71 @@ void Board::setFEN(Info& info)
         if (row != MinRow)
             pieceChars += L'/';
     }
-    info.setFEN(pieceChars);
+    return pieceChars;
 }
 
-void Board::setFrom(Info& info)
-{
-    wstring chars{ info.getPieChars() };
-    pieces.clear();
-    std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
-    for (int s = 0; s != 90; ++s)
-        __setPiece(pieces.getFreePie(chars[s]), s);
-    bottomColor = pieces.getKingPie(PieceColor::red)->seat() < 45
-        ? PieceColor::red
-        : PieceColor::black;
-}
-
-void Board::setSeatPieces(vector<pair<int, Piece*>> seatPieces)
+void Board::setSeatPieces(vector<pair<int, shared_ptr<Piece>>> seatPieces)
 {
     for (auto& stPie : seatPieces)
         __setPiece(stPie.second, stPie.first);
-    bottomColor = getRow(pieces.getKingPie(PieceColor::red)->seat()) < 3 ? PieceColor::red : PieceColor::black;
+    bottomColor = getRow(pPieces->getKingPie(PieceColor::RED)->seat()) < 3 ? PieceColor::RED : PieceColor::BLACK;
 }
 
 const wstring Board::toString()
 {
-    auto getName = [](Piece& p) {
+    // 文本空棋盘
+    wstring textBlankBoard{ L"┏━┯━┯━┯━┯━┯━┯━┯━┓\n"
+                            "┃　│　│　│╲│╱│　│　│　┃\n"
+                            "┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
+                            "┃　│　│　│╱│╲│　│　│　┃\n"
+                            "┠─╬─┼─┼─┼─┼─┼─╬─┨\n"
+                            "┃　│　│　│　│　│　│　│　┃\n"
+                            "┠─┼─╬─┼─╬─┼─╬─┼─┨\n"
+                            "┃　│　│　│　│　│　│　│　┃\n"
+                            "┠─┴─┴─┴─┴─┴─┴─┴─┨\n"
+                            "┃　　　　　　　　　　　　　　　┃\n"
+                            "┠─┬─┬─┬─┬─┬─┬─┬─┨\n"
+                            "┃　│　│　│　│　│　│　│　┃\n"
+                            "┠─┼─╬─┼─╬─┼─╬─┼─┨\n"
+                            "┃　│　│　│　│　│　│　│　┃\n"
+                            "┠─╬─┼─┼─┼─┼─┼─╬─┨\n"
+                            "┃　│　│　│╲│╱│　│　│　┃\n"
+                            "┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
+                            "┃　│　│　│╱│╲│　│　│　┃\n"
+                            "┗━┷━┷━┷━┷━┷━┷━┷━┛\n" }; // 边框粗线
+    auto getName = [](Piece& pie) {
         map<wchar_t, wchar_t> rcpName{
             { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' }
         };
-        wchar_t name = p.chName();
-        return (p.color() == PieceColor::black && rcpName.find(name) != rcpName.end())
+        wchar_t name = pie.chName();
+        return (pie.color() == PieceColor::BLACK && rcpName.find(name) != rcpName.end())
             ? rcpName[name]
             : name;
     };
-    wstring res{ Board_base::TextBlankBoard };
-    for (auto p : pieces.getLivePies())
-        res[(9 - getRow(p->seat())) * 2 * 18 + getCol(p->seat()) * 2] = getName(*p);
-    return res;
+    for (auto& ppie : pPieces->getLivePies())
+        textBlankBoard[(9 - getRow(ppie->seat())) * 2 * 18 + getCol(ppie->seat()) * 2] = getName(*ppie);
+    return textBlankBoard;
 }
 
-wstring Board::test()
+const wstring Board::test()
 {
     wstringstream wss{};
     wss << L"test "
            L"board.h\n----------------------------------------------------"
            L"-\n";
-    //wss << L"setFEN():" << setFEN() << L'\n';
     wss << L"Board::toString():\n"
         << toString();
     wss << L"Piece::getCanMoveSeats():\n";
 
-    for (auto p : pieces.getLivePies()) {
-        wss << p->chName() << L' ' << p->wchar() << L'_' << setw(2)
-            << p->seat() << L'：';
-        for (auto s : p->getCanMoveSeats(*this))
+    for (auto& ppie : pPieces->getLivePies()) {
+        wss << ppie->chName() << L' ' << ppie->wchar() << L'_' << setw(2)
+            << ppie->seat() << L'：';
+        for (auto s : ppie->getCanMoveSeats(*this))
             wss << setw(2) << s << L' ';
         wss << L'\n';
     }
-    wss << pieces.toString();
-    //wss << pieces.test();
+    wss << pPieces->toString();
+    //wss << pPieces->test();
 
     wss << L"Board::changeSide():" << L'\n';
 

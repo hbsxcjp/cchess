@@ -5,8 +5,7 @@
 #include <memory>
 
 using namespace std;
-//using namespace Board_base;
-enum class PieceColor;
+
 
 // 着法节点类
 class Move {
@@ -21,11 +20,11 @@ public:
     }
     void setSeat(pair<int, int> seats) { setSeat(seats.first, seats.second); }
 
-    Piece* eatPiece() { return eatPie_ptr; }
+    shared_ptr<Piece> eatPiece() { return eatPie_ptr; }
     shared_ptr<Move> prev() { return prev_ptr; }
     shared_ptr<Move> next() { return next_ptr; }
     shared_ptr<Move> other() { return other_ptr; }
-    void setEatPiece(Piece* pie) { eatPie_ptr = pie; }
+    void setEatPiece(shared_ptr<Piece> pie) { eatPie_ptr = pie; }
     void setPrev(shared_ptr<Move> prev) { prev_ptr = prev; }
     void setNext(shared_ptr<Move> next);
     void setOther(shared_ptr<Move> other);
@@ -42,7 +41,7 @@ public:
 private:
     int fromseat{ nullSeat };
     int toseat{ nullSeat };
-    Piece* eatPie_ptr{ Pieces::nullPiePtr };
+    shared_ptr<Piece> eatPie_ptr{ Pieces::nullPiePtr };
     shared_ptr<Move> prev_ptr{ nullptr };
     shared_ptr<Move> next_ptr{ nullptr };
     shared_ptr<Move> other_ptr{ nullptr };

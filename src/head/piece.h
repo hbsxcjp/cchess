@@ -1,15 +1,22 @@
 #ifndef PIECE_H
 #define PIECE_H
 
-class Board;
 #include "board_base.h"
+#include <string>
+#include <vector>
+#include <memory>
+using std::wstring;
+using std::vector;
 using namespace Board_base;
 
-#include <string>
-using std::wstring;
+class Board;
 
-#include <vector>
-using std::vector;
+
+enum class PieceColor {
+    BLANK,
+    RED,
+    BLACK
+};
 
 // 棋子类
 class Piece {
@@ -17,8 +24,8 @@ class Piece {
 public:
     Piece(wchar_t _char)
         : clr{ isalpha(_char)
-                ? (islower(_char) ? PieceColor::black : PieceColor::red)
-                : PieceColor::blank }
+                ? (islower(_char) ? PieceColor::BLACK : PieceColor::RED)
+                : PieceColor::BLANK }
         , ch{ _char }
         , st{ nullSeat }
         , id{ curIndex++ }
@@ -66,7 +73,7 @@ private:
 class King : public Piece {
 public:
     using Piece::Piece;
-    wchar_t const chName() { return clr == PieceColor::red ? L'帅' : L'将'; }
+    wchar_t const chName() { return clr == PieceColor::RED ? L'帅' : L'将'; }
     bool const isKing() { return true; }
     vector<int> getSeats(PieceColor bottomColor)
     {
@@ -78,7 +85,7 @@ public:
 class Advisor : public Piece {
 public:
     using Piece::Piece;
-    wchar_t const chName() { return clr == PieceColor::red ? L'仕' : L'士'; }
+    wchar_t const chName() { return clr == PieceColor::RED ? L'仕' : L'士'; }
     vector<int> getSeats(PieceColor bottomColor)
     {
         return color() == bottomColor ? bottomAdvisorSeats : topAdvisorSeats;
@@ -92,7 +99,7 @@ public:
 class Bishop : public Piece {
 public:
     using Piece::Piece;
-    wchar_t const chName() { return clr == PieceColor::red ? L'相' : L'象'; }
+    wchar_t const chName() { return clr == PieceColor::RED ? L'相' : L'象'; }
     vector<int> getSeats(PieceColor bottomColor)
     {
         return color() == bottomColor ? bottomBishopSeats : topBishopSeats;
@@ -133,7 +140,7 @@ public:
 class Pawn : public Piece {
 public:
     using Piece::Piece;
-    wchar_t const chName() { return clr == PieceColor::red ? L'兵' : L'卒'; }
+    wchar_t const chName() { return clr == PieceColor::RED ? L'兵' : L'卒'; }
     bool const isStronge() { return true; }
     vector<int> getSeats(PieceColor bottomColor)
     {
@@ -154,18 +161,18 @@ class Pieces {
 public:
     Pieces();
 
-    Piece* getKingPie(PieceColor color);
-    Piece* getOthPie(Piece* pie);
-    Piece* getFreePie(wchar_t ch);
+    shared_ptr<Piece> getKingPie(PieceColor color);
+    shared_ptr<Piece> getOthPie(shared_ptr<Piece> pie);
+    shared_ptr<Piece> getFreePie(wchar_t ch);
     //成员函数，类内声明，类外定义
-    vector<Piece*> getPies() { return pies; }
-    vector<Piece*> getLivePies();
-    vector<Piece*> getLivePies(PieceColor color);
-    vector<Piece*> getLiveStrongePies(PieceColor color);
-    vector<Piece*> getNamePies(PieceColor color, wchar_t name);
-    vector<Piece*> getNameColPies(PieceColor color, wchar_t name, int col);
-    vector<Piece*> getEatedPies();
-    vector<Piece*> getEatedPies(PieceColor color);
+    vector<shared_ptr<Piece>> getPies() { return piePtrs; }
+    vector<shared_ptr<Piece>> getLivePies();
+    vector<shared_ptr<Piece>> getLivePies(PieceColor color);
+    vector<shared_ptr<Piece>> getLiveStrongePies(PieceColor color);
+    vector<shared_ptr<Piece>> getNamePies(PieceColor color, wchar_t name);
+    vector<shared_ptr<Piece>> getNameColPies(PieceColor color, wchar_t name, int col);
+    vector<shared_ptr<Piece>> getEatedPies();
+    vector<shared_ptr<Piece>> getEatedPies(PieceColor color);
 
     void clear();
     wstring toString();
@@ -178,10 +185,9 @@ public:
     static const wstring strongeNames;
     static const wstring lineNames;
     static const wstring allNames;
-    static Piece* nullPiePtr;
+    static shared_ptr<Piece> nullPiePtr;
 
 private:
-    static NullPie nullPiece; // 空棋子
     vector<King> kings;
     vector<Advisor> advisors;
     vector<Bishop> bishops;
@@ -189,7 +195,7 @@ private:
     vector<Rook> rooks;
     vector<Cannon> cannons;
     vector<Pawn> pawns;
-    vector<Piece*> pies;
+    vector<shared_ptr<Piece>> piePtrs;
 };
 
 #endif

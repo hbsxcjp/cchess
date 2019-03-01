@@ -2,28 +2,11 @@
 #define BOARD_BASE_H
 
 #include <algorithm>
-#include <map>
 #include <string>
 #include <utility>
 #include <vector>
-
 using namespace std;
 
-// 棋子站队
-enum class PieceColor {
-    blank,
-    red,
-    black
-};
-
-enum class RecFormat {
-    XQF,
-    ICCS,
-    ZH,
-    CC,
-    BIN,
-    JSON
-};
 
 namespace Board_base {
 // 空位置
@@ -62,92 +45,30 @@ const vector<int> topPawnSeats{
     38, 39, 40, 41, 42, 43, 44, 45, 47, 49, 51, 53, 54, 56, 58, 60, 62
 };
 
-const wstring FEN{ L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR" };
-const wstring FENPro{ FEN + L" r - - 0 1" };
-const wstring ColChars{ L"abcdefghi" };
-// 文本空棋盘
-const wstring TextBlankBoard{ L"┏━┯━┯━┯━┯━┯━┯━┯━┓\n"
-                              "┃　│　│　│╲│╱│　│　│　┃\n"
-                              "┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
-                              "┃　│　│　│╱│╲│　│　│　┃\n"
-                              "┠─╬─┼─┼─┼─┼─┼─╬─┨\n"
-                              "┃　│　│　│　│　│　│　│　┃\n"
-                              "┠─┼─╬─┼─╬─┼─╬─┼─┨\n"
-                              "┃　│　│　│　│　│　│　│　┃\n"
-                              "┠─┴─┴─┴─┴─┴─┴─┴─┨\n"
-                              "┃　　　　　　　　　　　　　　　┃\n"
-                              "┠─┬─┬─┬─┬─┬─┬─┬─┨\n"
-                              "┃　│　│　│　│　│　│　│　┃\n"
-                              "┠─┼─╬─┼─╬─┼─╬─┼─┨\n"
-                              "┃　│　│　│　│　│　│　│　┃\n"
-                              "┠─╬─┼─┼─┼─┼─┼─╬─┨\n"
-                              "┃　│　│　│╲│╱│　│　│　┃\n"
-                              "┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
-                              "┃　│　│　│╱│╲│　│　│　┃\n"
-                              "┗━┷━┷━┷━┷━┷━┷━┷━┛\n" }; // 边框粗线
-
-// 字符获取函数
-inline wstring getNumChars(PieceColor color)
-{
-    return color == PieceColor::red ? L"一二三四五六七八九" : L"１２３４５６７８９";
-}
-inline wchar_t getNumChar(PieceColor color, int col) { return getNumChars(color)[col]; }
-
-inline int getIndex(wchar_t ch)
-{
-    static map<wchar_t, int> ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
-        { L'四', 3 }, { L'五', 4 }, { L'前', 0 }, { L'中', 1 }, { L'后', 1 },
-        { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
-    return ChNum_Indexs[ch];
-}
-
 // 函数
-inline int getRow(int seat) { return seat / 9; }
-inline int getCol(int seat) { return seat % 9; }
-inline int getSeat(int row, int col) { return row * 9 + col; }
-inline int rotateSeat(int seat) { return 89 - seat; }
-inline int symmetrySeat(int seat) { return (getRow(seat) + 1) * 9 - seat % 9 - 1; }
-inline bool isSameCol(int seat, int othseat) { return getCol(seat) == getCol(othseat); }
-inline bool find_char(wstring ws, wchar_t ch) { return ws.find(ch) != wstring::npos; }
-inline int find_index(vector<int> seats, int seat)
-{
-    int size = seats.size();
-    for (int i = 0; i != size; ++i)
-        if (seat == seats[i])
-            return i;
-    return 0;
-}
-vector<int> getSameColSeats(int seat, int othseat);
+inline int getRow(const int seat) { return seat / 9; }
+inline int getCol(const int seat) { return seat % 9; }
+inline int getSeat(const int row, const int col) { return row * 9 + col; }
+inline int rotateSeat(const int seat) { return 89 - seat; }
+inline int symmetrySeat(const int seat) { return (getRow(seat) + 1) * 9 - seat % 9 - 1; }
+inline bool isSameCol(const int seat, const int othseat) { return getCol(seat) == getCol(othseat); }
+vector<int> getSameColSeats(const int seat, const int othseat);
 
 // 位置行走函数
-vector<int> getKingMoveSeats(int seat);
-vector<int> getAdvisorMoveSeats(int seat);
+vector<int> getKingMoveSeats(const int seat);
+vector<int> getAdvisorMoveSeats(const int seat);
 // 获取移动、象心行列值
-vector<pair<int, int>> getBishopMove_CenSeats(int seat);
+vector<pair<int, int>> getBishopMove_CenSeats(const int seat);
 // 获取移动、马腿行列值
-vector<pair<int, int>> getKnightMove_LegSeats(int seat);
+vector<pair<int, int>> getKnightMove_LegSeats(const int seat);
 // 车炮可走的四个方向位置
-vector<vector<int>> getRookCannonMoveSeat_Lines(int seat);
-vector<int> getPawnMoveSeats(bool isBottomSide, int seat);
+vector<vector<int>> getRookCannonMoveSeat_Lines(const int seat);
+vector<int> getPawnMoveSeats(const bool isBottomSide, const int seat);
 // '多兵排序'
-vector<int> sortPawnSeats(bool isBottomSide, vector<int> pawnSeats);
-
-inline int __subbyte(int a, int b) { return (256 + a - b) % 256; }
-string trim(string& str);
-wstring wtrim(wstring& str);
-std::wstring s2ws(const std::string& s);
-std::string ws2s(const std::wstring& ws);
-
-string getExtName(RecFormat fmt);
-RecFormat getRecFormat(string ext);
-string getExt(string filename);
-wstring readTxt(string fileName);
-void writeTxt(string fileName, wstring ws);
-void getFiles(string path, vector<string>& files);
-int copyFile(const char* SourceFile, const char* NewFile);
+vector<int> sortPawnSeats(const bool isBottomSide, vector<int> pawnSeats);
 
 // 测试函数
-wstring test();
+const wstring test();
 
 } // namespace Board_base
 
