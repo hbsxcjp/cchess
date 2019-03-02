@@ -6,17 +6,15 @@
 #include <memory>
 using namespace std;
 
-enum class PieceColor;
 class Piece;
 class Pieces;
-
-// 棋盘端部
+class Move;
+enum class PieceColor;
 enum class BoardSide {
     BOTTOM,
     TOP
 };
 
-class Move;
 
 class Board {
 public:

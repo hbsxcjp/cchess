@@ -1,7 +1,6 @@
 #ifndef BOARD_BASE_H
 #define BOARD_BASE_H
 
-#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -46,26 +45,26 @@ const vector<int> topPawnSeats{
 };
 
 // 函数
-inline int getRow(const int seat) { return seat / 9; }
-inline int getCol(const int seat) { return seat % 9; }
-inline int getSeat(const int row, const int col) { return row * 9 + col; }
-inline int rotateSeat(const int seat) { return 89 - seat; }
-inline int symmetrySeat(const int seat) { return (getRow(seat) + 1) * 9 - seat % 9 - 1; }
-inline bool isSameCol(const int seat, const int othseat) { return getCol(seat) == getCol(othseat); }
-vector<int> getSameColSeats(const int seat, const int othseat);
+inline const int getRow(const int seat) { return seat / 9; }
+inline const int getCol(const int seat) { return seat % 9; }
+inline const int getSeat(const int row, const int col) { return row * 9 + col; }
+inline const int rotateSeat(const int seat) { return 89 - seat; }
+inline const int symmetrySeat(const int seat) { return (getRow(seat) + 1) * 9 - seat % 9 - 1; }
+inline const bool isSameCol(const int seat, const int othseat) { return getCol(seat) == getCol(othseat); }
+const vector<int> getSameColSeats(const int seat, const int othseat);
 
 // 位置行走函数
-vector<int> getKingMoveSeats(const int seat);
-vector<int> getAdvisorMoveSeats(const int seat);
+const vector<int> getKingMoveSeats(const int seat);
+const vector<int> getAdvisorMoveSeats(const int seat);
 // 获取移动、象心行列值
-vector<pair<int, int>> getBishopMove_CenSeats(const int seat);
+const vector<pair<int, int>> getBishopMove_CenSeats(const int seat);
 // 获取移动、马腿行列值
-vector<pair<int, int>> getKnightMove_LegSeats(const int seat);
+const vector<pair<int, int>> getKnightMove_LegSeats(const int seat);
 // 车炮可走的四个方向位置
-vector<vector<int>> getRookCannonMoveSeat_Lines(const int seat);
-vector<int> getPawnMoveSeats(const bool isBottomSide, const int seat);
+const vector<vector<int>> getRookCannonMoveSeat_Lines(const int seat);
+const vector<int> getPawnMoveSeats(const bool isBottomSide, const int seat);
 // '多兵排序'
-vector<int> sortPawnSeats(const bool isBottomSide, vector<int> pawnSeats);
+const vector<int> sortPawnSeats(const bool isBottomSide, vector<int> pawnSeats);
 
 // 测试函数
 const wstring test();

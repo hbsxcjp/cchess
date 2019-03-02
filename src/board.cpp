@@ -1,14 +1,13 @@
 #include "board.h"
-#include "piece.h"
+#include "board_base.h"
 #include "move.h"
-
+#include "piece.h"
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <sstream>
-
 using namespace std;
 using namespace Board_base;
 
@@ -22,19 +21,21 @@ Board::Board()
 Board::Board(const wstring& pieceChars)
     : Board()
 {
-    pPieces->clear();
-    std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
-    for (int s = 0; s != 90; ++s)
-        __setPiece(pPieces->getFreePie(pieceChars[s]), s);
-    bottomColor = pPieces->getKingPie(PieceColor::RED)->seat() < 45
-        ? PieceColor::RED
-        : PieceColor::BLACK;
+    //std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
+    for (auto seat : allSeats)
+        __setPiece(pPieces->getFreePie(pieceChars[seat]), seat);
+    if (pPieces->getKingPie(PieceColor::RED)->seat() > 45)
+        bottomColor = PieceColor::BLACK;
 }
 
 shared_ptr<Piece> Board::getPiece(const int seat) { return pieSeats[seat]; }
+
 shared_ptr<Piece> Board::getOthPie(shared_ptr<Piece> piecep) { return pPieces->getOthPie(piecep); }
+
 vector<shared_ptr<Piece>> Board::getLivePies() { return pPieces->getLivePies(); }
+
 const bool Board::isBlank(const int seat) { return getPiece(seat)->isBlank(); }
+
 const PieceColor Board::getColor(const int seat) { return getPiece(seat)->color(); }
 
 vector<int> Board::getSideNameSeats(const PieceColor color, const wchar_t name)
@@ -162,7 +163,7 @@ const wstring Board::toString()
     };
     for (auto& ppie : pPieces->getLivePies())
         textBlankBoard[(9 - getRow(ppie->seat())) * 2 * 18 + getCol(ppie->seat()) * 2] = getName(*ppie);
-    return textBlankBoard;
+    return textBlankBoard + pPieces->toString();
 }
 
 const wstring Board::test()

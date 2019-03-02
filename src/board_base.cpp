@@ -13,7 +13,6 @@
 #include <iomanip>
 #include <locale>
 #include <map>
-#include <regex>
 #include <string>
 #include <vector>
 #include <utility>
@@ -21,7 +20,7 @@
 using namespace std;
 using namespace std::chrono;
 
-vector<int> Board_base::getSameColSeats(const int seat, const int othseat)
+const vector<int> Board_base::getSameColSeats(const int seat, const int othseat)
 {
     vector<int> seats{};
     if (!isSameCol(seat, othseat))
@@ -39,7 +38,7 @@ vector<int> Board_base::getSameColSeats(const int seat, const int othseat)
     return seats;
 }
 
-vector<int> Board_base::getKingMoveSeats(const int seat)
+const vector<int> Board_base::getKingMoveSeats(const int seat)
 {
     int S{ seat - 9 }, W{ seat - 1 }, E{ seat + 1 }, N{ seat + 9 };
     int row{ getRow(seat) }, col{ getCol(seat) };
@@ -67,7 +66,7 @@ vector<int> Board_base::getKingMoveSeats(const int seat)
     }
 }
 
-vector<int> Board_base::getAdvisorMoveSeats(const int seat)
+const vector<int> Board_base::getAdvisorMoveSeats(const int seat)
 {
     int WS{ seat - 9 - 1 }, ES{ seat - 9 + 1 }, WN{ seat + 9 - 1 }, EN{ seat + 9 + 1 };
     int row{ getRow(seat) }, col{ getCol(seat) };
@@ -87,7 +86,7 @@ vector<int> Board_base::getAdvisorMoveSeats(const int seat)
 }
 
 // 获取移动、象心行列值
-vector<pair<int, int>> Board_base::getBishopMove_CenSeats(const int seat)
+const vector<pair<int, int>> Board_base::getBishopMove_CenSeats(const int seat)
 {
     auto cen = [seat](int s) { return (seat + s) / 2; };
 
@@ -108,7 +107,7 @@ vector<pair<int, int>> Board_base::getBishopMove_CenSeats(const int seat)
 }
 
 // 获取移动、马腿行列值
-vector<pair<int, int>> Board_base::getKnightMove_LegSeats(const int seat)
+const vector<pair<int, int>> Board_base::getKnightMove_LegSeats(const int seat)
 {
     auto leg = [seat](int to) {
         switch (to - seat) {
@@ -242,7 +241,7 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(const int seat)
 }
 
 // 车炮可走的四个方向位置
-vector<vector<int>> Board_base::getRookCannonMoveSeat_Lines(const int seat)
+const vector<vector<int>> Board_base::getRookCannonMoveSeat_Lines(const int seat)
 {
     vector<vector<int>> res{ vector<int>{}, vector<int>{}, vector<int>{},
         vector<int>{} };
@@ -258,7 +257,7 @@ vector<vector<int>> Board_base::getRookCannonMoveSeat_Lines(const int seat)
     return res;
 }
 
-vector<int> Board_base::getPawnMoveSeats(const bool isBottomSide, const int seat)
+const vector<int> Board_base::getPawnMoveSeats(const bool isBottomSide, const int seat)
 {
     int E{ seat + 1 }, S{ seat - 9 }, W{ seat - 1 }, N{ seat + 9 }, row{ getRow(seat) };
     switch (getCol(seat)) {
@@ -302,7 +301,7 @@ vector<int> Board_base::getPawnMoveSeats(const bool isBottomSide, const int seat
 }
 
 // '多兵排序'
-vector<int> Board_base::sortPawnSeats(const bool isBottomSide, vector<int> seats)
+const vector<int> Board_base::sortPawnSeats(const bool isBottomSide, vector<int> seats)
 {
     map<int, vector<int>> temp{};
     vector<int> res(5);

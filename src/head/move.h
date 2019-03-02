@@ -1,26 +1,27 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-#include "piece.h"
 #include <memory>
-
 using namespace std;
 
+class Piece;
 
 // 着法节点类
 class Move {
 
 public:
-    int fseat() { return fromseat; }
-    int tseat() { return toseat; }
-    void setSeat(int fseat, int tseat)
+    Move();
+
+    const int fseat() { return fromseat; }
+    const int tseat() { return toseat; }
+    void setSeat(const int fseat, const int tseat)
     {
         fromseat = fseat;
         toseat = tseat;
     }
     void setSeat(pair<int, int> seats) { setSeat(seats.first, seats.second); }
 
-    shared_ptr<Piece> eatPiece() { return eatPie_ptr; }
+    const shared_ptr<Piece> eatPiece() { return eatPie_ptr; }
     shared_ptr<Move> prev() { return prev_ptr; }
     shared_ptr<Move> next() { return next_ptr; }
     shared_ptr<Move> other() { return other_ptr; }
@@ -29,7 +30,7 @@ public:
     void setNext(shared_ptr<Move> next);
     void setOther(shared_ptr<Move> other);
 
-    wstring toString();
+    const wstring toString();
 
     wstring ICCS{}; // 着法数字字母描述
     wstring zh{}; // 着法中文描述
@@ -39,12 +40,12 @@ public:
     int maxCol{ 0 }; // 图中列位置（需结合board确定）
 
 private:
-    int fromseat{ nullSeat };
-    int toseat{ nullSeat };
-    shared_ptr<Piece> eatPie_ptr{ Pieces::nullPiePtr };
-    shared_ptr<Move> prev_ptr{ nullptr };
-    shared_ptr<Move> next_ptr{ nullptr };
-    shared_ptr<Move> other_ptr{ nullptr };
+    int fromseat;
+    int toseat;
+    shared_ptr<Piece> eatPie_ptr;
+    shared_ptr<Move> prev_ptr{};
+    shared_ptr<Move> next_ptr{};
+    shared_ptr<Move> other_ptr{};
 };
 
 #endif

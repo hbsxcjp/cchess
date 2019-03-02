@@ -1,12 +1,10 @@
 #include "tools.h"
-#include "board_base.h"
 
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <algorithm>
 #include <io.h>
-
 using namespace std;
 
 
@@ -68,7 +66,7 @@ string Tools::ws2s(const wstring& ws)
     return ret;
 }
 
-const string Tools::getExt(const string filename)
+const string Tools::getExt(const string& filename)
 {
     string ext{ filename.substr(filename.rfind('.')) };
     for (auto& c : ext)
@@ -76,7 +74,7 @@ const string Tools::getExt(const string filename)
     return ext;
 }
 
-wstring Tools::readTxt(const string fileName)
+wstring Tools::readTxt(const string& fileName)
 {
     wstringstream wss{};
     wchar_t buf[1024];
@@ -89,14 +87,14 @@ wstring Tools::readTxt(const string fileName)
     return wss.str();
 }
 
-void Tools::writeTxt(const string fileName, const wstring ws)
+void Tools::writeTxt(const string& fileName, const wstring& ws)
 {
     wofstream wofs(fileName);
     wofs << ws;
     wofs.close();
 }
 
-void Tools::getFiles(const string path, vector<string>& files)
+void Tools::getFiles(const string& path, vector<string>& files)
 {
     long hFile = 0; //文件句柄
     struct _finddata_t fileinfo; //文件信息

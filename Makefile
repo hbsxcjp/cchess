@@ -6,7 +6,7 @@ vpath %.cpp src
 vpath %.o obj
 
 a.exe: $(objects)
-	g++ -Wall -o a.exe $(objects)
+	g++ -g -Wall -o a.exe $(objects)
 
 obj/main.o: chessInstance.h main.cpp
 	gcc -c -o obj/main.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/main.cpp

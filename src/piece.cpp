@@ -1,14 +1,36 @@
 #include "piece.h"
 #include "board.h"
-#include "tools.h"
+#include "board_base.h"
 
 #include <algorithm>
 #include <iomanip>
 #include <iterator>
 #include <sstream>
 using namespace std;
+using namespace Board_base;
 
-vector<int> Piece::getCanMoveSeats(Board& board)
+Piece::Piece(const wchar_t _char)
+    : clr{ isalpha(_char)
+            ? (islower(_char) ? PieceColor::BLACK : PieceColor::RED)
+            : PieceColor::BLANK }
+    , ch{ _char }
+    , st{ nullSeat }
+    , id{ curIndex++ }
+{
+}
+
+inline const vector<int> Piece::getSeats(const PieceColor bottomColor) { return allSeats; }
+
+const vector<int> Piece::getFilterMoveSeats(Board& board)
+{
+    vector<int> res{ __MoveSeats(board) };
+    auto p = remove_if(res.begin(), res.end(), [&](int seat) {
+        return board.getColor(seat) == color();
+    });
+    return (vector<int>{ res.begin(), p });
+}
+
+const vector<int> Piece::getCanMoveSeats(Board& board)
 {
     vector<int> res{};
     auto fseat = seat();
@@ -22,16 +44,9 @@ vector<int> Piece::getCanMoveSeats(Board& board)
     return res;
 }
 
-vector<int> Piece::getFilterMoveSeats(Board& board)
-{
-    vector<int> res{ __MoveSeats(board) };
-    auto p = remove_if(res.begin(), res.end(), [&](int seat) {
-        return board.getColor(seat) == color();
-    });
-    return (vector<int>{ res.begin(), p });
-}
+inline const vector<int> Piece::__MoveSeats(Board& board) { return allSeats; }
 
-vector<int> Piece::__filterMove_obstruct(Board& board,
+const vector<int> Piece::__filterMove_obstruct(Board& board,
     const vector<pair<int, int>>& move_obs)
 {
     vector<int> res{};
@@ -41,7 +56,21 @@ vector<int> Piece::__filterMove_obstruct(Board& board,
     return res;
 }
 
-vector<int> Rook::__MoveSeats(Board& board)
+inline const vector<int> King::getSeats(const PieceColor bottomColor) { return color() == bottomColor ? bottomKingSeats : topKingSeats; }
+
+inline const vector<int> King::__MoveSeats(Board& board) { return getKingMoveSeats(seat()); }
+
+inline const vector<int> Advisor::getSeats(const PieceColor bottomColor) { return color() == bottomColor ? bottomAdvisorSeats : topAdvisorSeats; }
+
+inline const vector<int> Advisor::__MoveSeats(Board& board) { return getAdvisorMoveSeats(seat()); }
+
+inline const vector<int> Bishop::getSeats(const PieceColor bottomColor) { return color() == bottomColor ? bottomBishopSeats : topBishopSeats; }
+
+inline const vector<int> Bishop::__MoveSeats(Board& board) { return __filterMove_obstruct(board, getBishopMove_CenSeats(seat())); }
+
+inline const vector<int> Knight::__MoveSeats(Board& board) { return __filterMove_obstruct(board, getKnightMove_LegSeats((seat()))); }
+
+const vector<int> Rook::__MoveSeats(Board& board)
 {
     vector<int> res{};
     auto seatLines = getRookCannonMoveSeat_Lines(seat());
@@ -54,7 +83,7 @@ vector<int> Rook::__MoveSeats(Board& board)
     return res;
 }
 
-vector<int> Cannon::__MoveSeats(Board& board)
+const vector<int> Cannon::__MoveSeats(Board& board)
 {
     vector<int> res{};
     auto seatLines = getRookCannonMoveSeat_Lines(seat());
@@ -75,12 +104,11 @@ vector<int> Cannon::__MoveSeats(Board& board)
     return res;
 }
 
-vector<int> Pawn::__MoveSeats(Board& board)
-{
-    return getPawnMoveSeats(board.isBottomSide(color()), seat());
-}
+inline const vector<int> Pawn::getSeats(const PieceColor bottomColor) { return color() == bottomColor ? bottomPawnSeats : topPawnSeats; }
 
-wstring Piece::toString()
+inline const vector<int> Pawn::__MoveSeats(Board& board) { return getPawnMoveSeats(board.isBottomSide(color()), seat()); }
+
+const wstring Piece::toString()
 {
     wstringstream wss{};
     wss << boolalpha;
@@ -102,12 +130,45 @@ const wstring Pieces::allNames{ L"帅仕相马车炮兵将士象卒" };
 int Piece::curIndex{ -1 };
 const wchar_t Piece::nullChar{ L'_' };
 //NullPie Pieces::nullPiece{ NullPie(Piece::nullChar) }; // 空棋子
-//shared_ptr<Piece> Pieces::nullPiePtr{ &nullPiece }; // 空棋子指针
-shared_ptr<Piece> Pieces::nullPiePtr{ make_shared<NullPie>(Piece::nullChar) }; // 空棋子指针
+//const shared_ptr<Piece> Pieces::nullPiePtr{ &nullPiece }; // 空棋子指针
+const shared_ptr<Piece> Pieces::nullPiePtr{ make_shared<NullPie>(Piece::nullChar) }; // 空棋子指针
 
 // 一副棋子类
 Pieces::Pieces()
     : piePtrs{
+        shared_ptr<Piece>(make_shared<King>(L'K')),
+        shared_ptr<Piece>(make_shared<King>(L'k')),
+        shared_ptr<Piece>(make_shared<Advisor>(L'A')),
+        shared_ptr<Piece>(make_shared<Advisor>(L'A')),
+        shared_ptr<Piece>(make_shared<Advisor>(L'a')),
+        shared_ptr<Piece>(make_shared<Advisor>(L'a')),
+        shared_ptr<Piece>(make_shared<Bishop>(L'B')),
+        shared_ptr<Piece>(make_shared<Bishop>(L'B')),
+        shared_ptr<Piece>(make_shared<Bishop>(L'b')),
+        shared_ptr<Piece>(make_shared<Bishop>(L'b')),
+        shared_ptr<Piece>(make_shared<Knight>(L'N')),
+        shared_ptr<Piece>(make_shared<Knight>(L'N')),
+        shared_ptr<Piece>(make_shared<Knight>(L'n')),
+        shared_ptr<Piece>(make_shared<Knight>(L'n')),
+        shared_ptr<Piece>(make_shared<Rook>(L'R')),
+        shared_ptr<Piece>(make_shared<Rook>(L'R')),
+        shared_ptr<Piece>(make_shared<Rook>(L'r')),
+        shared_ptr<Piece>(make_shared<Rook>(L'r')),
+        shared_ptr<Piece>(make_shared<Cannon>(L'C')),
+        shared_ptr<Piece>(make_shared<Cannon>(L'C')),
+        shared_ptr<Piece>(make_shared<Cannon>(L'c')),
+        shared_ptr<Piece>(make_shared<Cannon>(L'c')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'p')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'p')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'p')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'p')),
+        shared_ptr<Piece>(make_shared<Pawn>(L'p'))
+        /*
         make_shared<King>(L'K'),
         make_shared<King>(L'k'),
         make_shared<Advisor>(L'A'),
@@ -140,6 +201,7 @@ Pieces::Pieces()
         make_shared<Pawn>(L'p'),
         make_shared<Pawn>(L'p'),
         make_shared<Pawn>(L'p')
+        */
     }
 {
 }
@@ -174,12 +236,12 @@ Pieces::Pieces()
 }
 */
 
-inline shared_ptr<Piece> Pieces::getKingPie(PieceColor color)
+inline const shared_ptr<Piece> Pieces::getKingPie(const PieceColor color)
 {
     return piePtrs[color == PieceColor::RED ? 0 : 1];
 }
 
-inline shared_ptr<Piece> Pieces::getOthPie(shared_ptr<Piece> pie)
+inline const shared_ptr<Piece> Pieces::getOthPie(const shared_ptr<Piece> pie)
 {
     int index{ pie->index() }, othIndex{};
     if (index < 2)
@@ -191,7 +253,7 @@ inline shared_ptr<Piece> Pieces::getOthPie(shared_ptr<Piece> pie)
     return piePtrs[othIndex];
 }
 
-shared_ptr<Piece> Pieces::getFreePie(wchar_t ch)
+const shared_ptr<Piece> Pieces::getFreePie(const wchar_t ch)
 {
     if (ch != Piece::nullChar)
         for (auto& p : piePtrs)
@@ -200,7 +262,7 @@ shared_ptr<Piece> Pieces::getFreePie(wchar_t ch)
     return nullPiePtr;
 }
 
-vector<shared_ptr<Piece>> Pieces::getLivePies()
+const vector<shared_ptr<Piece>> Pieces::getLivePies()
 {
     vector<shared_ptr<Piece>> res{ piePtrs };
     auto p = remove_if(res.begin(), res.end(),
@@ -208,21 +270,21 @@ vector<shared_ptr<Piece>> Pieces::getLivePies()
     return (vector<shared_ptr<Piece>>{ res.begin(), p });
 }
 
-vector<shared_ptr<Piece>> Pieces::getLivePies(PieceColor color)
+const vector<shared_ptr<Piece>> Pieces::getLivePies(const PieceColor color)
 {
     vector<shared_ptr<Piece>> res{};
     copy_if(piePtrs.begin(), piePtrs.end(), back_inserter(res), [&](shared_ptr<Piece>& p) { return p->seat() != nullSeat && p->color() == color; });
     return res;
 }
 
-vector<shared_ptr<Piece>> Pieces::getLiveStrongePies(PieceColor color)
+const vector<shared_ptr<Piece>> Pieces::getLiveStrongePies(const PieceColor color)
 {
     vector<shared_ptr<Piece>> res{};
     copy_if(piePtrs.begin(), piePtrs.end(), back_inserter(res), [&](shared_ptr<Piece>& p) { return p->seat() != nullSeat && p->color() == color && p->isStronge(); });
     return res;
 }
 
-vector<shared_ptr<Piece>> Pieces::getNamePies(PieceColor color, wchar_t name)
+const vector<shared_ptr<Piece>> Pieces::getNamePies(const PieceColor color, wchar_t name)
 {
     vector<shared_ptr<Piece>> res{};
     copy_if(piePtrs.begin(), piePtrs.end(), back_inserter(res), [&](shared_ptr<Piece>& p) {
@@ -231,7 +293,7 @@ vector<shared_ptr<Piece>> Pieces::getNamePies(PieceColor color, wchar_t name)
     return res;
 }
 
-vector<shared_ptr<Piece>> Pieces::getNameColPies(PieceColor color, wchar_t name,
+const vector<shared_ptr<Piece>> Pieces::getNameColPies(const PieceColor color, wchar_t name,
     int col)
 {
     vector<shared_ptr<Piece>> res{};
@@ -241,26 +303,26 @@ vector<shared_ptr<Piece>> Pieces::getNameColPies(PieceColor color, wchar_t name,
     return res;
 }
 
-vector<shared_ptr<Piece>> Pieces::getEatedPies()
+const vector<shared_ptr<Piece>> Pieces::getEatedPies()
 {
     vector<shared_ptr<Piece>> res{};
     copy_if(piePtrs.begin(), piePtrs.end(), back_inserter(res), [&](shared_ptr<Piece>& p) { return p->seat() == nullSeat; });
     return res;
 }
 
-vector<shared_ptr<Piece>> Pieces::getEatedPies(PieceColor color)
+const vector<shared_ptr<Piece>> Pieces::getEatedPies(const PieceColor color)
 {
     vector<shared_ptr<Piece>> res{};
     copy_if(piePtrs.begin(), piePtrs.end(), back_inserter(res), [&](shared_ptr<Piece>& p) { return p->seat() == nullSeat && p->color() == color; });
     return res;
 }
 
-void Pieces::clear()
+void Pieces::clearSeat()
 {
-    for_each(piePtrs.begin(), piePtrs.end(), [&](shared_ptr<Piece>& p) { if (p!=Pieces::nullPiePtr) p->setSeat(nullSeat); });
+    for_each(piePtrs.begin(), piePtrs.end(), [&](shared_ptr<Piece>& p) { p->setSeat(nullSeat); });
 }
 
-wstring Pieces::toString()
+const wstring Pieces::toString()
 {
     wstring ws{
         L"index color wchar seat chName isBlank isKing isStronge\n"
@@ -270,7 +332,7 @@ wstring Pieces::toString()
     return ws + nullPiePtr->toString(); // 关注空棋子的特性!
 }
 
-wstring Pieces::test()
+const wstring Pieces::test()
 {
     // Pieces apieces = Pieces();
     wstringstream wss{};
