@@ -134,6 +134,7 @@ const wchar_t Piece::nullChar{ L'_' };
 const shared_ptr<Piece> Pieces::nullPiePtr{ make_shared<NullPie>(Piece::nullChar) }; // 空棋子指针
 
 // 一副棋子类
+/*
 Pieces::Pieces()
     : piePtrs{
         shared_ptr<Piece>(make_shared<King>(L'K')),
@@ -168,6 +169,7 @@ Pieces::Pieces()
         shared_ptr<Piece>(make_shared<Pawn>(L'p')),
         shared_ptr<Piece>(make_shared<Pawn>(L'p')),
         shared_ptr<Piece>(make_shared<Pawn>(L'p'))
+        */
         /*
         make_shared<King>(L'K'),
         make_shared<King>(L'k'),
@@ -202,10 +204,12 @@ Pieces::Pieces()
         make_shared<Pawn>(L'p'),
         make_shared<Pawn>(L'p')
         */
+       /*
     }
 {
 }
-/*
+*/
+//*
 // 一副棋子类
 Pieces::Pieces()
     : kings{ King(L'K'), King(L'k') }
@@ -219,22 +223,22 @@ Pieces::Pieces()
         Pawn(L'p'), Pawn(L'p'), Pawn(L'p'), Pawn(L'p'), Pawn(L'p') }
 {
     for (auto& pie : kings)
-        piePtrs.push_back(&pie);
+        piePtrs.push_back((shared_ptr<Piece>(&pie)));
     for (auto& pie : advisors)
-        piePtrs.push_back(&pie);
+        piePtrs.push_back((shared_ptr<Piece>(&pie)));
     for (auto& pie : bishops)
-        piePtrs.push_back(&pie);
+        piePtrs.push_back((shared_ptr<Piece>(&pie)));
     for (auto& pie : knights)
-        piePtrs.push_back(&pie);
+        piePtrs.push_back((shared_ptr<Piece>(&pie)));
     for (auto& pie : rooks)
-        piePtrs.push_back(&pie);
+        piePtrs.push_back((shared_ptr<Piece>(&pie)));
     for (auto& pie : cannons)
-        piePtrs.push_back(&pie);
+        piePtrs.push_back((shared_ptr<Piece>(&pie)));
     for (auto& pie : pawns)
-        piePtrs.push_back(&pie);
+        piePtrs.push_back((shared_ptr<Piece>(&pie)));
     Piece::curIndex = 0;
 }
-*/
+//*/
 
 inline const shared_ptr<Piece> Pieces::getKingPie(const PieceColor color)
 {

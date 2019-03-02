@@ -40,8 +40,8 @@ public:
 
     const wstring getPieceChars();
     void setSeatPieces(vector<pair<int, shared_ptr<Piece>>> seatPieces);
-    const wstring toString();
 
+    const wstring toString();
     const wstring test();
 
     PieceColor bottomColor; // 底端棋子颜色

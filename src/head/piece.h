@@ -161,7 +161,7 @@ public:
     static const shared_ptr<Piece> nullPiePtr;
 
 private:
-    /*
+    //*
     vector<King> kings;
     vector<Advisor> advisors;
     vector<Bishop> bishops;
@@ -169,7 +169,7 @@ private:
     vector<Rook> rooks;
     vector<Cannon> cannons;
     vector<Pawn> pawns;
-    */
+    //*/
     vector<shared_ptr<Piece>> piePtrs;
 };
 
