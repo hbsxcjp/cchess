@@ -1,6 +1,4 @@
 #include "chessInstance.h"
-//#include "board.h"
-//#include "piece.h"
 #include <chrono>
 #include <iostream>
 #include <locale>
@@ -22,8 +20,6 @@ int main(int argc, char const* argv[])
         ChessInstance::testTransDir(0, 2, 0, 6, 1, 6);
     //*/
     
-    //wcout << Pieces().test() << L"pieces finished!" << endl;
-    //wcout << Board().test() << L"board finished!" << endl;
 
     auto time_d = steady_clock::now() - time0;
     cout << "use time: " << duration_cast<milliseconds>(time_d).count() / 1000.0 << "s\n";

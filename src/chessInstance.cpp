@@ -1075,6 +1075,9 @@ void ChessInstance::transDir(const string& dirfrom, const RecFormat fmt)
 
 void ChessInstance::testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
 {
+    //wcout << Pieces().test() << L"pieces finished!" << endl;
+    //wcout << Board().test() << L"board finished!" << endl;
+    
     vector<string> dirfroms{
         "c:\\棋谱\\示例文件",
         "c:\\棋谱\\象棋杀着大全",

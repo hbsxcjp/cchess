@@ -94,7 +94,6 @@ shared_ptr<Piece> Board::move_go(const int fseat, const int tseat)
     eatPiece->setSeat(nullSeat);
     __setPiece(getPiece(fseat), tseat);
     pieSeats[fseat] = Pieces::nullPiePtr;
-    //__setPiece(Pieces::nullPiePtr, fseat);
     return eatPiece;
 }
 

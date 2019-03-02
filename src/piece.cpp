@@ -10,12 +10,11 @@ using namespace std;
 using namespace Board_base;
 
 Piece::Piece(const wchar_t _char)
-    : clr{ isalpha(_char)
+    : st{ nullSeat }
+    , ch{ _char }
+    , clr{ isalpha(_char)
             ? (islower(_char) ? PieceColor::BLACK : PieceColor::RED)
             : PieceColor::BLANK }
-    , ch{ _char }
-    , st{ nullSeat }
-    , id{ curIndex++ }
 {
 }
 
@@ -112,7 +111,7 @@ const wstring Piece::toString()
 {
     wstringstream wss{};
     wss << boolalpha;
-    wss << setw(4) << index() << setw(5) << static_cast<int>(color()) << setw(6)
+    wss << setw(4) << setw(5) << static_cast<int>(color()) << setw(6)
         << wchar() << setw(6) << seat() << setw(5) << chName() << setw(9)
         << isBlank() << setw(8) << isKing() << setw(8) << isStronge() << L'\n';
     return wss.str();
@@ -127,48 +126,41 @@ const wstring Pieces::lineNames{ L"帅车炮兵将卒" };
 const wstring Pieces::allNames{ L"帅仕相马车炮兵将士象卒" };
 
 // 类外初始化类内静态const成员
-int Piece::curIndex{ -1 };
-const wchar_t Piece::nullChar{ L'_' };
-const shared_ptr<Piece> Pieces::nullPiePtr{ make_shared<NullPie>(Piece::nullChar) }; // 空棋子指针
+const shared_ptr<Piece> Pieces::nullPiePtr{ make_shared<NullPie>(L'_') }; // 空棋子指针
 
 // 一副棋子类
 Pieces::Pieces()
     : piePtrs{
-        make_shared<King>(L'K'), make_shared<King>(L'k'),
-        make_shared<Advisor>(L'A'), make_shared<Advisor>(L'A'), make_shared<Advisor>(L'a'), make_shared<Advisor>(L'a'),
-        make_shared<Bishop>(L'B'), make_shared<Bishop>(L'B'), make_shared<Bishop>(L'b'), make_shared<Bishop>(L'b'),
-        make_shared<Knight>(L'N'), make_shared<Knight>(L'N'), make_shared<Knight>(L'n'), make_shared<Knight>(L'n'),
-        make_shared<Rook>(L'R'), make_shared<Rook>(L'R'), make_shared<Rook>(L'r'), make_shared<Rook>(L'r'),
-        make_shared<Cannon>(L'C'), make_shared<Cannon>(L'C'), make_shared<Cannon>(L'c'), make_shared<Cannon>(L'c'),
+        make_shared<King>(L'K'), make_shared<Advisor>(L'A'), make_shared<Advisor>(L'A'),
+        make_shared<Bishop>(L'B'), make_shared<Bishop>(L'B'), make_shared<Knight>(L'N'), make_shared<Knight>(L'N'),
+        make_shared<Rook>(L'R'), make_shared<Rook>(L'R'), make_shared<Cannon>(L'C'), make_shared<Cannon>(L'C'),
         make_shared<Pawn>(L'P'), make_shared<Pawn>(L'P'), make_shared<Pawn>(L'P'), make_shared<Pawn>(L'P'), make_shared<Pawn>(L'P'),
+        make_shared<King>(L'k'), make_shared<Advisor>(L'a'), make_shared<Advisor>(L'a'),
+        make_shared<Bishop>(L'b'), make_shared<Bishop>(L'b'), make_shared<Knight>(L'n'), make_shared<Knight>(L'n'),
+        make_shared<Rook>(L'r'), make_shared<Rook>(L'r'), make_shared<Cannon>(L'c'), make_shared<Cannon>(L'c'),
         make_shared<Pawn>(L'p'), make_shared<Pawn>(L'p'), make_shared<Pawn>(L'p'), make_shared<Pawn>(L'p'), make_shared<Pawn>(L'p')
     }
 {
 }
 
-inline const shared_ptr<Piece> Pieces::getKingPie(const PieceColor color)
-{
-    return piePtrs[color == PieceColor::RED ? 0 : 1];
-}
+inline const shared_ptr<Piece> Pieces::getKingPie(const PieceColor color) { return piePtrs[color == PieceColor::RED ? 0 : 16]; }
 
 inline const shared_ptr<Piece> Pieces::getOthPie(const shared_ptr<Piece> pie)
 {
-    int index{ pie->index() }, othIndex{};
-    if (index < 2)
-        othIndex = index == 1 ? 0 : 1; //帅0将1
-    else if (index > 21)
-        othIndex = index > 26 ? index - 5 : index + 5; // 兵22-26卒27-31
-    else
-        othIndex = index % 4 < 2 ? index - 2 : index + 2; // 士象马车炮，每种棋4子
-    return piePtrs[othIndex];
+    int index{ 0 };
+    for (auto& pm : piePtrs) {
+        if (pm == pie)
+            break;
+        ++index;
+    }
+    return piePtrs[index < 16 ? 16 + index : index - 16];
 }
 
 const shared_ptr<Piece> Pieces::getFreePie(const wchar_t ch)
 {
-    if (ch != Piece::nullChar)
-        for (auto& p : piePtrs)
-            if (p->wchar() == ch && p->seat() == nullSeat)
-                return p;
+    for (auto& p : piePtrs)
+        if (p->wchar() == ch && p->seat() == nullSeat)
+            return p;
     return nullPiePtr;
 }
 
@@ -235,8 +227,8 @@ void Pieces::clearSeat()
 const wstring Pieces::toString()
 {
     wstring ws{
-        L"index color wchar seat chName isBlank isKing isStronge\n"
-    }; // index
+        L"color wchar seat chName isBlank isKing isStronge\n"
+    }; 
     for (auto p : piePtrs)
         ws += p->toString();
     return ws + nullPiePtr->toString(); // 关注空棋子的特性!

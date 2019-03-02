@@ -19,7 +19,6 @@ class Piece {
 public:
     explicit Piece(const wchar_t _char);
 
-    const int index() { return id; }
     const PieceColor color() { return clr; }
     const wchar_t wchar() { return ch; }
     const int seat() { return st; }
@@ -40,11 +39,7 @@ public:
     virtual const wstring toString();
     virtual ~Piece() = default;
 
-    static int curIndex;
-    static const wchar_t nullChar;
-
 protected:
-    const PieceColor clr;
     // 棋子可移动到的全部位置
     virtual const vector<int> __MoveSeats(Board& board);
     // 筛除棋子行棋规则不允许的位置
@@ -52,15 +47,15 @@ protected:
         const vector<pair<int, int>>& move_obs);
 
 private:
-    wchar_t ch;
     int st; // 在棋盘中的位置序号
-    int id; // 在一副棋子中的序号
+    wchar_t ch;
+    const PieceColor clr;
 };
 
 class King : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return clr == PieceColor::RED ? L'帅' : L'将'; }
+    const wchar_t chName() { return color() == PieceColor::RED ? L'帅' : L'将'; }
     const bool isKing() { return true; }
     const vector<int> getSeats(const PieceColor bottomColor);
 
@@ -71,7 +66,7 @@ private:
 class Advisor : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return clr == PieceColor::RED ? L'仕' : L'士'; }
+    const wchar_t chName() { return color() == PieceColor::RED ? L'仕' : L'士'; }
     const vector<int> getSeats(const PieceColor bottomColor);
 
 private:
@@ -81,7 +76,7 @@ private:
 class Bishop : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return clr == PieceColor::RED ? L'相' : L'象'; }
+    const wchar_t chName() { return color() == PieceColor::RED ? L'相' : L'象'; }
     const vector<int> getSeats(const PieceColor bottomColor);
 
 private:
@@ -121,7 +116,7 @@ private:
 class Pawn : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return clr == PieceColor::RED ? L'兵' : L'卒'; }
+    const wchar_t chName() { return color() == PieceColor::RED ? L'兵' : L'卒'; }
     const bool isStronge() { return true; }
     const vector<int> getSeats(const PieceColor bottomColor);
 
