@@ -25,7 +25,7 @@ public:
     const int seat() { return st; }
     void setSeat(const int seat) { st = seat; }
 
-    virtual const wchar_t chName() { return L'\x0000'; }
+    virtual const wchar_t chName() { return L'　'; }
     virtual const bool isBlank() { return false; }
     virtual const bool isKing() { return false; }
     virtual const bool isStronge() { return false; }
@@ -63,6 +63,7 @@ public:
     const wchar_t chName() { return clr == PieceColor::RED ? L'帅' : L'将'; }
     const bool isKing() { return true; }
     const vector<int> getSeats(const PieceColor bottomColor);
+
 private:
     const vector<int> __MoveSeats(Board& board);
 };
@@ -72,6 +73,7 @@ public:
     using Piece::Piece;
     const wchar_t chName() { return clr == PieceColor::RED ? L'仕' : L'士'; }
     const vector<int> getSeats(const PieceColor bottomColor);
+
 private:
     const vector<int> __MoveSeats(Board& board);
 };
@@ -81,6 +83,7 @@ public:
     using Piece::Piece;
     const wchar_t chName() { return clr == PieceColor::RED ? L'相' : L'象'; }
     const vector<int> getSeats(const PieceColor bottomColor);
+
 private:
     const vector<int> __MoveSeats(Board& board);
 };
@@ -90,6 +93,7 @@ public:
     using Piece::Piece;
     const wchar_t chName() { return L'马'; }
     const bool isStronge() { return true; };
+
 private:
     const vector<int> __MoveSeats(Board& board);
 };
@@ -99,6 +103,7 @@ public:
     using Piece::Piece;
     const wchar_t chName() { return L'车'; }
     const bool isStronge() { return true; };
+
 private:
     const vector<int> __MoveSeats(Board& board);
 };
@@ -108,6 +113,7 @@ public:
     using Piece::Piece;
     const wchar_t chName() { return L'炮'; }
     const bool isStronge() { return true; };
+
 private:
     const vector<int> __MoveSeats(Board& board);
 };
@@ -118,6 +124,7 @@ public:
     const wchar_t chName() { return clr == PieceColor::RED ? L'兵' : L'卒'; }
     const bool isStronge() { return true; }
     const vector<int> getSeats(const PieceColor bottomColor);
+
 private:
     const vector<int> __MoveSeats(Board& board);
 };
@@ -161,15 +168,6 @@ public:
     static const shared_ptr<Piece> nullPiePtr;
 
 private:
-    //*
-    vector<King> kings;
-    vector<Advisor> advisors;
-    vector<Bishop> bishops;
-    vector<Knight> knights;
-    vector<Rook> rooks;
-    vector<Cannon> cannons;
-    vector<Pawn> pawns;
-    //*/
     vector<shared_ptr<Piece>> piePtrs;
 };
 

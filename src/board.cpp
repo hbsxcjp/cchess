@@ -12,16 +12,15 @@ using namespace std;
 using namespace Board_base;
 
 Board::Board()
-    : bottomColor{ PieceColor::RED }
-    , pPieces{ shared_ptr<Pieces>() }
-    , pieSeats(RowNum * ColNum, Pieces::nullPiePtr)
+    : bottomColor(PieceColor::RED)
+    , pPieces(make_shared<Pieces>())
+    , pieSeats(vector<shared_ptr<Piece>>(RowNum * ColNum, Pieces::nullPiePtr))
 {
 }
 
 Board::Board(const wstring& pieceChars)
     : Board()
 {
-    //std::fill(pieSeats.begin(), pieSeats.end(), Pieces::nullPiePtr);
     for (auto seat : allSeats)
         __setPiece(pPieces->getFreePie(pieceChars[seat]), seat);
     if (pPieces->getKingPie(PieceColor::RED)->seat() > 45)
@@ -184,9 +183,6 @@ const wstring Board::test()
         wss << L'\n';
     }
     wss << pPieces->toString();
-    //wss << pPieces->test();
-
-    wss << L"Board::changeSide():" << L'\n';
 
     return wss.str();
 }

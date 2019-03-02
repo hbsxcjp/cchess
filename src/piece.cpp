@@ -129,116 +129,22 @@ const wstring Pieces::allNames{ L"帅仕相马车炮兵将士象卒" };
 // 类外初始化类内静态const成员
 int Piece::curIndex{ -1 };
 const wchar_t Piece::nullChar{ L'_' };
-//NullPie Pieces::nullPiece{ NullPie(Piece::nullChar) }; // 空棋子
-//const shared_ptr<Piece> Pieces::nullPiePtr{ &nullPiece }; // 空棋子指针
 const shared_ptr<Piece> Pieces::nullPiePtr{ make_shared<NullPie>(Piece::nullChar) }; // 空棋子指针
 
 // 一副棋子类
-/*
 Pieces::Pieces()
     : piePtrs{
-        shared_ptr<Piece>(make_shared<King>(L'K')),
-        shared_ptr<Piece>(make_shared<King>(L'k')),
-        shared_ptr<Piece>(make_shared<Advisor>(L'A')),
-        shared_ptr<Piece>(make_shared<Advisor>(L'A')),
-        shared_ptr<Piece>(make_shared<Advisor>(L'a')),
-        shared_ptr<Piece>(make_shared<Advisor>(L'a')),
-        shared_ptr<Piece>(make_shared<Bishop>(L'B')),
-        shared_ptr<Piece>(make_shared<Bishop>(L'B')),
-        shared_ptr<Piece>(make_shared<Bishop>(L'b')),
-        shared_ptr<Piece>(make_shared<Bishop>(L'b')),
-        shared_ptr<Piece>(make_shared<Knight>(L'N')),
-        shared_ptr<Piece>(make_shared<Knight>(L'N')),
-        shared_ptr<Piece>(make_shared<Knight>(L'n')),
-        shared_ptr<Piece>(make_shared<Knight>(L'n')),
-        shared_ptr<Piece>(make_shared<Rook>(L'R')),
-        shared_ptr<Piece>(make_shared<Rook>(L'R')),
-        shared_ptr<Piece>(make_shared<Rook>(L'r')),
-        shared_ptr<Piece>(make_shared<Rook>(L'r')),
-        shared_ptr<Piece>(make_shared<Cannon>(L'C')),
-        shared_ptr<Piece>(make_shared<Cannon>(L'C')),
-        shared_ptr<Piece>(make_shared<Cannon>(L'c')),
-        shared_ptr<Piece>(make_shared<Cannon>(L'c')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'P')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'p')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'p')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'p')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'p')),
-        shared_ptr<Piece>(make_shared<Pawn>(L'p'))
-        */
-        /*
-        make_shared<King>(L'K'),
-        make_shared<King>(L'k'),
-        make_shared<Advisor>(L'A'),
-        make_shared<Advisor>(L'A'),
-        make_shared<Advisor>(L'a'),
-        make_shared<Advisor>(L'a'),
-        make_shared<Bishop>(L'B'),
-        make_shared<Bishop>(L'B'),
-        make_shared<Bishop>(L'b'),
-        make_shared<Bishop>(L'b'),
-        make_shared<Knight>(L'N'),
-        make_shared<Knight>(L'N'),
-        make_shared<Knight>(L'n'),
-        make_shared<Knight>(L'n'),
-        make_shared<Rook>(L'R'),
-        make_shared<Rook>(L'R'),
-        make_shared<Rook>(L'r'),
-        make_shared<Rook>(L'r'),
-        make_shared<Cannon>(L'C'),
-        make_shared<Cannon>(L'C'),
-        make_shared<Cannon>(L'c'),
-        make_shared<Cannon>(L'c'),
-        make_shared<Pawn>(L'P'),
-        make_shared<Pawn>(L'P'),
-        make_shared<Pawn>(L'P'),
-        make_shared<Pawn>(L'P'),
-        make_shared<Pawn>(L'P'),
-        make_shared<Pawn>(L'p'),
-        make_shared<Pawn>(L'p'),
-        make_shared<Pawn>(L'p'),
-        make_shared<Pawn>(L'p'),
-        make_shared<Pawn>(L'p')
-        */
-       /*
+        make_shared<King>(L'K'), make_shared<King>(L'k'),
+        make_shared<Advisor>(L'A'), make_shared<Advisor>(L'A'), make_shared<Advisor>(L'a'), make_shared<Advisor>(L'a'),
+        make_shared<Bishop>(L'B'), make_shared<Bishop>(L'B'), make_shared<Bishop>(L'b'), make_shared<Bishop>(L'b'),
+        make_shared<Knight>(L'N'), make_shared<Knight>(L'N'), make_shared<Knight>(L'n'), make_shared<Knight>(L'n'),
+        make_shared<Rook>(L'R'), make_shared<Rook>(L'R'), make_shared<Rook>(L'r'), make_shared<Rook>(L'r'),
+        make_shared<Cannon>(L'C'), make_shared<Cannon>(L'C'), make_shared<Cannon>(L'c'), make_shared<Cannon>(L'c'),
+        make_shared<Pawn>(L'P'), make_shared<Pawn>(L'P'), make_shared<Pawn>(L'P'), make_shared<Pawn>(L'P'), make_shared<Pawn>(L'P'),
+        make_shared<Pawn>(L'p'), make_shared<Pawn>(L'p'), make_shared<Pawn>(L'p'), make_shared<Pawn>(L'p'), make_shared<Pawn>(L'p')
     }
 {
 }
-*/
-//*
-// 一副棋子类
-Pieces::Pieces()
-    : kings{ King(L'K'), King(L'k') }
-    , advisors{ Advisor(L'A'), Advisor(L'A'),
-        Advisor(L'a'), Advisor(L'a') }
-    , bishops{ Bishop(L'B'), Bishop(L'B'), Bishop(L'b'), Bishop(L'b') }
-    , knights{ Knight(L'N'), Knight(L'N'), Knight(L'n'), Knight(L'n') }
-    , rooks{ Rook(L'R'), Rook(L'R'), Rook(L'r'), Rook(L'r') }
-    , cannons{ Cannon(L'C'), Cannon(L'C'), Cannon(L'c'), Cannon(L'c') }
-    , pawns{ Pawn(L'P'), Pawn(L'P'), Pawn(L'P'), Pawn(L'P'), Pawn(L'P'),
-        Pawn(L'p'), Pawn(L'p'), Pawn(L'p'), Pawn(L'p'), Pawn(L'p') }
-{
-    for (auto& pie : kings)
-        piePtrs.push_back((shared_ptr<Piece>(&pie)));
-    for (auto& pie : advisors)
-        piePtrs.push_back((shared_ptr<Piece>(&pie)));
-    for (auto& pie : bishops)
-        piePtrs.push_back((shared_ptr<Piece>(&pie)));
-    for (auto& pie : knights)
-        piePtrs.push_back((shared_ptr<Piece>(&pie)));
-    for (auto& pie : rooks)
-        piePtrs.push_back((shared_ptr<Piece>(&pie)));
-    for (auto& pie : cannons)
-        piePtrs.push_back((shared_ptr<Piece>(&pie)));
-    for (auto& pie : pawns)
-        piePtrs.push_back((shared_ptr<Piece>(&pie)));
-    Piece::curIndex = 0;
-}
-//*/
 
 inline const shared_ptr<Piece> Pieces::getKingPie(const PieceColor color)
 {
@@ -338,7 +244,6 @@ const wstring Pieces::toString()
 
 const wstring Pieces::test()
 {
-    // Pieces apieces = Pieces();
     wstringstream wss{};
     wss << L"test "
            L"piece.h\n-----------------------------------------------------\n"
@@ -384,7 +289,5 @@ const wstring Pieces::test()
             wss << s << L' ';
         wss << L"\n";
     }
-
-    // wss << print_vector_int(getSeats(PieceColor::RED));
     return wss.str();
 }

@@ -52,18 +52,35 @@ ChessInstance::ChessInstance(const string& filename)
     switch (fmt) {
     case RecFormat::XQF:
         readXQF(filename);
-        info[L"Format"] = L"XQF";
         break;
     case RecFormat::BIN:
         readBIN(filename);
-        info[L"Format"] = L"BIN";
         break;
     case RecFormat::JSON:
         readJSON(filename);
-        info[L"Format"] = L"JSON";
         break;
     default:
         readPGN(filename, fmt);
+        break;
+    }
+
+    pboard = make_shared<Board>(__fenToPieChars());
+    __initSet(fmt);
+}
+
+void ChessInstance::write(const string& fname, const RecFormat fmt)
+{
+    string filename{ fname + getExtName(fmt) };
+    switch (fmt) {
+    case RecFormat::BIN:
+        info[L"Format"] = L"BIN";
+        writeBIN(filename);
+        break;
+    case RecFormat::JSON:
+        info[L"Format"] = L"JSON";
+        writeJSON(filename);
+        break;
+    default:
         switch (fmt) {
         case RecFormat::ICCS:
             info[L"Format"] = L"ICCS";
@@ -77,29 +94,7 @@ ChessInstance::ChessInstance(const string& filename)
         default:
             break;
         }
-        break;
-    }
-
-    pboard = make_shared<Board>(__fenToPieChars());
-    __initSet(fmt);
-}
-
-void ChessInstance::write(const string& fname, const RecFormat fmt)
-{
-    string filename{ fname + getExtName(fmt) };
-    switch (fmt) {
-    case RecFormat::BIN:
-        writeBIN(filename);
-        break;
-    case RecFormat::JSON:
-        writeJSON(filename);
-        break;
-    case RecFormat::ICCS:
-    case RecFormat::ZH:
-    case RecFormat::CC:
         writePGN(filename, fmt);
-        break;
-    default:
         break;
     }
 }
@@ -295,7 +290,7 @@ void ChessInstance::readXQF(const string& filename)
         if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
-    info[L"FEN"] = __pieceCharsToFEN(pieceChars);    
+    info[L"FEN"] = __pieceCharsToFEN(pieceChars);
 
     function<void(Move&)> __read = [&](Move& move) {
         auto __byteToSeat = [&](int a, int b) {
@@ -627,14 +622,22 @@ void ChessInstance::readBIN(const string& filename)
         info[s2ws(key)] = s2ws(value);
     }
     function<void(Move&)> __read = [&](Move& move) {
-        char fseat{}, tseat{}, hasNext{}, hasOther{};
-        ifs.get(fseat).get(tseat).get(hasNext).get(hasOther);
+        char fseat{}, tseat{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
+        //ifs.get(fseat).get(tseat).get(hasNext).get(hasOther);
+
+        ifs.get(fseat).get(tseat).get(tag);
         move.setSeat(fseat, tseat);
 
-        char len[sizeof(int)]{};
-        ifs.read(len, sizeof(int));
-        int length{ *(int*)len };
-        if (length > 0) {
+        hasNext = tag & 0x80;
+        hasOther = tag & 0x40;
+        hasRemark = tag & 0x08;
+
+        if (hasRemark) {
+            //if (length > 0) {
+            char len[sizeof(int)]{}; 
+            ifs.read(len, sizeof(int));
+            int length{ *(int*)len }; // 如果不采用位存储模式，此三行要移至if语句外！
+
             char rem[length + 1]{};
             ifs.read(rem, length);
             move.remark = s2ws(rem);
@@ -855,15 +858,18 @@ void ChessInstance::writeBIN(const string& filename)
         ofs.put(klen).write(keys.c_str(), klen).put(vlen).write(values.c_str(), vlen);
     }
     function<void(Move&)> __write = [&](Move& move) {
-        ofs.put(char(move.fseat())).put(char(move.tseat()));
-        ofs.put(char(move.next() ? true : false)).put(char(move.other() ? true : false));
-
         string remark{ ws2s(move.remark) };
         int len{ int(remark.size()) };
-        ofs.write((char*)&len, sizeof(int));
-        if (len > 0)
-            ofs.write(remark.c_str(), len);
 
+        ofs.put(char(move.fseat())).put(char(move.tseat()));
+        //ofs.put(char(move.next() ? true : false)).put(char(move.other() ? true : false));
+        ofs.put(char(move.next() ? 0x80 : 0x00) | char(move.other() ? 0x40 : 0x00) | char(len > 0 ? 0x08 : 0x00));
+
+        if (len > 0) {
+            ofs.write((char*)&len, sizeof(int)); // 如果不采用位存储模式，则移至if语句外，每move都要保存！
+            //if (len > 0)
+            ofs.write(remark.c_str(), len);
+        }
         if (move.next())
             __write(*move.next());
         if (move.other())
@@ -1045,7 +1051,7 @@ void ChessInstance::transDir(const string& dirfrom, const RecFormat fmt)
                     string ext_old{ getExt(fname) };
                     if (extensions.find(ext_old) != string::npos) {
                         fcount += 1;
-                        cout << filename << endl;
+                        //cout << filename << endl;
 
                         ChessInstance ci(filename);
                         ci.write(fileto, fmt);
