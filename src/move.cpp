@@ -1,15 +1,15 @@
 #include "move.h"
-#include "piece.h"
 #include "board_base.h"
+#include "piece.h"
+//#include "pieces.h"
 #include <sstream>
 using namespace std;
 using namespace Board_base;
 
-
 Move::Move()
     : fromseat{ nullSeat }
     , toseat{ nullSeat }
-    , eatPie_ptr{ Pieces::nullPiePtr }
+    , eatPie_ptr{ nullptr } //Pieces::nullPiePtr
 {
 }
 
@@ -33,7 +33,7 @@ void Move::setOther(shared_ptr<Move> other)
     }
 }
 
-const wstring Move::toString()
+const wstring Move::toString() const
 {
     wstringstream wss{};
     wss << L"<rcm:" << stepNo << L' ' << othCol << L' '

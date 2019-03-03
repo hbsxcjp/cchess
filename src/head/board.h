@@ -1,9 +1,9 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 using namespace std;
 
 class Piece;
@@ -15,21 +15,20 @@ enum class BoardSide {
     TOP
 };
 
-
 class Board {
 public:
     Board();
     Board(const wstring& pieceChars);
 
-    shared_ptr<Piece> getPiece(const int seat);
-    shared_ptr<Piece> getOthPie(const shared_ptr<Piece> piecep);
-    vector<shared_ptr<Piece>> getLivePies();
-    const bool isBlank(const int seat);
-    const PieceColor getColor(const int seat);
-    const bool isBottomSide(const PieceColor color) { return bottomColor == color; }
-    const BoardSide getSide(const PieceColor color) { return isBottomSide(color) ? BoardSide::BOTTOM : BoardSide::TOP; }
-    vector<int> getSideNameSeats(const PieceColor color, const wchar_t name);
-    vector<int> getSideNameColSeats(const PieceColor color, const wchar_t name, const int col);
+    shared_ptr<Piece> getPiece(const int seat) const { return pieSeats[seat]; }
+    shared_ptr<Piece> getOthPie(const shared_ptr<Piece>& piecep) const;
+    vector<shared_ptr<Piece>> getLivePies() const;
+    const bool isBlank(const int seat) const;
+    const PieceColor getColor(const int seat) const;
+    const bool isBottomSide(const PieceColor color) const { return bottomColor == color; }
+    const BoardSide getSide(const PieceColor color) const { return isBottomSide(color) ? BoardSide::BOTTOM : BoardSide::TOP; }
+    vector<int> getSideNameSeats(const PieceColor color, const wchar_t name) const;
+    vector<int> getSideNameColSeats(const PieceColor color, const wchar_t name, const int col) const;
 
     void go(Move& move);
     void back(Move& move);
@@ -38,15 +37,15 @@ public:
     const bool isKilled(const PieceColor color); //判断是否将军
     const bool isDied(const PieceColor color); //判断是否被将死
 
-    const wstring getPieceChars();
+    const wstring getPieceChars() const;
     void setSeatPieces(vector<pair<int, shared_ptr<Piece>>> seatPieces);
 
-    const wstring toString();
+    const wstring toString() const;
     const wstring test();
 
     PieceColor bottomColor; // 底端棋子颜色
 private:
-    vector<int> __getSeats(vector<shared_ptr<Piece>> pies);
+    const vector<int> __getSeats(const vector<shared_ptr<Piece>>& pies) const;
     void __setPiece(shared_ptr<Piece> pie, const int tseat);
 
     shared_ptr<Pieces> pPieces; // 一副棋子类

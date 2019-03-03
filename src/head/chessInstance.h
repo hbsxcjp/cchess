@@ -41,7 +41,7 @@ public:
     void backward();
     void forwardOther();
     // 复合走法
-    const vector<shared_ptr<Move>> getPrevMoves(shared_ptr<Move> pmove);
+    const vector<shared_ptr<Move>> getPrevMoves(shared_ptr<Move> pmove) const;
     void backwardTo(shared_ptr<Move> pmove);
     void to(shared_ptr<Move> pmove);
     void toFirst();
@@ -78,20 +78,26 @@ private:
     const pair<int, int> getSeat__Zh(const wstring& Zh) const;
     // (fseat, tseat)->中文纵线着法, 着法未走状态
     const wstring getZh(const int fseat, const int tseat) const;
-    const wstring __pieceCharsToFEN(const wstring& pieceChars);
-    const wstring __fenToPieChars();    
+    const wstring __pieceCharsToFEN(const wstring& pieceChars) const;
+    const wstring __fenToPieChars(const wstring fen) const;    
     void __initSet(const RecFormat fmt);
 
     static const wstring getNumChars(const PieceColor color);
     static const string getExtName(const RecFormat fmt);
     static const RecFormat getRecFormat(const string& ext);
+    static const bool isKing(const wchar_t name);
+    static const bool isPawn(const wchar_t name);
+    static const bool isAdvBishop(const wchar_t name);
+    static const bool isStronge(const wchar_t name);
+    static const bool isLine(const wchar_t name);
+    static const bool isPiece(const wchar_t name);
     void changeSide(const ChangeType ct = ChangeType::EXCHANGE);
     
-    void writePGN(const string& filename, const RecFormat fmt = RecFormat::ZH);
-    const wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH);
-    const wstring toString_CC();
-    void writeBIN(const string& filename);
-    void writeJSON(const string& filename);
+    void writePGN(const string& filename, const RecFormat fmt = RecFormat::ZH) const;
+    const wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH) const;
+    const wstring toString_CC() const;
+    void writeBIN(const string& filename) const;
+    void writeJSON(const string& filename) const;
 
     shared_ptr<Board> pboard;
     shared_ptr<Move> prootMove;

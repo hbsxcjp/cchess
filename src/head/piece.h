@@ -1,6 +1,7 @@
 #ifndef PIECE_H
 #define PIECE_H
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -17,153 +18,112 @@ enum class PieceColor {
 class Piece {
 
 public:
-    explicit Piece(const wchar_t _char);
+    Piece(const wchar_t _ch);
 
-    const PieceColor color() { return clr; }
-    const wchar_t wchar() { return ch; }
-    const int seat() { return st; }
+    const int seat() const { return st; }
+    const wchar_t wchar() const { return ch; }
+    const PieceColor color() const { return clr; }
+    const wchar_t chName() const { return name; }
+    virtual const bool isBlank() const { return false; }
+    virtual const bool isKing() const { return false; }
+    virtual const bool isStronge() const { return false; }
+
     void setSeat(const int seat) { st = seat; }
-
-    virtual const wchar_t chName() { return L'　'; }
-    virtual const bool isBlank() { return false; }
-    virtual const bool isKing() { return false; }
-    virtual const bool isStronge() { return false; }
-
     // 棋子可置放的全部位置
-    virtual const vector<int> getSeats(const PieceColor bottomColor);
+    virtual const vector<int> getSeats(const PieceColor bottomColor) const;
     // 棋子可移动到的全部位置, 筛除本方棋子所占位置
-    virtual const vector<int> getFilterMoveSeats(Board& board);
+    virtual const vector<int> filterMoveSeats(const Board& board);
     // '获取棋子可走的位置, 不能被将军'
     const vector<int> getCanMoveSeats(Board& board);
 
-    virtual const wstring toString();
+    virtual const wstring toString() const;
     virtual ~Piece() = default;
 
 protected:
     // 棋子可移动到的全部位置
-    virtual const vector<int> __MoveSeats(Board& board);
+    virtual const vector<int> __moveSeats(const Board& board) const;
     // 筛除棋子行棋规则不允许的位置
-    virtual const vector<int> __filterMove_obstruct(Board& board,
-        const vector<pair<int, int>>& move_obs);
+    virtual const vector<int> __filterMove_obstruct(const Board& board,
+        const vector<pair<int, int>>& seat_obss) const;
 
 private:
     int st; // 在棋盘中的位置序号
-    wchar_t ch;
+    const wchar_t ch;
+    const wchar_t name;
     const PieceColor clr;
+    static map<wchar_t, wchar_t> chNames;
 };
 
 class King : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return color() == PieceColor::RED ? L'帅' : L'将'; }
-    const bool isKing() { return true; }
-    const vector<int> getSeats(const PieceColor bottomColor);
+    const bool isKing() const { return true; }
+    const vector<int> getSeats(const PieceColor bottomColor) const;
 
 private:
-    const vector<int> __MoveSeats(Board& board);
+    const vector<int> __moveSeats(const Board& board) const;
 };
 
 class Advisor : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return color() == PieceColor::RED ? L'仕' : L'士'; }
-    const vector<int> getSeats(const PieceColor bottomColor);
+    const vector<int> getSeats(const PieceColor bottomColor) const;
 
 private:
-    const vector<int> __MoveSeats(Board& board);
+    const vector<int> __moveSeats(const Board& board) const;
 };
 
 class Bishop : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return color() == PieceColor::RED ? L'相' : L'象'; }
-    const vector<int> getSeats(const PieceColor bottomColor);
+    const vector<int> getSeats(const PieceColor bottomColor) const;
 
 private:
-    const vector<int> __MoveSeats(Board& board);
+    const vector<int> __moveSeats(const Board& board) const;
 };
 
 class Knight : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return L'马'; }
-    const bool isStronge() { return true; };
+    const bool isStronge() const { return true; };
 
 private:
-    const vector<int> __MoveSeats(Board& board);
+    const vector<int> __moveSeats(const Board& board) const;
 };
 
 class Rook : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return L'车'; }
-    const bool isStronge() { return true; };
+    const bool isStronge() const { return true; };
 
 private:
-    const vector<int> __MoveSeats(Board& board);
+    const vector<int> __moveSeats(const Board& board) const;
 };
 
 class Cannon : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return L'炮'; }
-    const bool isStronge() { return true; };
+    const bool isStronge() const { return true; };
 
 private:
-    const vector<int> __MoveSeats(Board& board);
+    const vector<int> __moveSeats(const Board& board) const;
 };
 
 class Pawn : public Piece {
 public:
     using Piece::Piece;
-    const wchar_t chName() { return color() == PieceColor::RED ? L'兵' : L'卒'; }
-    const bool isStronge() { return true; }
-    const vector<int> getSeats(const PieceColor bottomColor);
+    const bool isStronge() const { return true; }
+    const vector<int> getSeats(const PieceColor bottomColor) const;
 
 private:
-    const vector<int> __MoveSeats(Board& board);
+    const vector<int> __moveSeats(const Board& board) const;
 };
 
 class NullPie : public Piece {
 public:
     using Piece::Piece;
-    const bool isBlank() { return true; }
+    const bool isBlank() const { return true; }
     //void setSeat(int seat) {} // 加此函数，反而出现不明问题。
-};
-
-// 一副棋子类
-class Pieces {
-public:
-    Pieces();
-
-    const shared_ptr<Piece> getKingPie(const PieceColor color);
-    const shared_ptr<Piece> getOthPie(const shared_ptr<Piece> pie);
-    const shared_ptr<Piece> getFreePie(const wchar_t ch);
-    //成员函数，类内声明，类外定义
-    const vector<shared_ptr<Piece>> getPies() { return piePtrs; }
-    const vector<shared_ptr<Piece>> getLivePies();
-    const vector<shared_ptr<Piece>> getLivePies(const PieceColor color);
-    const vector<shared_ptr<Piece>> getLiveStrongePies(const PieceColor color);
-    const vector<shared_ptr<Piece>> getNamePies(const PieceColor color, const wchar_t name);
-    const vector<shared_ptr<Piece>> getNameColPies(const PieceColor color, const wchar_t name, int col);
-    const vector<shared_ptr<Piece>> getEatedPies();
-    const vector<shared_ptr<Piece>> getEatedPies(const PieceColor color);
-
-    void clearSeat();
-    const wstring toString();
-    const wstring test();
-
-    // 相关特征棋子名字串
-    static const wstring kingNames;
-    static const wstring pawnNames;
-    static const wstring advbisNames;
-    static const wstring strongeNames;
-    static const wstring lineNames;
-    static const wstring allNames;
-    static const shared_ptr<Piece> nullPiePtr;
-
-private:
-    vector<shared_ptr<Piece>> piePtrs;
 };
 
 #endif

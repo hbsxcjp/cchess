@@ -12,8 +12,8 @@ class Move {
 public:
     Move();
 
-    const int fseat() { return fromseat; }
-    const int tseat() { return toseat; }
+    const int fseat() const { return fromseat; }
+    const int tseat() const { return toseat; }
     void setSeat(const int fseat, const int tseat)
     {
         fromseat = fseat;
@@ -21,16 +21,16 @@ public:
     }
     void setSeat(pair<int, int> seats) { setSeat(seats.first, seats.second); }
 
-    const shared_ptr<Piece> eatPiece() { return eatPie_ptr; }
-    shared_ptr<Move> prev() { return prev_ptr; }
-    shared_ptr<Move> next() { return next_ptr; }
-    shared_ptr<Move> other() { return other_ptr; }
+    const shared_ptr<Piece>& eatPiece() const { return eatPie_ptr; }
+    const shared_ptr<Move>& prev() const { return prev_ptr; }
+    const shared_ptr<Move>& next() const { return next_ptr; }
+    const shared_ptr<Move>& other() const { return other_ptr; }
     void setEatPiece(shared_ptr<Piece> pie) { eatPie_ptr = pie; }
     void setPrev(shared_ptr<Move> prev) { prev_ptr = prev; }
     void setNext(shared_ptr<Move> next);
     void setOther(shared_ptr<Move> other);
 
-    const wstring toString();
+    const wstring toString() const;
 
     wstring ICCS{}; // 着法数字字母描述
     wstring zh{}; // 着法中文描述
