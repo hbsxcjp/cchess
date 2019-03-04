@@ -19,17 +19,6 @@ Board::Board()
 {
 }
 
-Board::Board(const wstring& pieceChars)
-    : Board()
-{
-    shared_ptr<Piece> pp;
-    for (auto seat : allSeats)
-        if ((pp = pPieces->getFreePie(pieceChars[seat])) != Pieces::nullPiePtr)
-            __setPiece(pp, seat);
-    if (pPieces->getKingPie(PieceColor::RED)->seat() > 45)
-        bottomColor = PieceColor::BLACK;
-}
-
 shared_ptr<Piece> Board::getOthPie(const shared_ptr<Piece>& piecep) const { return pPieces->getOthPie(piecep); }
 
 vector<shared_ptr<Piece>> Board::getLivePies() const { return pPieces->getLivePies(); }
@@ -123,7 +112,17 @@ const wstring Board::getPieceChars() const
     return pieceChars;
 }
 
-void Board::setSeatPieces(vector<pair<int, shared_ptr<Piece>>> seatPieces)
+void Board::set(const wstring& pieceChars)
+{
+    shared_ptr<Piece> pp;
+    for (auto seat : allSeats)
+        if ((pp = pPieces->getFreePie(pieceChars[seat])) != Pieces::nullPiePtr)
+            __setPiece(pp, seat);
+    if (pPieces->getKingPie(PieceColor::RED)->seat() > 45)
+        bottomColor = PieceColor::BLACK;
+}
+
+void Board::set(vector<pair<int, shared_ptr<Piece>>> seatPieces)
 {
     for (auto& stPie : seatPieces)
         __setPiece(stPie.second, stPie.first);

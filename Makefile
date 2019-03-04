@@ -1,5 +1,5 @@
 objects = obj/jsoncpp.o obj/tools.o obj/board_base.o  obj/pieces.o obj/piece.o \
-            obj/board.o obj/move.o obj/chessInstance.o obj/main.o 
+            obj/board.o obj/move.o obj/chessInstance.o obj/chessInstanceIO.o obj/main.o 
 
 vpath %.h src/head src/json
 vpath %.cpp src
@@ -10,6 +10,8 @@ a.exe: $(objects)
 
 obj/main.o: main.cpp
 	gcc -c -o obj/main.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/main.cpp
+obj/chessInstanceIO.o: chessInstanceIO.cpp
+	gcc -c -o obj/chessInstanceIO.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/chessInstanceIO.cpp
 obj/chessInstance.o: chessInstance.cpp
 	gcc -c -o obj/chessInstance.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/chessInstance.cpp
 obj/move.o: move.cpp

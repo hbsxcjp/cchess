@@ -18,7 +18,6 @@ enum class BoardSide {
 class Board {
 public:
     Board();
-    Board(const wstring& pieceChars);
 
     shared_ptr<Piece> getPiece(const int seat) const { return pieSeats[seat]; }
     shared_ptr<Piece> getOthPie(const shared_ptr<Piece>& piecep) const;
@@ -38,7 +37,8 @@ public:
     const bool isDied(const PieceColor color); //判断是否被将死
 
     const wstring getPieceChars() const;
-    void setSeatPieces(vector<pair<int, shared_ptr<Piece>>> seatPieces);
+    void set(const wstring& pieceChars);
+    void set(vector<pair<int, shared_ptr<Piece>>> seatPieces);
 
     const wstring toString() const;
     const wstring test();
