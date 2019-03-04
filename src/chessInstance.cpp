@@ -1,809 +1,170 @@
 #include "chessInstance.h"
+#include "chessInstanceIO.h"
+#include "board.h"
 #include "board_base.h"
-#include <direct.h>
+#include "move.h"
+#include "piece.h"
 #include <fstream>
 #include <functional>
+#include <algorithm>
 #include <iostream>
-#include <regex>
-//#include <sstream>
-//#include <locale>
-//#include <codecvt>
-//#include <utility>
-
 using namespace std;
 using namespace Board_base;
-using namespace Json;
+
 
 // ChessInstance
 ChessInstance::ChessInstance()
+    : info{ { L"Author", L"" },
+        { L"Black", L"" },
+        { L"BlackTeam", L"" },
+        { L"Date", L"" },
+        { L"ECCO", L"" },
+        { L"Event", L"" },
+        { L"FEN", L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR r - - 0 1" },
+        { L"Format", L"ZH" },
+        { L"Game", L"Chinese Chess" },
+        { L"Opening", L"" },
+        { L"PlayType", L"" },
+        { L"RMKWriter", L"" },
+        { L"Red", L"" },
+        { L"RedTeam", L"" },
+        { L"Result", L"" },
+        { L"Round", L"" },
+        { L"Site", L"" },
+        { L"Title", L"" },
+        { L"Variation", L"" },
+        { L"Version", L"" } }
+    , pboard(make_shared<Board>())
+    , prootMove(make_shared<Move>())
+    , pcurrentMove(prootMove)
+    , firstColor(PieceColor::RED)
 {
-    rootMove = make_shared<Move>();
-    currentMove = rootMove;
-    firstColor = PieceColor::red; // 棋局载入时需要设置此属性！
 }
 
-ChessInstance::ChessInstance(string filename)
+ChessInstance::ChessInstance(const string& filename)
     : ChessInstance()
 {
-    RecFormat fmt{ getRecFormat(getExt(filename)) };
-    switch (fmt) {
-    case RecFormat::XQF:
-        __init_xqf(filename);
-        break;
-    case RecFormat::BIN:
-        __init_bin(filename);
-        break;
-    case RecFormat::JSON:
-        __init_json(filename);
-        break;
-    default:
-        __init_pgn(filename, fmt);
-        break;
-    }
-    info.setRecFormat(fmt);
-    __initSet(fmt);
+    ChessInstanceIO::read(filename, *this);
 }
 
-void ChessInstance::write(string fname, RecFormat fmt)
+inline const PieceColor ChessInstance::currentColor() const
 {
-    string filename{ fname + getExtName(fmt) };
-    switch (fmt) {
-    case RecFormat::BIN: {
-        ofstream ofs(filename, ios_base::binary);
-        info.toBin(ofs);
-        toBin(ofs);
-    } break;
-    case RecFormat::JSON: {
-        ofstream ofs(filename);
-        Json::Value root;
-        Json::StreamWriterBuilder builder;
-        std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-        info.toJson(root);
-        toJson(root);
-        writer->write(root, &ofs);
-    } break;
-    case RecFormat::ICCS:
-    case RecFormat::ZH:
-    case RecFormat::CC:
-        writeTxt(filename, info.toString(fmt) + L"》" + toString(fmt));
-        break;
-    default:
-        break;
-    }
-}
-
-void ChessInstance::__init_xqf(string filename)
-{
-    ifstream ifs(filename, ios_base::binary);
-    vector<int> Keys(4, 0);
-    vector<int> F32Keys(32, 0);
-    info = Info(ifs, Keys, F32Keys);
-    board = Board(info);
-    fromXQF(ifs, Keys, F32Keys);
-}
-
-void ChessInstance::__init_pgn(string filename, RecFormat fmt)
-{
-    wstring pgnTxt{ readTxt(filename) };
-    auto pos = pgnTxt.find(L"》");
-    wstring moveStr{ pos < pgnTxt.size() ? pgnTxt.substr(pos) : L"" };
-    info = Info(pgnTxt.substr(0, pos));
-    board = Board(info);
-    if (fmt == RecFormat::CC)
-        fromCC(moveStr);
-    else
-        fromICCSZH(moveStr, fmt);
-}
-
-void ChessInstance::__init_bin(string filename)
-{
-    ifstream ifs(filename, ios_base::binary);
-    info = Info(ifs);
-    board = Board(info);
-    fromBIN(ifs);
-}
-
-void ChessInstance::__init_json(string filename)
-{
-    ifstream ifs(filename);
-    Json::CharReaderBuilder builder;
-    Json::Value root;
-    JSONCPP_STRING errs;
-    if (!parseFromStream(builder, ifs, &root, &errs))
-        return;
-    info = Info(root["info"]);
-    board = Board(info);
-    fromJSON(root["moves"]);
-}
-
-inline PieceColor ChessInstance::currentColor()
-{
-    return currentMove->stepNo % 2 == 0
+    return pcurrentMove->stepNo % 2 == 0
         ? firstColor
-        : (firstColor == PieceColor::red ? PieceColor::black
-                                         : PieceColor::red);
+        : (firstColor == PieceColor::RED ? PieceColor::BLACK
+                                         : PieceColor::RED);
 }
 
-inline vector<shared_ptr<Move>> ChessInstance::getPrevMoves(shared_ptr<Move> move)
-{
-    vector<shared_ptr<Move>> res{ move };
-    while (!move->prev())
-        res.push_back(move->prev());
-    std::reverse(res.begin(), res.end());
-    return res;
-}
+inline const bool ChessInstance::isStart() const { return bool(pcurrentMove->prev()); }
+
+inline const bool ChessInstance::isLast() const { return bool(pcurrentMove->next()); }
 
 // 基本走法
 void ChessInstance::forward()
 {
-    if (currentMove->next()) {
-        currentMove = currentMove->next();
-        board.go(*currentMove);
+    if (!isLast()) {
+        pcurrentMove = pcurrentMove->next();
+        pboard->go(*pcurrentMove);
     }
 }
 
 void ChessInstance::backward()
 {
-    if (currentMove->prev()) {
-        board.back(*currentMove);
-        currentMove = currentMove->prev();
+    if (!isStart()) {
+        pboard->back(*pcurrentMove);
+        pcurrentMove = pcurrentMove->prev();
     }
 }
 
 //'移动到当前节点的另一变着'
 void ChessInstance::forwardOther()
 {
-    if (currentMove->other()) {
-        shared_ptr<Move> toMove = currentMove->other();
-        board.back(*currentMove);
-        board.go(*toMove);
-        currentMove = toMove;
+    if (pcurrentMove->other()) {
+        auto toMove = pcurrentMove->other();
+        pboard->back(*pcurrentMove);
+        pboard->go(*toMove);
+        pcurrentMove = toMove;
     }
 }
 
 // 复合走法
-void ChessInstance::backwardTo(shared_ptr<Move> move)
+const vector<shared_ptr<Move>> ChessInstance::getPrevMoves(shared_ptr<Move> pmove) const
 {
-    while (move != currentMove) {
-        board.back(*move);
-        move = move->prev();
+    vector<shared_ptr<Move>> pmv{ pmove };
+    while (!pmove->prev()) {
+        pmove = pmove->prev();
+        pmv.push_back(pmove);
+    }
+    std::reverse(pmv.begin(), pmv.end());
+    return pmv;
+}
+
+void ChessInstance::backwardTo(shared_ptr<Move> pmove)
+{
+    while (!isStart() && pmove != pcurrentMove) {
+        backward();
+        pmove = pmove->prev();
     }
 }
 
-void ChessInstance::to(shared_ptr<Move> move)
+void ChessInstance::to(shared_ptr<Move> pmove)
 {
-    if (move == currentMove)
+    if (pmove == pcurrentMove)
         return;
     toFirst();
-    for (auto& m : getPrevMoves(move))
-        board.go(*m);
-    currentMove = move;
+    for (auto& pm : getPrevMoves(pmove))
+        pboard->go(*pm);
+    pcurrentMove = pmove;
 }
 
-inline void ChessInstance::toFirst()
+void ChessInstance::toFirst()
 {
     while (!isStart())
         backward();
 }
 
-inline void ChessInstance::toLast()
+void ChessInstance::toLast()
 {
     while (!isLast())
         forward();
 }
 
-inline void ChessInstance::go(int inc = 1)
+void ChessInstance::go(const int inc)
 {
-    if (inc > 0)
-        for (int i = 0; i != inc; ++i)
-            forward();
-    else
-        for (int i = inc; i != 0; ++i)
-            backward();
+    //function<void(const ChessInstance*)> fward = inc > 0 ? &ChessInstance::forward : &ChessInstance::backward;//未成功!
+    auto fward = mem_fn(inc > 0 ? &ChessInstance::forward : &ChessInstance::backward);
+    for (int i = abs(inc); i != 0; --i)
+        fward(this);
 }
 
-inline void ChessInstance::cutNext() { currentMove->setNext(nullptr); }
+void ChessInstance::cutNext() { pcurrentMove->setNext(nullptr); }
 
-inline void ChessInstance::cutOther()
+void ChessInstance::cutOther()
 {
-    if (currentMove->other())
-        currentMove->setOther(currentMove->other()->other());
+    if (pcurrentMove->other())
+        pcurrentMove->setOther(pcurrentMove->other()->other());
 }
 
-const wstring ChessInstance::getICCS(int fseat, int tseat)
+void ChessInstance::setBoard(const wstring& pieceChars) { pboard->set(pieceChars); }
+
+const wstring ChessInstance::getFEN()
 {
-    wstringstream wss{};
-    wss << ColChars[getCol(fseat)] << getRow(fseat) << ColChars[getCol(tseat)] << getRow(tseat);
-    return wss.str();
+    wstring rfen{ info[L"FEN"] };
+    return rfen.substr(0, rfen.find(L' '));
 }
 
-//(fseat, tseat)->中文纵线着法
-const wstring ChessInstance::getZh(int fseat, int tseat)
+void ChessInstance::changeSide(const ChangeType ct) // 未测试
 {
-    wstringstream wss{};
-    int fromRow{ getRow(fseat) }, fromCol{ getCol(fseat) };
-    Piece* fromPiece{ board.getPiece(fseat) };
-    PieceColor color{ fromPiece->color() };
-    wchar_t name{ fromPiece->chName() };
-    bool isBottomSide{ board.isBottomSide(color) };
-    vector<int> seats{ board.getSideNameColSeats(color, name, fromCol) };
-    int length{ static_cast<int>(seats.size()) };
-    auto __getChar = [&](int col) {
-        return getNumChar(color, isBottomSide ? MaxCol - col : col);
-    };
-
-    if (length > 1 && find_char(Pieces::strongeNames, name)) {
-        if (find_char(Pieces::pawnNames, name)) {
-            seats = sortPawnSeats(isBottomSide,
-                board.getSideNameSeats(color, name));
-            length = seats.size();
-        } else if (isBottomSide) //# '车', '马', '炮'
-            reverse(seats.begin(), seats.end());
-        wstring indexStr{ length == 2 ? L"前后" : (length == 3 ? L"前中后" : L"一二三四五") };
-        wss << indexStr[find_index(seats, fseat)] << name;
-    } else
-        //#仕(士)和相(象)不用“前”和“后”区别，因为能退的一定在前，能进的一定在后
-        wss << name << __getChar(fromCol);
-
-    int toRow{ getRow(tseat) };
-    //wcout << (toRow == fromRow ? L'平' : (isBottomSide == (toRow > fromRow) ? L'进' : L'退')) << endl;
-
-    wss << (toRow == fromRow ? L'平' : (isBottomSide == (toRow > fromRow) ? L'进' : L'退'))
-        << (find_char(Pieces::lineNames, name) && toRow != fromRow
-                   ? getNumChar(color, toRow > fromRow ? toRow - fromRow - 1 : fromRow - toRow - 1)
-                   : __getChar(getCol(tseat)));
-    return wss.str();
-}
-
-const pair<int, int> ChessInstance::getSeat__ICCS(wstring ICCS)
-{
-    string iccs{ ws2s(ICCS) };
-    return make_pair(getSeat(iccs[1] - 48, iccs[0] - 97), getSeat(iccs[3] - 48, iccs[2] - 97));
-}
-
-//中文纵线着法->(fseat, tseat)
-const pair<int, int> ChessInstance::getSeat__Zh(wstring zhStr)
-{
-    int index, fseat, tseat;
-    vector<int> seats{};
-    // 根据最后一个字符判断该着法属于哪一方
-    PieceColor color{ find_char(getNumChars(PieceColor::red), zhStr.back())
-            ? PieceColor::red
-            : PieceColor::black };
-    bool isBottomSide = board.isBottomSide(color);
-    wchar_t name{ zhStr[0] };
-    auto __getNum = [&](wchar_t ch) {
-        return static_cast<int>(getNumChars(color).find(ch)) + 1;
-    };
-    auto __getCol = [&](int num) { return isBottomSide ? ColNum - num : num - 1; };
-    if (find_char(Pieces::allNames, name)) {
-        seats = board.getSideNameColSeats(color, name, __getCol(__getNum(zhStr[1])));
-
-        if (seats.size() < 1)
-            wcout << L"棋子列表少于1个:" << zhStr << L' ' << static_cast<int>(color) << name
-                  << __getCol(__getNum(zhStr[1])) << L' ' << L'\n' << board.toString() << endl;
-
-        //# 排除：士、象同列时不分前后，以进、退区分棋子
-        index = (seats.size() == 2 && find_char(Pieces::advbisNames, name)
-                    && (zhStr[2] == L'退') == isBottomSide)
-            ? seats.size() - 1
-            : 0;
-    } else {
-        //# 未获得棋子, 查找某个排序（前后中一二三四五）某方某个名称棋子
-        index = getIndex(zhStr[0]);
-        name = zhStr[1];
-        seats = board.getSideNameSeats(color, name);
-
-        if (seats.size() < 2)
-            wcout << L"棋子列表少于2个:" << zhStr << L' ' << name << L' ' << board.toString();
-
-        if (find_char(Pieces::pawnNames, name)) {
-            seats = sortPawnSeats(isBottomSide, seats);
-            //#获取多兵的列
-            if (seats.size() == 3 && zhStr[0] == L'后')
-                index += 1;
-        } else {
-            if (isBottomSide) //# 修正index
-                index = seats.size() - index - 1;
-        }
-    }
-    fseat = seats[index];
-
-    // '根据中文行走方向取得棋子的内部数据方向（进：1，退：-1，平：0）'
-    int movDir{ getIndex(zhStr[2]) * (isBottomSide ? 1 : -1) },
-        num{ __getNum(zhStr[3]) }, toCol{ __getCol(num) };
-    if (find_char(Pieces::lineNames, name)) {
-        //#'获取直线走子toseat'
-        int row = getRow(fseat);
-        tseat = (movDir == 0) ? getSeat(row, toCol)
-                              : (getSeat(row + movDir * num, getCol(fseat)));
-    } else {
-        //#'获取斜线走子：仕、相、马toseat'
-        int step = toCol - getCol(fseat); //  # 相距1或2列
-        if (step < 0)
-            step *= -1;
-        int inc = find_char(Pieces::advbisNames, name)
-            ? step
-            : (step == 1 ? 2 : 1);
-        tseat = getSeat(getRow(fseat) + movDir * inc, toCol);
-    }
-    return make_pair(fseat, tseat);
-}
-
-void ChessInstance::fromICCSZH(wstring moveStr, RecFormat fmt)
-{
-    wstring preStr{ LR"((?:\d+\.)?\s*\b([)" };
-    wstring mvStr{ fmt == RecFormat::ZH ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
-                                        : LR"(abcdefghi\d)" };
-    //# 走棋信息 (?:pattern)匹配pattern,但不获取匹配结果;  注解[\s\S]*?: 非贪婪
-    wstring lastStr{ LR"(]{4}\b)(?:\s+\{([\s\S]*?)\})?)" };
-    wregex moveReg{ preStr + mvStr + lastStr };
-
-    auto setMoves = [&](shared_ptr<Move> move, wstring mvstr, bool isOther) { //# 非递归
-        for (wsregex_iterator p(mvstr.begin(), mvstr.end(), moveReg);
-             p != wsregex_iterator{}; ++p) {
-            auto newMove = make_shared<Move>();
-            if (fmt == RecFormat::ZH)
-                newMove->zh = (*p)[1];
-            else
-                newMove->ICCS = (*p)[1];
-            wstring rem{ (*p)[2] };
-            if (rem.size() > 0)
-                newMove->remark = rem;
-            if (isOther) { // # 第一步为变着
-                move->setOther(newMove);
-                isOther = false;
-            } else
-                move->setNext(newMove);
-            move = newMove;
-        }
-        return move;
-    };
-
-    shared_ptr<Move> move;
-    vector<shared_ptr<Move>> othMoves{ rootMove };
-    wregex rempat{ LR"(\{([\s\S]*?)\}\s*1\.\s+)" }, spleft{ LR"(\(\d+\.\B)" }, spright{ LR"(\s+\)\B)" }; //\B:符号与空白之间为非边界
-    wsregex_token_iterator wtleft{ moveStr.begin(), moveStr.end(), spleft, -1 }, end{};
-    wsmatch res;
-    if (regex_search((*wtleft).first, (*wtleft).second, res, rempat))
-        rootMove->remark = res.str(1);
-    bool isOther{ false }; // 首次非变着
-    for (; wtleft != end; ++wtleft) {
-        //wcout << *wtleft << L"\n---------------------------------------------\n" << endl;
-        wsregex_token_iterator wtright{ (*wtleft).first, (*wtleft).second, spright, -1 };
-        for (; wtright != end; ++wtright) {
-            //wcout << *wtright << L"\n---------------------------------------------\n" << endl;
-            move = setMoves(othMoves.back(), *wtright, isOther);
-            if (!isOther)
-                othMoves.pop_back();
-            isOther = false;
-        }
-        othMoves.push_back(move);
-        isOther = true;
-    }
-}
-
-void ChessInstance::fromCC(wstring fullMoveStr)
-{
-    auto pos = fullMoveStr.find(L"\n(");
-    wstring moveStr{ fullMoveStr.substr(0, pos) }, remStr{ pos < fullMoveStr.size() ? fullMoveStr.substr(pos) : L"" };
-    wregex spfat{ LR"(\n)" }, mstrfat{ LR"(.{5})" },
-        movefat{ LR"(([^…　]{4}[…　]))" }, remfat{ LR"(\(\s*(\d+,\d+)\): \{([\s\S]*?)\})" };
-    int row{ 0 };
-    vector<vector<wstring>> movv{};
-    wsregex_token_iterator msp{ moveStr.begin(), moveStr.end(), spfat, -1 }, end{};
-    for (; msp != end; ++msp)
-        if (row++ % 2 == 0) {
-            vector<wstring> linev{};
-            for (wsregex_token_iterator mp{ (*msp).first, (*msp).second, mstrfat, 0 }; mp != end; ++mp)
-                linev.push_back(*mp);
-            movv.push_back(linev);
-        }
-    map<wstring, wstring> remm{};
-    if (remStr.size() > 0)
-        for (wsregex_iterator rp{ remStr.begin(), remStr.end(), remfat }; rp != wsregex_iterator{}; ++rp)
-            remm[(*rp)[1]] = (*rp)[2];
-
-    auto __setRem = [&](Move& move, int row, int col) {
-        wstring key{ to_wstring(row) + L',' + to_wstring(col) };
-        if (remm.find(key) != remm.end())
-            move.remark = remm[key];
-    };
-    function<void(Move&, int, int, bool)> __read = [&](Move& move, int row, int col, bool isOther) {
-        wstring zhStr{ movv[row][col] };
-        if (regex_match(zhStr, movefat)) {
-            auto newMove = make_shared<Move>();
-            newMove->zh = zhStr.substr(0, 4);
-            __setRem(*newMove, row, col);
-            if (isOther)
-                move.setOther(newMove);
-            else
-                move.setNext(newMove);
-            if (zhStr.back() == L'…')
-                __read(*newMove, row, col + 1, true);
-            if (int(movv.size()) - 1 > row)
-                __read(*newMove, row + 1, col, false);
-        } else if (isOther) {
-            while (movv[row][col][0] == L'…')
-                ++col;
-            __read(move, row, col, true);
-        }
-    };
-
-    __setRem(*rootMove, 0, 0);
-    if (int(movv.size()) > 0)
-        __read(*rootMove, 1, 0, false);
-}
-
-void ChessInstance::fromBIN(istream& is)
-{
-    function<void(Move&)> __read = [&](Move& move) {
-        char fseat{}, tseat{}, hasNext{}, hasOther{};
-        is.get(fseat).get(tseat).get(hasNext).get(hasOther);
-        move.setSeat(fseat, tseat);
-
-        char len[sizeof(int)]{};
-        is.read(len, sizeof(int));
-        int length{ *(int*)len };
-        if (length > 0) {
-            char rem[length + 1]{};
-            is.read(rem, length);
-            move.remark = s2ws(rem);
-        }
-
-        if (hasNext) { //# 有左子树
-            move.setNext(make_shared<Move>());
-            __read(*move.next());
-        }
-        if (hasOther) { // # 有右子树
-            move.setOther(make_shared<Move>());
-            __read(*move.other());
-        }
-    };
-
-    __read(*rootMove);
-}
-
-void ChessInstance::fromJSON(Json::Value& rootItem)
-{
-    function<void(Move&, Json::Value&)> __read = [&](Move& move, Json::Value& item) {
-        int fseat{ item["f"].asInt() }, tseat{ item["t"].asInt() };
-        move.setSeat(fseat, tseat);
-        if (item.isMember("r"))
-            move.remark = s2ws(item["r"].asString());
-        if (item.isMember("n")) { //# 有左子树
-            move.setNext(make_shared<Move>());
-            __read(*move.next(), item["n"]);
-        }
-        if (item.isMember("o")) { // # 有右子树
-            move.setOther(make_shared<Move>());
-            __read(*move.other(), item["o"]);
-        }
-    };
-
-    if (!rootItem.isNull())
-        __read(*rootMove, rootItem);
-}
-
-void ChessInstance::fromXQF(istream& is, vector<int>& Keys, vector<int>& F32Keys)
-{
-    int version{ Keys[0] }, KeyXYf{ Keys[1] }, KeyXYt{ Keys[2] }, KeyRMKSize{ Keys[3] };
-    function<void(Move&)> __read = [&](Move& move) {
-        auto __byteToSeat = [&](int a, int b) {
-            int xy = __subbyte(a, b);
-            return getSeat(xy % 10, xy / 10);
-        };
-        auto __readbytes = [&](char* byteStr, int size) {
-            int pos = is.tellg();
-            is.read(byteStr, size);
-            if (version > 10) // '字节串解密'
-                for (int i = 0; i != size; ++i)
-                    byteStr[i] = __subbyte((unsigned char)(byteStr[i]), F32Keys[(pos + i) % 32]);
-        };
-        auto __readremarksize = [&]() {
-            char byteSize[4]{}; // 一定要初始化:{}
-            __readbytes(byteSize, 4);
-            int size{ *(int*)(unsigned char*)byteSize };
-            return size - KeyRMKSize;
-        };
-
-        char data[4]{};
-        __readbytes(data, 4);
-        //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
-        move.setSeat(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
-        char ChildTag = data[2];
-        int RemarkSize = 0;
-        if (version <= 0x0A) {
-            char b = 0;
-            if (ChildTag & 0xF0)
-                b = b | 0x80;
-            if (ChildTag & 0x0F)
-                b = b | 0x40;
-            ChildTag = b;
-            RemarkSize = __readremarksize();
-        } else {
-            ChildTag = ChildTag & 0xE0;
-            if (ChildTag & 0x20)
-                RemarkSize = __readremarksize();
-        }
-        if (RemarkSize > 0) { // # 如果有注解
-            char rem[RemarkSize + 1]{};
-            __readbytes(rem, RemarkSize);
-            move.remark = s2ws(rem);
-        }
-
-        if (ChildTag & 0x80) { //# 有左子树
-            move.setNext(make_shared<Move>());
-            __read(*move.next());
-        }
-        if (ChildTag & 0x40) { // # 有右子树
-            move.setOther(make_shared<Move>());
-            __read(*move.other());
-        }
-    };
-
-    //is.seekg(1024);
-    __read(*rootMove);
-}
-
-// （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
-void ChessInstance::__initSet(RecFormat fmt)
-{
-    auto __setRem = [&](Move& move) {
-        int length = move.remark.size();
-        if (length > 0) {
-            remCount += 1;
-            if (length > remLenMax)
-                remLenMax = length;
-        }
-    };
-
-    function<void(Move&)> __set = [&](Move& move) {
-        switch (fmt) {
-        case RecFormat::ICCS: {
-            move.setSeat(getSeat__ICCS(move.ICCS));
-            move.zh = getZh(move.fseat(), move.tseat());
-            break;
-        }
-        case RecFormat::ZH:
-        case RecFormat::CC: {
-            move.setSeat(getSeat__Zh(move.zh));
-            move.ICCS = getICCS(move.fseat(), move.tseat());
-            /*
-            wstring zh{ getZh(move.fseat(), move.tseat()) };
-            // wcout << move.toString_zh() << L'\n';
-            if (move.zh != zh) {
-                wcout << L"move.zh: " << move.zh << L'\n'
-                      << L"getZh( ): " << zh << L'\n'
-                      << move.toString() << L'\n' << board.toString() << endl;
-                return;
-            } //*/
-            break;
-        }
-        case RecFormat::XQF:
-        case RecFormat::BIN:
-        case RecFormat::JSON: {
-            move.ICCS = getICCS(move.fseat(), move.tseat());
-            move.zh = getZh(move.fseat(), move.tseat());
-            /*
-            auto seats = getSeat__Zh(move.zh);
-            // wcout << move.toString() << L'\n';
-            if ((seats.first != move.fseat()) || (seats.second != move.tseat())) {
-                wcout << L"move.fs_ts: " << move.fseat() << L' ' << move.tseat() << L'\n'
-                      << L"getSeat__Zh( ): " << move.zh << L'\n'
-                      << move.toString() << L'\n' << board.toString() << endl;
-                return;
-            } //*/
-            break;
-        }
-        default:
-            break;
-        }
-
-        movCount += 1;
-        __setRem(move);
-        move.maxCol = maxCol; // # 本着在视图中的列数
-        if (move.othCol > othCol)
-            othCol = move.othCol;
-        if (move.stepNo > maxRow)
-            maxRow = move.stepNo;
-        board.go(move);
-        //wcout << move.toString() << L"\n" << board.toString() << endl;
-        if (move.next())
-            __set(*move.next());
-        board.back(move);
-        if (move.other()) {
-            maxCol += 1;
-            __set(*move.other());
-        }
-    };
-
-    __setRem(*rootMove);
-    if (rootMove->next())
-        __set(*rootMove->next()); // 驱动函数
-}
-
-void ChessInstance::toBin(ostream& os)
-{
-    function<void(Move&)> __write = [&](Move& move) {
-        os.put(char(move.fseat())).put(char(move.tseat()));
-        os.put(char(move.next() ? true : false)).put(char(move.other() ? true : false));
-
-        string remark{ ws2s(move.remark) };
-        int len{ int(remark.size()) };
-        os.write((char*)&len, sizeof(int));
-        if (len > 0)
-            os.write(remark.c_str(), len);
-
-        if (move.next())
-            __write(*move.next());
-        if (move.other())
-            __write(*move.other());
-    };
-
-    __write(*rootMove);
-}
-
-void ChessInstance::toJson(Json::Value& root)
-{
-    function<void(Move&, Json::Value&)> __write = [&](Move& move, Json::Value& item) {
-        item["f"] = move.fseat();
-        item["t"] = move.tseat();
-        if (move.remark.size() > 0)
-            item["r"] = ws2s(move.remark);
-        if (move.next()) {
-            Json::Value newItem{};
-            __write(*move.next(), newItem);
-            item["n"] = newItem;
-        }
-        if (move.other()) {
-            Json::Value newItem{};
-            __write(*move.other(), newItem);
-            item["o"] = newItem;
-        }
-    };
-
-    Json::Value rootItem{};
-    __write(*rootMove, rootItem);
-    root["moves"] = rootItem;
-}
-
-wstring ChessInstance::toString(RecFormat fmt)
-{
-    if (fmt == RecFormat::CC)
-        return toString_CC();
-    else
-        return toString_ICCSZH(fmt);
-}
-
-wstring ChessInstance::toString_ICCSZH(RecFormat fmt)
-{
-    wstringstream wss{};
-    function<void(Move&)> __remark = [&](Move& move) {
-        if (move.remark.size() > 0)
-            wss << L"\n{" << move.remark << L"}\n";
-    };
-
-    __remark(*rootMove);
-    function<void(Move&, bool)> __moveStr = [&](Move& move, bool isOther) {
-        int boutNum{ (move.stepNo + 1) / 2 };
-        bool isEven{ move.stepNo % 2 == 0 };
-        if (isOther)
-            wss << L"(" << boutNum << L". " << (isEven ? L"... " : L"");
-        else if (isEven)
-            wss << L" ";
-        else
-            wss << boutNum << L". ";
-        wss << (fmt == RecFormat::ZH ? move.zh : move.ICCS) << L' ';
-        __remark(move);
-        if (move.other()) {
-            __moveStr(*move.other(), true);
-            wss << L") ";
-        }
-        if (move.next())
-            __moveStr(*move.next(), false);
-    };
-
-    // 驱动调用函数
-    if (rootMove->next())
-        __moveStr(*rootMove->next(), false);
-    return wss.str();
-}
-
-wstring ChessInstance::toString_CC()
-{
-    wstringstream remstrs{};
-    wstring lstr((maxCol + 1) * 5, L'　');
-    vector<wstring> lineStr((maxRow + 1) * 2, lstr);
-    function<void(Move&)> __setChar = [&](Move& move) {
-        int firstcol = move.maxCol * 5;
-        for (int i = 0; i < 4; ++i)
-            lineStr[move.stepNo * 2][firstcol + i] = move.zh[i];
-        if (move.remark.size() > 0)
-            remstrs << L"(" << move.stepNo << L"," << move.maxCol << L"): {"
-                    << move.remark << L"}\n";
-        if (move.next()) {
-            lineStr[move.stepNo * 2 + 1][firstcol + 2] = L'↓';
-            __setChar(*move.next());
-        }
-        if (move.other()) {
-            int linel = move.other()->maxCol * 5;
-            for (int i = firstcol + 4; i < linel; ++i)
-                lineStr[move.stepNo * 2][i] = L'…';
-            __setChar(*move.other());
-        }
-    };
-
-    __setChar(*rootMove);
-    wstringstream wss{};
-    lineStr[0][0] = L'开';
-    lineStr[0][1] = L'始';
-    for (auto line : lineStr)
-        wss << line << L'\n';
-    wss << remstrs.str();
-    wss << L"【着法深度：" << maxRow << L", 变着广度：" << othCol
-        << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
-        << L", 注解数量：" << remCount << L", 注解最长：" << remLenMax << L"】\n";
-    return wss.str();
-}
-
-void ChessInstance::transDir(string dirfrom, RecFormat fmt)
-{
-    int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
-    string extensions{ ".xqf.pgn1.pgn2.pgn3.bin.json" };
-    string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + getExtName(fmt) };
-    function<void(string, string)> __trans = [&](string dirfrom, string dirto) {
-        long hFile = 0; //文件句柄
-        struct _finddata_t fileinfo; //文件信息
-        if (access(dirto.c_str(), 0) != 0)
-            mkdir(dirto.c_str());
-        if ((hFile = _findfirst((dirfrom + "/*").c_str(), &fileinfo)) != -1) {
-            do {
-                string fname{ fileinfo.name };
-                if (fileinfo.attrib & _A_SUBDIR) { //如果是目录,迭代之
-                    if (fname != "." && fname != "..") {
-                        dcount += 1;
-                        __trans(dirfrom + "/" + fname, dirto + "/" + fname);
-                    }
-                } else { //如果是文件,执行转换
-                    string filename{ dirfrom + "/" + fname };
-                    string fileto{ dirto + "/" + fname.substr(0, fname.rfind('.')) };
-                    string ext_old{ getExt(fname) };
-                    if (extensions.find(ext_old) != string::npos) {
-                        fcount += 1;
-                        //cout << filename << endl;
-                        ChessInstance ci(filename);
-                        ci.write(fileto, fmt);
-                        movcount += ci.movCount;
-                        remcount += ci.remCount;
-                        if (ci.remLenMax > remlenmax)
-                            remlenmax = ci.remLenMax;
-                    } else
-                        copyFile(filename.c_str(), (fileto + ext_old).c_str());
-                }
-            } while (_findnext(hFile, &fileinfo) == 0);
-            _findclose(hFile);
-        }
-    };
-
-    __trans(dirfrom, dirto);
-    cout << dirfrom + " =>" << getExtName(fmt) << ": 转换" << fcount << "个文件, "
-         << dcount << "个目录成功！\n   着法数量: "
-         << movcount << ", 注释数量: " << remcount << ", 最大注释长度: " << remlenmax << endl;
-}
-
-void ChessInstance::changeSide(ChangeType ct) // 未测试
-{
-    auto curmove = currentMove;
+    auto curmove = pcurrentMove;
     toFirst();
-    vector<pair<int, Piece*>> seatPieces{};
-    if (ct == ChangeType::exchange) {
-        firstColor = firstColor == PieceColor::red ? PieceColor::black : PieceColor::red;
-        for (auto& piecep : board.getLivePies())
-            seatPieces.push_back(make_pair((*piecep).seat(), board.getOthPie(piecep)));
+    vector<pair<int, shared_ptr<Piece>>> seatPieces{};
+    if (ct == ChangeType::EXCHANGE) {
+        firstColor = firstColor == PieceColor::RED ? PieceColor::BLACK : PieceColor::RED;
+        for (auto& piecep : pboard->getLivePies())
+            seatPieces.push_back(make_pair((*piecep).seat(), pboard->getOthPie(piecep)));
     } else {
         function<void(Move&)> __seat = [&](Move& move) {
-            if (ct == ChangeType::rotate)
+            if (ct == ChangeType::ROTATE)
                 move.setSeat(rotateSeat(move.fseat()), rotateSeat(move.tseat()));
             else
                 move.setSeat(symmetrySeat(move.fseat()), symmetrySeat(move.tseat()));
@@ -812,33 +173,15 @@ void ChessInstance::changeSide(ChangeType ct) // 未测试
             if (move.other())
                 __seat(*move.other());
         };
-        if (rootMove->next())
-            __seat(*rootMove->next()); // 驱动调用递归函数
-        for (auto& piecep : board.getLivePies()) {
+        if (prootMove->next())
+            __seat(*prootMove->next()); // 驱动调用递归函数
+        for (auto& piecep : pboard->getLivePies()) {
             auto seat = (*piecep).seat();
-            seatPieces.push_back(make_pair(ct == ChangeType::rotate ? rotateSeat(seat) : symmetrySeat(seat), piecep));
+            seatPieces.push_back(make_pair(ct == ChangeType::ROTATE ? rotateSeat(seat) : symmetrySeat(seat), piecep));
         }
     }
-    board.setSeatPieces(seatPieces);
-    if (ct != ChangeType::rotate)
-        __initSet(RecFormat::BIN); //借用？
+    pboard->set(seatPieces);
+    if (ct != ChangeType::ROTATE)
+        ChessInstanceIO::__initSet(*this, RecFormat::BIN); //借用？
     to(curmove);
-}
-
-void ChessInstance::testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
-{
-    vector<string> dirfroms{
-        "c:\\棋谱\\示例文件",
-        "c:\\棋谱\\象棋杀着大全",
-        "c:\\棋谱\\疑难文件",
-        "c:\\棋谱\\中国象棋棋谱大全"
-    };
-    vector<RecFormat> fmts{ RecFormat::XQF, RecFormat::ICCS, RecFormat::ZH, RecFormat::CC,
-        RecFormat::BIN, RecFormat::JSON };
-    // 调节三个循环变量的初值、终值，控制转换目录
-    for (int dir = fd; dir != td; ++dir)
-        for (int fIndex = ff; fIndex != ft; ++fIndex)
-            for (int tIndex = tf; tIndex != tt; ++tIndex)
-                if (tIndex != fIndex)
-                    transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
 }

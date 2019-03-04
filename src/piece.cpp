@@ -1,18 +1,47 @@
-//#include "piece.h"
+#include "piece.h"
 #include "board.h"
+#include "board_base.h"
 
-#include <sstream>
-#include <iomanip>
 #include <algorithm>
+#include <iomanip>
 #include <iterator>
+#include <sstream>
 using namespace std;
+using namespace Board_base;
 
+map<wchar_t, wchar_t> Piece::chNames{
+    { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
+    { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
+    { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
+    { L'P', L'兵' }, { L'p', L'卒' }
+};
 
-vector<int> Piece::getCanMoveSeats(Board& board)
+Piece::Piece(const wchar_t _ch)
+    : st{ Board_base::nullSeat }
+    , ch{ _ch }
+    , name{ Piece::chNames[_ch] }
+    , clr{ isalpha(_ch)
+            ? (islower(_ch) ? PieceColor::BLACK : PieceColor::RED)
+            : PieceColor::BLANK }
+{
+}
+
+inline const vector<int> Piece::getSeats(const PieceColor bottomColor) const { return allSeats; }
+
+const vector<int> Piece::filterMoveSeats(const Board& board)
+{
+    vector<int> res{ __moveSeats(board) };
+    auto p = remove_if(res.begin(), res.end(), [&](const int seat) {
+        return board.getColor(seat) == color();
+    });
+    return (vector<int>{ res.begin(), p });
+}
+
+const vector<int> Piece::getCanMoveSeats(Board& board)
 {
     vector<int> res{};
     auto fseat = seat();
-    for (auto tseat : getFilterMoveSeats(board)) {
+    for (auto tseat : filterMoveSeats(board)) {
         auto eatPiece = board.move_go(fseat, tseat);
         // 移动棋子后，检测是否会被对方将军
         if (!board.isKilled(color()))
@@ -22,30 +51,36 @@ vector<int> Piece::getCanMoveSeats(Board& board)
     return res;
 }
 
-vector<int> Piece::getFilterMoveSeats(Board& board)
-{
-    vector<int> res{ __MoveSeats(board) };
-    auto p = remove_if(res.begin(), res.end(), [&](int seat) {
-        return board.getColor(seat) == color();
-    });
-    return (vector<int>{ res.begin(), p });
-}
+inline const vector<int> Piece::__moveSeats(const Board& board) const { return allSeats; }
 
-vector<int> Piece::__filterMove_obstruct(Board& board,
-    const vector<pair<int, int>>& move_obs)
+const vector<int> Piece::__filterMove_obstruct(const Board& board,
+    const vector<pair<int, int>>& seat_obss) const
 {
     vector<int> res{};
-    for (auto st_c : move_obs)
-        if (board.isBlank(st_c.second))
-            res.push_back(st_c.first);
+    for (auto& seat_obs : seat_obss)
+        if (board.isBlank(seat_obs.second))
+            res.push_back(seat_obs.first);
     return res;
 }
 
-vector<int> Rook::__MoveSeats(Board& board)
+inline const vector<int> King::getSeats(const PieceColor bottomColor) const { return color() == bottomColor ? bottomKingSeats : topKingSeats; }
+
+inline const vector<int> King::__moveSeats(const Board& board) const { return getKingMoveSeats(seat()); }
+
+inline const vector<int> Advisor::getSeats(const PieceColor bottomColor) const { return color() == bottomColor ? bottomAdvisorSeats : topAdvisorSeats; }
+
+inline const vector<int> Advisor::__moveSeats(const Board& board) const { return getAdvisorMoveSeats(seat()); }
+
+inline const vector<int> Bishop::getSeats(const PieceColor bottomColor) const { return color() == bottomColor ? bottomBishopSeats : topBishopSeats; }
+
+inline const vector<int> Bishop::__moveSeats(const Board& board) const { return __filterMove_obstruct(board, getBishopMove_CenSeats(seat())); }
+
+inline const vector<int> Knight::__moveSeats(const Board& board) const { return __filterMove_obstruct(board, getKnightMove_LegSeats((seat()))); }
+
+const vector<int> Rook::__moveSeats(const Board& board) const
 {
     vector<int> res{};
-    auto seatLines = getRookCannonMoveSeat_Lines(seat());
-    for (auto seatLine : seatLines)
+    for (auto seatLine : getRookCannonMoveSeat_Lines(seat()))
         for (auto seat : seatLine) {
             res.push_back(seat);
             if (!board.isBlank(seat))
@@ -54,13 +89,12 @@ vector<int> Rook::__MoveSeats(Board& board)
     return res;
 }
 
-vector<int> Cannon::__MoveSeats(Board& board)
+const vector<int> Cannon::__moveSeats(const Board& board) const
 {
     vector<int> res{};
-    auto seatLines = getRookCannonMoveSeat_Lines(seat());
-    for (auto seatLine : seatLines) {
+    for (auto seatLine : getRookCannonMoveSeat_Lines(seat())) {
         bool skip = false;
-        for (auto seat : seatLine) {
+        for (auto seat : seatLine)
             if (!skip) {
                 if (board.isBlank(seat))
                     res.push_back(seat);
@@ -70,215 +104,20 @@ vector<int> Cannon::__MoveSeats(Board& board)
                 res.push_back(seat);
                 break;
             }
-        }
     }
     return res;
 }
 
-vector<int> Pawn::__MoveSeats(Board& board)
-{
-    return getPawnMoveSeats(board.isBottomSide(color()), seat());
-}
+inline const vector<int> Pawn::getSeats(const PieceColor bottomColor) const { return color() == bottomColor ? bottomPawnSeats : topPawnSeats; }
 
-wstring Piece::toString()
+inline const vector<int> Pawn::__moveSeats(const Board& board) const { return getPawnMoveSeats(board.isBottomSide(color()), seat()); }
+
+const wstring Piece::toString() const
 {
     wstringstream wss{};
     wss << boolalpha;
-    wss << setw(4) << index() << setw(5) << static_cast<int>(color()) << setw(6)
+    wss << setw(4) << setw(5) << static_cast<int>(color()) << setw(6)
         << wchar() << setw(6) << seat() << setw(5) << chName() << setw(9)
         << isBlank() << setw(8) << isKing() << setw(8) << isStronge() << L'\n';
-    return wss.str();
-}
-
-// 相关特征棋子名字串: 类内声明，类外定义
-const wstring Pieces::kingNames{ L"帅将" };
-const wstring Pieces::pawnNames{ L"兵卒" };
-const wstring Pieces::advbisNames{ L"仕相士象" };
-const wstring Pieces::strongeNames{ L"马车炮兵卒" };
-const wstring Pieces::lineNames{ L"帅车炮兵将卒" };
-const wstring Pieces::allNames{ L"帅仕相马车炮兵将士象卒" };
-
-// 类外初始化类内静态const成员
-int Piece::curIndex{ -1 };
-const wchar_t Piece::nullChar{ L'_' };
-NullPie Pieces::nullPiece{ NullPie(Piece::nullChar) }; // 空棋子
-Piece* Pieces::nullPiePtr{ &nullPiece }; // 空棋子指针
-
-// 一副棋子类
-Pieces::Pieces()
-    : kings{ King(L'K'), King(L'k') }
-    , advisors{ Advisor(L'A'), Advisor(L'A'),
-        Advisor(L'a'), Advisor(L'a') }
-    , bishops{ Bishop(L'B'), Bishop(L'B'), Bishop(L'b'), Bishop(L'b') }
-    , knights{ Knight(L'N'), Knight(L'N'), Knight(L'n'), Knight(L'n') }
-    , rooks{ Rook(L'R'), Rook(L'R'), Rook(L'r'), Rook(L'r') }
-    , cannons{ Cannon(L'C'), Cannon(L'C'), Cannon(L'c'), Cannon(L'c') }
-    , pawns{ Pawn(L'P'), Pawn(L'P'), Pawn(L'P'), Pawn(L'P'), Pawn(L'P'),
-        Pawn(L'p'), Pawn(L'p'), Pawn(L'p'), Pawn(L'p'), Pawn(L'p') }
-{
-    for (auto& pie : kings)
-        pies.push_back(&pie);
-    for (auto& pie : advisors)
-        pies.push_back(&pie);
-    for (auto& pie : bishops)
-        pies.push_back(&pie);
-    for (auto& pie : knights)
-        pies.push_back(&pie);
-    for (auto& pie : rooks)
-        pies.push_back(&pie);
-    for (auto& pie : cannons)
-        pies.push_back(&pie);
-    for (auto& pie : pawns)
-        pies.push_back(&pie);
-    Piece::curIndex = 0;
-}
-
-inline Piece* Pieces::getKingPie(PieceColor color)
-{
-    return pies[color == PieceColor::red ? 0 : 1];
-}
-
-inline Piece* Pieces::getOthPie(Piece* pie)
-{
-    int index{ pie->index() }, othIndex{};
-    if (index < 2)
-        othIndex = index == 1 ? 0 : 1; //帅0将1
-    else if (index > 21)
-        othIndex = index > 26 ? index - 5 : index + 5; // 兵22-26卒27-31
-    else
-        othIndex = index % 4 < 2 ? index - 2 : index + 2; // 士象马车炮，每种棋4子
-    return pies[othIndex];
-}
-
-Piece* Pieces::getFreePie(wchar_t ch)
-{
-    if (ch == Piece::nullChar)
-        return nullPiePtr;
-    for (auto &p : pies)
-        if (p->wchar() == ch && p->seat() == nullSeat)
-            return p;
-    return nullPiePtr;
-}
-
-vector<Piece*> Pieces::getLivePies()
-{
-    vector<Piece*> res{ pies };
-    auto p = remove_if(res.begin(), res.end(),
-        [&](Piece*& p) { return p->seat() == nullSeat; });
-    return (vector<Piece*>{ res.begin(), p });
-}
-
-vector<Piece*> Pieces::getLivePies(PieceColor color)
-{
-    vector<Piece*> res{};
-    copy_if(pies.begin(), pies.end(), back_inserter(res), [&](Piece*& p) { return p->seat() != nullSeat && p->color() == color; });
-    return res;
-}
-
-vector<Piece*> Pieces::getLiveStrongePies(PieceColor color)
-{
-    vector<Piece*> res{};
-    copy_if(pies.begin(), pies.end(), back_inserter(res), [&](Piece*& p) { return p->seat() != nullSeat && p->color() == color && p->isStronge(); });
-    return res;
-}
-
-vector<Piece*> Pieces::getNamePies(PieceColor color, wchar_t name)
-{
-    vector<Piece*> res{};
-    copy_if(pies.begin(), pies.end(), back_inserter(res), [&](Piece*& p) {
-        return p->seat() != nullSeat && p->color() == color && p->chName() == name;
-    });
-    return res;
-}
-
-vector<Piece*> Pieces::getNameColPies(PieceColor color, wchar_t name,
-    int col)
-{
-    vector<Piece*> res{};
-    copy_if(pies.begin(), pies.end(), back_inserter(res), [&](Piece*& p) {
-        return p->seat() != nullSeat && p->color() == color && p->chName() == name && getCol(p->seat()) == col;
-    });
-    return res;
-}
-
-vector<Piece*> Pieces::getEatedPies()
-{
-    vector<Piece*> res{};
-    copy_if(pies.begin(), pies.end(), back_inserter(res), [&](Piece*& p) { return p->seat() == nullSeat; });
-    return res;
-}
-
-vector<Piece*> Pieces::getEatedPies(PieceColor color)
-{
-    vector<Piece*> res{};
-    copy_if(pies.begin(), pies.end(), back_inserter(res), [&](Piece*& p) { return p->seat() == nullSeat && p->color() == color; });
-    return res;
-}
-
-void Pieces::clear()
-{
-    for_each(pies.begin(), pies.end(), [&](Piece*& p) { p->setSeat(nullSeat); });
-}
-
-wstring Pieces::toString()
-{
-    wstring ws{
-        L"index color wchar seat chName isBlank isKing isStronge\n"
-    }; // index
-    for (auto p : pies)
-        ws += p->toString();
-    return ws + nullPiePtr->toString(); // 关注空棋子的特性!
-}
-
-wstring Pieces::test()
-{
-    // Pieces apieces = Pieces();
-    wstringstream wss{};
-    wss << L"test "
-           L"piece.h\n-----------------------------------------------------\n"
-        << L"特征棋子串：\n"
-        << kingNames << L' ' << pawnNames << L' ' << advbisNames << L' '
-        << strongeNames << L' ' << lineNames << L' ' << allNames << L"\n";
-
-    wss << L"Pieces::toString:\n";
-    wss << toString() << L"共计：" << pies.size() << L"个\n";
-
-    wss << L"Piece::getKingPie\\Piece::chName：\n红棋->"
-        << getKingPie(PieceColor::red)->chName() << L' ' << L"黑棋->"
-        << getKingPie(PieceColor::black)->chName();
-
-    wss << L"\nPieces::getOthPie：\n";
-    for (auto piePtr : pies)
-        wss << piePtr->chName() << L"->" << getOthPie(piePtr)->chName() << L' ';
-
-    for (auto id : (vector<int>{ 0, 1, 2, 3, 4, 5, 9, 10, 17, 18 }))
-        pies[id]->setSeat(id);
-    wss << L"\nPieces::getLivePies：\n";
-    wss << L"getLivePies()：";
-    for (auto& piePtr : getLivePies())
-        wss << piePtr->chName() << L' ';
-    wss << L"\ngetLivePies(PieceColor::red)：";
-    for (auto& piePtr : getLivePies(PieceColor::red))
-        wss << piePtr->chName() << L' ';
-    wss << L"\ngetLivePies(PieceColor::black)：";
-    for (auto& piePtr : getLivePies(PieceColor::black))
-        wss << piePtr->chName() << L' ';
-    wss << L"\ngetEatedPies()：";
-    for (auto& piePtr : getEatedPies())
-        wss << piePtr->chName() << L' ';
-    wss << L"\ngetNamePies(PieceColor::red, L'N')：\n";
-    for (auto& piePtr : getNamePies(PieceColor::red, L'马'))
-        wss << piePtr->toString();
-
-    wss << L"\ngetSeats(PieceColor::red)：\n";
-    for (auto id : { 0, 1, 2, 4, 6, 8, 10, 14, 18, 22, 27 }) {
-        auto p = pies[id];
-        wss << p->chName() << L':';
-        for (auto s : p->getSeats(PieceColor::red))
-            wss << s << L' ';
-        wss << L"\n";
-    }
-
-    // wss << print_vector_int(getSeats(PieceColor::red));
     return wss.str();
 }

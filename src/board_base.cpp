@@ -13,7 +13,6 @@
 #include <iomanip>
 #include <locale>
 #include <map>
-#include <regex>
 #include <string>
 #include <vector>
 #include <utility>
@@ -21,7 +20,7 @@
 using namespace std;
 using namespace std::chrono;
 
-vector<int> Board_base::getSameColSeats(int seat, int othseat)
+const vector<int> Board_base::getSameColSeats(const int seat, const int othseat)
 {
     vector<int> seats{};
     if (!isSameCol(seat, othseat))
@@ -29,7 +28,7 @@ vector<int> Board_base::getSameColSeats(int seat, int othseat)
 
     int step = seat < othseat ? 9 : -9;
     // 定义比较函数
-    auto compare = [step](int i, int j) -> bool {
+    auto compare = [step](const int i, const int j) -> bool {
         return step > 0 ? i < j : i > j;
     };
 
@@ -39,7 +38,7 @@ vector<int> Board_base::getSameColSeats(int seat, int othseat)
     return seats;
 }
 
-vector<int> Board_base::getKingMoveSeats(int seat)
+const vector<int> Board_base::getKingMoveSeats(const int seat)
 {
     int S{ seat - 9 }, W{ seat - 1 }, E{ seat + 1 }, N{ seat + 9 };
     int row{ getRow(seat) }, col{ getCol(seat) };
@@ -67,7 +66,7 @@ vector<int> Board_base::getKingMoveSeats(int seat)
     }
 }
 
-vector<int> Board_base::getAdvisorMoveSeats(int seat)
+const vector<int> Board_base::getAdvisorMoveSeats(const int seat)
 {
     int WS{ seat - 9 - 1 }, ES{ seat - 9 + 1 }, WN{ seat + 9 - 1 }, EN{ seat + 9 + 1 };
     int row{ getRow(seat) }, col{ getCol(seat) };
@@ -87,7 +86,7 @@ vector<int> Board_base::getAdvisorMoveSeats(int seat)
 }
 
 // 获取移动、象心行列值
-vector<pair<int, int>> Board_base::getBishopMove_CenSeats(int seat)
+const vector<pair<int, int>> Board_base::getBishopMove_CenSeats(const int seat)
 {
     auto cen = [seat](int s) { return (seat + s) / 2; };
 
@@ -108,7 +107,7 @@ vector<pair<int, int>> Board_base::getBishopMove_CenSeats(int seat)
 }
 
 // 获取移动、马腿行列值
-vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat)
+const vector<pair<int, int>> Board_base::getKnightMove_LegSeats(const int seat)
 {
     auto leg = [seat](int to) {
         switch (to - seat) {
@@ -242,7 +241,7 @@ vector<pair<int, int>> Board_base::getKnightMove_LegSeats(int seat)
 }
 
 // 车炮可走的四个方向位置
-vector<vector<int>> Board_base::getRookCannonMoveSeat_Lines(int seat)
+const vector<vector<int>> Board_base::getRookCannonMoveSeat_Lines(const int seat)
 {
     vector<vector<int>> res{ vector<int>{}, vector<int>{}, vector<int>{},
         vector<int>{} };
@@ -258,7 +257,7 @@ vector<vector<int>> Board_base::getRookCannonMoveSeat_Lines(int seat)
     return res;
 }
 
-vector<int> Board_base::getPawnMoveSeats(bool isBottomSide, int seat)
+const vector<int> Board_base::getPawnMoveSeats(const bool isBottomSide, const int seat)
 {
     int E{ seat + 1 }, S{ seat - 9 }, W{ seat - 1 }, N{ seat + 9 }, row{ getRow(seat) };
     switch (getCol(seat)) {
@@ -302,7 +301,7 @@ vector<int> Board_base::getPawnMoveSeats(bool isBottomSide, int seat)
 }
 
 // '多兵排序'
-vector<int> Board_base::sortPawnSeats(bool isBottomSide, vector<int> seats)
+const vector<int> Board_base::sortPawnSeats(const bool isBottomSide, vector<int> seats)
 {
     map<int, vector<int>> temp{};
     vector<int> res(5);
@@ -323,190 +322,8 @@ vector<int> Board_base::sortPawnSeats(bool isBottomSide, vector<int> seats)
     return res;
 }
 
-string Board_base::trim(string& str)
-{
-    string::iterator pl = find_if(str.begin(), str.end(), not1(ptr_fun<int, int>(isspace)));
-    str.erase(str.begin(), pl);
-    string::reverse_iterator pr = find_if(str.rbegin(), str.rend(), not1(ptr_fun<int, int>(isspace)));
-    str.erase(pr.base(), str.end());
-    return str;
-}
-
-wstring Board_base::wtrim(wstring& str)
-{
-    /*
-    wstring::iterator pl = find_if(str.begin(), str.end(), not1(ptr_fun<int, int>(isspace)));
-    str.erase(str.begin(), pl);
-    wstring::reverse_iterator pr = find_if(str.rbegin(), str.rend(), not1(ptr_fun<int, int>(isspace)));
-    str.erase(pr.base(), str.end());
-    return str;
-    /*/
-    //
-    size_t first{}, last{ str.size() };
-    for (auto& c : str)
-        if (isspace(c))
-            ++first;
-        else
-            break;
-    for (int i = last - 1; i >= 0; --i)
-        if (isspace(str[i]))
-            --last;
-        else
-            break;
-    return str.substr(first, last - first);
-   // */
-}
-
-//std::string中的UTF-8字节流转换成UTF-16并保存在std::wstring中
-std::wstring Board_base::s2ws(const std::string& s)
-{
-    const char* str = s.c_str();
-    size_t len = s.size() + 1;
-    wchar_t *wstr = new wchar_t[len];
-    std::mbstowcs(wstr, str, len);
-    std::wstring ret(wstr);
-    delete [] wstr;
-    return ret;
-}
-
-//std::wstring转换到std::string
-std::string Board_base::ws2s(const std::wstring& ws)
-{
-    const wchar_t* wstr = ws.c_str();
-    size_t len = 2 * ws.size() + 1;
-    char *str = new char[len];
-    std::wcstombs(str, wstr, len);
-    std::string ret(str);
-    delete [] str;
-    return ret;
-}
-
-RecFormat Board_base::getRecFormat(string ext)
-{
-    if (ext == ".xqf")
-        return RecFormat::XQF;
-    else if (ext == ".bin")
-        return RecFormat::BIN;
-    else if (ext == ".json")
-        return RecFormat::JSON;
-    else if (ext == ".pgn1")
-        return RecFormat::ICCS;
-    else if (ext == ".pgn2")
-        return RecFormat::ZH;
-    else if (ext == ".pgn3")
-        return RecFormat::CC;
-    else
-        return RecFormat::CC;
-}
-
-string Board_base::getExtName(RecFormat fmt)
-{
-    switch (fmt) {
-    case RecFormat::XQF:
-        return ".xqf";
-    case RecFormat::BIN:
-        return ".bin";
-    case RecFormat::JSON:
-        return ".json";
-    case RecFormat::ICCS:
-        return ".pgn1";
-    case RecFormat::ZH:
-        return ".pgn2";
-    case RecFormat::CC:
-        return ".pgn3";
-    default:
-        return ".pgn3";
-    }
-}
-
-string Board_base::getExt(string filename)
-{
-    string ext{ filename.substr(filename.rfind('.')) };
-    for (auto& c : ext)
-        c = tolower(c);
-    return ext;
-}
-
-wstring Board_base::readTxt(string fileName)
-{
-    wstringstream wss{};
-    wchar_t buf[1024];
-    wifstream wifs(fileName);
-    while (!wifs.eof()) {
-        wifs.read(buf, 1024);
-        wss.write(buf, wifs.gcount());
-    }
-    wifs.close();
-    return wss.str();
-}
-
-void Board_base::writeTxt(string fileName, wstring ws)
-{
-    wofstream wofs(fileName);
-    wofs << ws;
-    wofs.close();
-}
-
-void Board_base::getFiles(string path, vector<string>& files)
-{
-    long hFile = 0; //文件句柄
-    struct _finddata_t fileinfo; //文件信息
-    string p{};
-    if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1) {
-        do { //如果是目录,迭代之  //如果不是,加入列表
-            if (fileinfo.attrib & _A_SUBDIR) {
-                if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
-                    getFiles(p.assign(path).append("\\").append(fileinfo.name), files);
-            } else
-                files.push_back(p.assign(path).append("\\").append(fileinfo.name));
-        } while (_findnext(hFile, &fileinfo) == 0);
-        _findclose(hFile);
-    }
-}
-
-/*****************************************************************************************
-Function:       CopyFile
-Description:    复制文件
-Input:          SourceFile:原文件路径 NewFile:复制后的文件路径
-Return:         1:成功 0:失败
-******************************************************************************************/
-int Board_base::copyFile(const char* SourceFile, const char* NewFile)
-{
-    std::ifstream in;
-    std::ofstream out;
-
-    //try
-    //{
-    in.open(SourceFile, std::ios::binary); //打开源文件
-    if (in.fail()) //打开源文件失败
-    {
-        std::cout << "Error 1: Fail to open the source file." << std::endl;
-        in.close();
-        out.close();
-        return 0;
-    }
-    out.open(NewFile, std::ios::binary); //创建目标文件
-    if (out.fail()) //创建文件失败
-    {
-        std::cout << "Error 2: Fail to create the new file." << std::endl;
-        out.close();
-        in.close();
-        return 0;
-    } else //复制文件
-    {
-        out << in.rdbuf();
-        out.close();
-        in.close();
-        return 1;
-    }
-    //}
-    //catch (std::exception e)
-    //{
-    //}
-}
-
 // 测试
-wstring Board_base::test()
+const wstring Board_base::test()
 {
     wstringstream wss{};
     wss << L"test "
@@ -523,9 +340,7 @@ wstring Board_base::test()
             wss << setw(2) << seat << L' ';
         wss << L'\n';
     }
-    wss << L"\nFEN: " << FEN << L"\nColChars: " << ColChars
-        << L"\nTextBlankBoard: \n"
-        << TextBlankBoard << L'\n';
+    
     wss << L"allSeats rotateSeat symmetrySeat isSameCol\n";
     for (auto s : allSeats)
         wss << setw(5) << s << setw(10) << rotateSeat(s) << setw(12)
