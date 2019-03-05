@@ -6,6 +6,7 @@
 #include "move.h"
 #include "piece.h"
 #include "tools.h"
+#include <map>
 #include <cmath>
 #include <direct.h>
 #include <fstream>
@@ -37,8 +38,8 @@ void ChessInstanceIO::read(const string& filename, ChessInstance& ci)
         break;
     }
 
-    ci.setBoard(__fenToPieChars(ci.getFEN()));
-    __initSet(ci, fmt);
+    ci.setBoard();
+    ci.initSet(fmt);
 }
 
 void ChessInstanceIO::write(const string& fname, ChessInstance& ci, const RecFormat fmt)
@@ -230,7 +231,7 @@ void ChessInstanceIO::readXQF(const string& filename, ChessInstance& ci)
         if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
-    info[L"FEN"] = __pieceCharsToFEN(pieceChars);
+    ci.setFEN(pieceChars);
 
     function<void(Move&)> __read = [&](Move& move) {
         auto __byteToSeat = [&](int a, int b) {
@@ -412,137 +413,6 @@ void ChessInstanceIO::__fromCC(const wstring& fullMoveStr, ChessInstance& ci)
         __read(*prootMove, 1, 0, false);
 }
 
-const wstring ChessInstanceIO::getICCS(const int fseat, const int tseat)
-{
-    wstringstream wss{};
-    wstring ColChars{ L"abcdefghi" };
-    wss << ColChars[getCol(fseat)] << getRow(fseat) << ColChars[getCol(tseat)] << getRow(tseat);
-    return wss.str();
-}
-
-//(fseat, tseat)->中文纵线着法
-const wstring ChessInstanceIO::getZh(const int fseat, const int tseat, ChessInstance& ci)
-{
-    auto pboard = ci.getBoard();
-    auto __find_index = [](const vector<int>& seats, const int seat) {
-        int index{ 0 };
-        for (auto st : seats)
-            if (seat == st)
-                break;
-            else
-                ++index;
-        return index;
-    };
-
-    wstringstream wss{};
-    int fromRow{ getRow(fseat) }, fromCol{ getCol(fseat) };
-    shared_ptr<Piece> fromPiece{ pboard->getPiece(fseat) };
-    PieceColor color{ fromPiece->color() };
-    wchar_t name{ fromPiece->chName() };
-    bool isBottomSide{ pboard->isBottomSide(color) };
-    vector<int> seats{ pboard->getSideNameColSeats(color, name, fromCol) };
-    int length{ static_cast<int>(seats.size()) };
-
-    if (length > 1 && isStronge(name)) {
-        if (isPawn(name)) {
-            seats = sortPawnSeats(isBottomSide,
-                pboard->getSideNameSeats(color, name));
-            length = seats.size();
-        } else if (isBottomSide) //# '车', '马', '炮'
-            reverse(seats.begin(), seats.end());
-        wstring indexStr{ length == 2 ? L"前后" : (length == 3 ? L"前中后" : L"一二三四五") };
-        wss << indexStr[__find_index(seats, fseat)] << name;
-    } else
-        //#仕(士)和相(象)不用“前”和“后”区别，因为能退的一定在前，能进的一定在后
-        wss << name << ChessInstanceIO::getNumChars(color)[isBottomSide ? MaxCol - fromCol : fromCol];
-
-    int toRow{ getRow(tseat) };
-    //wcout << (toRow == fromRow ? L'平' : (isBottomSide == (toRow > fromRow) ? L'进' : L'退')) << endl;
-
-    wss << (toRow == fromRow ? L'平' : (isBottomSide == (toRow > fromRow) ? L'进' : L'退'))
-        << (isLine(name) && toRow != fromRow
-                   ? ChessInstanceIO::getNumChars(color)[toRow > fromRow ? toRow - fromRow - 1 : fromRow - toRow - 1]
-                   : ChessInstanceIO::getNumChars(color)[isBottomSide ? MaxCol - getCol(tseat) : getCol(tseat)]);
-    return wss.str();
-}
-
-const pair<int, int> ChessInstanceIO::getSeat__ICCS(const wstring& ICCS)
-{
-    string iccs{ ws2s(ICCS) };
-    return make_pair(getSeat(iccs[1] - 48, iccs[0] - 97), getSeat(iccs[3] - 48, iccs[2] - 97));
-}
-
-//中文纵线着法->(fseat, tseat)
-const pair<int, int> ChessInstanceIO::getSeat__Zh(const wstring& zhStr, ChessInstance& ci)
-{
-    auto pboard = ci.getBoard();
-    int index, fseat, tseat;
-    vector<int> seats{};
-    // 根据最后一个字符判断该着法属于哪一方
-    PieceColor color{ ChessInstanceIO::getNumChars(PieceColor::RED).find(zhStr.back()) != wstring::npos
-            ? PieceColor::RED
-            : PieceColor::BLACK };
-    bool isBottomSide = pboard->isBottomSide(color);
-    wchar_t name{ zhStr[0] };
-    auto __getNum = [&](const wchar_t ch) {
-        return static_cast<int>(ChessInstanceIO::getNumChars(color).find(ch)) + 1;
-    };
-    auto __getCol = [&](const int num) { return isBottomSide ? ColNum - num : num - 1; };
-    auto __getIndex = [](const wchar_t ch) {
-        static map<wchar_t, int> ChNum_Indexs{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
-            { L'四', 3 }, { L'五', 4 }, { L'前', 0 }, { L'中', 1 }, { L'后', 1 },
-            { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
-        return ChNum_Indexs[ch];
-    };
-
-    if (isPiece(name)) {
-        seats = pboard->getSideNameColSeats(color, name, __getCol(__getNum(zhStr[1])));
-
-        if (seats.size() < 1)
-            wcout << L"棋子列表少于1个:" << zhStr << L' ' << static_cast<int>(color) << name
-                  << __getCol(__getNum(zhStr[1])) << L' ' << L'\n' << pboard->toString() << endl;
-
-        //# 排除：士、象同列时不分前后，以进、退区分棋子
-        index = (seats.size() == 2 && isAdvBishop(name) && (zhStr[2] == L'退') == isBottomSide)
-            ? seats.size() - 1
-            : 0;
-    } else {
-        //# 未获得棋子, 查找某个排序（前后中一二三四五）某方某个名称棋子
-        index = __getIndex(zhStr[0]);
-        name = zhStr[1];
-        seats = pboard->getSideNameSeats(color, name);
-
-        if (seats.size() < 2)
-            wcout << L"棋子列表少于2个:" << zhStr << L' ' << name << L' ' << pboard->toString();
-
-        if (isPawn(name)) {
-            seats = sortPawnSeats(isBottomSide, seats);
-            //#获取多兵的列
-            if (seats.size() == 3 && zhStr[0] == L'后')
-                index += 1;
-        } else {
-            if (isBottomSide) //# 修正index
-                index = seats.size() - index - 1;
-        }
-    }
-    fseat = seats[index];
-
-    // '根据中文行走方向取得棋子的内部数据方向（进：1，退：-1，平：0）'
-    int movDir{ __getIndex(zhStr[2]) * (isBottomSide ? 1 : -1) },
-        num{ __getNum(zhStr[3]) }, toCol{ __getCol(num) };
-    if (isLine(name)) {
-        //#'获取直线走子toseat'
-        int row = getRow(fseat);
-        tseat = (movDir == 0) ? getSeat(row, toCol) : getSeat(row + movDir * num, getCol(fseat));
-    } else {
-        //#'获取斜线走子：仕、相、马toseat'
-        int step{ abs(toCol - getCol(fseat)) }; //  # 相距1或2列
-        int inc{ (isAdvBishop(name)) ? step : (step == 1 ? 2 : 1) };
-        tseat = getSeat(getRow(fseat) + movDir * inc, toCol);
-    }
-    return make_pair(fseat, tseat);
-}
-
 void ChessInstanceIO::readBIN(const string& filename, ChessInstance& ci)
 {
     map<wstring, wstring>& info = ci.getInfo();
@@ -626,86 +496,6 @@ void ChessInstanceIO::readJSON(const string& filename, ChessInstance& ci)
     Json::Value rootItem{ root["moves"] };
     if (!rootItem.isNull())
         __read(*prootMove, rootItem);
-}
-
-// （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
-void ChessInstanceIO::__initSet(ChessInstance& ci, const RecFormat fmt)
-{
-    auto pboard = ci.getBoard();
-    auto __setRem = [&](const Move& move) {
-        int length = move.remark.size();
-        if (length > 0) {
-            ci.remCount += 1;
-            if (length > ci.remLenMax)
-                ci.remLenMax = length;
-        }
-    };
-
-    function<void(Move&)> __set = [&](Move& move) {
-        switch (fmt) {
-        case RecFormat::ICCS: {
-            move.setSeat(getSeat__ICCS(move.ICCS));
-            move.zh = getZh(move.fseat(), move.tseat(), ci);
-            break;
-        }
-        case RecFormat::ZH:
-        case RecFormat::CC: {
-            move.setSeat(getSeat__Zh(move.zh, ci));
-            move.ICCS = getICCS(move.fseat(), move.tseat());
-            /*
-            wstring zh{ getZh(move.fseat(), move.tseat()) };
-            // wcout << move.toString_zh() << L'\n';
-            if (move.zh != zh) {
-                wcout << L"move.zh: " << move.zh << L'\n'
-                      << L"getZh( ): " << zh << L'\n'
-                      << move.toString() << L'\n' << pboard->toString() << endl;
-                return;
-            } //*/
-            break;
-        }
-        case RecFormat::XQF:
-        case RecFormat::BIN:
-        case RecFormat::JSON: {
-            move.ICCS = getICCS(move.fseat(), move.tseat());
-            move.zh = getZh(move.fseat(), move.tseat(), ci);
-            /*
-            auto seats = getSeat__Zh(move.zh);
-            // wcout << move.toString() << L'\n';
-            if ((seats.first != move.fseat()) || (seats.second != move.tseat())) {
-                wcout << L"move.fs_ts: " << move.fseat() << L' ' << move.tseat() << L'\n'
-                      << L"getSeat__Zh( ): " << move.zh << L'\n'
-                      << move.toString() << L'\n' << pboard->toString() << endl;
-                return;
-            } //*/
-            break;
-        }
-        default:
-            break;
-        }
-
-        ci.movCount += 1;
-        __setRem(move);
-        move.maxCol = ci.maxCol; // # 本着在视图中的列数
-        if (move.othCol > ci.othCol)
-            ci.othCol = move.othCol;
-        if (move.stepNo > ci.maxRow)
-            ci.maxRow = move.stepNo;
-        pboard->go(move);
-        //wcout << move.toString() << L"\n" << pboard->toString() << endl;
-
-        if (move.next())
-            __set(*move.next());
-        pboard->back(move);
-        if (move.other()) {
-            ci.maxCol += 1;
-            __set(*move.other());
-        }
-    };
-
-    shared_ptr<Move>& prootMove = ci.getRootMove();
-    __setRem(*prootMove);
-    if (prootMove->next())
-        __set(*prootMove->next()); // 驱动函数
 }
 
 void ChessInstanceIO::writeBIN(const string& filename, ChessInstance& ci)
@@ -862,49 +652,6 @@ const wstring ChessInstanceIO::toString_CC(ChessInstance& ci)
     return wss.str();
 }
 
-const wstring ChessInstanceIO::__pieceCharsToFEN(const wstring& pieceChars)
-{
-    //'下划线字符串对应数字字符'
-    vector<pair<wstring, wstring>> line_nums{
-        { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
-        { L"______", L"6" }, { L"_____", L"5" }, { L"____", L"4" },
-        { L"___", L"3" }, { L"__", L"2" }, { L"_", L"1" }
-    };
-    wstring::size_type pos;
-    wstring ws{};
-    for (int i = 81; i >= 0; i -= 9)
-        ws += pieceChars.substr(i, 9) + L"/";
-    ws.erase(ws.size() - 1, 1);
-    for (auto linenum : line_nums)
-        while ((pos = ws.find(linenum.first)) != wstring::npos)
-            ws.replace(pos, linenum.first.size(), linenum.second);
-    return ws;
-}
-
-const wstring ChessInstanceIO::__fenToPieChars(const wstring fen)
-{
-    //'数字字符对应下划线字符串'
-    vector<pair<wchar_t, wstring>> num_lines{
-        { L'9', L"_________" }, { L'8', L"________" }, { L'7', L"_______" },
-        { L'6', L"______" }, { L'5', L"_____" }, { L'4', L"____" },
-        { L'3', L"___" }, { L'2', L"__" }, { L'1', L"_" }
-    };
-    wstring chars{};
-    wregex sp{ LR"(/)" };
-    for (wsregex_token_iterator wti{ fen.begin(), fen.end(), sp, -1 }; wti != wsregex_token_iterator{}; ++wti)
-        chars.insert(0, *wti);
-    wstring::size_type pos;
-    for (auto& numline : num_lines)
-        while ((pos = chars.find(numline.first)) != wstring::npos)
-            chars.replace(pos, 1, numline.second);
-    return chars;
-}
-
-inline const wstring ChessInstanceIO::getNumChars(const PieceColor color)
-{
-    return color == PieceColor::RED ? L"一二三四五六七八九" : L"１２３４５６７８９";
-}
-
 const string ChessInstanceIO::getExtName(const RecFormat fmt)
 {
     switch (fmt) {
@@ -942,11 +689,3 @@ const RecFormat ChessInstanceIO::getRecFormat(const string& ext)
     else
         return RecFormat::CC;
 }
-
-// 相关特征棋子: 类内声明，类外定义
-const bool ChessInstanceIO::isKing(const wchar_t name) { return wstring(L"帅将").find(name) != wstring::npos; }
-const bool ChessInstanceIO::isPawn(const wchar_t name) { return wstring(L"兵卒").find(name) != wstring::npos; }
-const bool ChessInstanceIO::isAdvBishop(const wchar_t name) { return wstring(L"仕相士象").find(name) != wstring::npos; }
-const bool ChessInstanceIO::isStronge(const wchar_t name) { return wstring(L"马车炮兵卒").find(name) != wstring::npos; }
-const bool ChessInstanceIO::isLine(const wchar_t name) { return wstring(L"帅车炮兵将卒").find(name) != wstring::npos; }
-const bool ChessInstanceIO::isPiece(const wchar_t name) { return wstring(L"帅仕相马车炮兵将士象卒").find(name) != wstring::npos; }

@@ -38,6 +38,7 @@ public:
 
     virtual const wstring toString() const;
     virtual ~Piece() = default;
+    static const wchar_t nullChar;
 
 protected:
     // 棋子可移动到的全部位置

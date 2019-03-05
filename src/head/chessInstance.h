@@ -11,6 +11,7 @@ using namespace std;
 class Board;
 class Move;
 enum class PieceColor;
+enum class RecFormat;
 enum class ChangeType {
     EXCHANGE,
     ROTATE,
@@ -40,12 +41,14 @@ public:
     void cutNext();
     void cutOther();
 
-    void setBoard(const wstring& pieceChars);
-    shared_ptr<Board>& getBoard() { return pboard; }
+    void setFEN(const wstring& pieceChars);
+    const wstring getPieceChars();
+    void setBoard();
+    void initSet(const RecFormat fmt);
+    void changeSide(const ChangeType ct = ChangeType::EXCHANGE);
+
     shared_ptr<Move>& getRootMove() { return prootMove; }
     map<wstring, wstring>& getInfo() { return info; }
-    const wstring getFEN();
-
     // void loadViews(views);
     // void notifyViews();
 
@@ -57,7 +60,8 @@ public:
     int maxCol{ 0 }; //# 存储视图最大列数
 
 private:
-    void changeSide(const ChangeType ct = ChangeType::EXCHANGE);
+    static const wstring __fenToPieceChars(const wstring fen);
+    static const wstring __pieceCharsToFEN(const wstring& pieceChars);
 
     map<wstring, wstring> info;
     shared_ptr<Board> pboard;

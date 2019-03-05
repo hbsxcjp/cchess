@@ -9,6 +9,8 @@
 using namespace std;
 using namespace Board_base;
 
+const wchar_t Piece::nullChar{ L'_' };
+
 map<wchar_t, wchar_t> Piece::chNames{
     { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
     { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
@@ -42,11 +44,11 @@ const vector<int> Piece::getCanMoveSeats(Board& board)
     vector<int> res{};
     auto fseat = seat();
     for (auto tseat : filterMoveSeats(board)) {
-        auto eatPiece = board.move_go(fseat, tseat);
+        auto eatPiece = board.go(fseat, tseat);
         // 移动棋子后，检测是否会被对方将军
         if (!board.isKilled(color()))
             res.push_back(tseat);
-        board.move_back(fseat, tseat, eatPiece);
+        board.back(fseat, tseat, eatPiece);
     }
     return res;
 }

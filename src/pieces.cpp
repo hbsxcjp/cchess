@@ -41,7 +41,7 @@ const shared_ptr<Piece> Pieces::getOthPie(const shared_ptr<Piece> pie) const
 
 const shared_ptr<Piece> Pieces::getFreePie(const wchar_t ch) const
 {
-    if (ch == L'_')
+    if (ch == Piece::nullChar)
         return nullPiePtr;
     for (auto& pp : piePtrs)
         if (pp->wchar() == ch && pp->seat() == nullSeat)
@@ -109,7 +109,7 @@ void Pieces::clearSeat()
 }
 
 // 类外初始化类内静态const成员
-const shared_ptr<Piece> Pieces::nullPiePtr{ make_shared<NullPie>(L'_') }; // 空棋子指针
+const shared_ptr<Piece> Pieces::nullPiePtr{ make_shared<NullPie>(Piece::nullChar) }; // 空棋子指针
 
 const wstring Pieces::toString() const
 {
