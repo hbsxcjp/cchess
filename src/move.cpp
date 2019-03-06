@@ -1,7 +1,7 @@
 #include "move.h"
 #include "board_base.h"
 #include "piece.h"
-//#include "pieces.h"
+#include <algorithm>
 #include <sstream>
 using namespace std;
 using namespace Board_base;
@@ -9,7 +9,6 @@ using namespace Board_base;
 Move::Move()
     : fromseat{ nullSeat }
     , toseat{ nullSeat }
-//, eatPie_ptr{ nullptr } //Pieces::nullPiePtr
 {
 }
 
@@ -31,6 +30,18 @@ void Move::setOther(shared_ptr<Move> other)
         other->setOthCol(othCol + 1); // 变着层数
         other->setPrev(make_shared<Move>(*this)); // 是否构成环形指针，造成不能自动析构？
     }
+}
+
+const vector<shared_ptr<Move>> Move::getPrevMoves() const
+{
+    shared_ptr<Move> pmove{ make_shared<Move>(*this) };
+    vector<shared_ptr<Move>> pmv{ pmove };
+    while (!pmove->prev()) {
+        pmove = pmove->prev();
+        pmv.push_back(pmove);
+    }
+    std::reverse(pmv.begin(), pmv.end());
+    return pmv;
 }
 
 const wstring Move::toString() const

@@ -112,17 +112,6 @@ void ChessInstance::forwardOther()
 }
 
 // 复合走法
-const vector<shared_ptr<Move>> ChessInstance::getPrevMoves(shared_ptr<Move> pmove) const
-{
-    vector<shared_ptr<Move>> pmv{ pmove };
-    while (!pmove->prev()) {
-        pmove = pmove->prev();
-        pmv.push_back(pmove);
-    }
-    std::reverse(pmv.begin(), pmv.end());
-    return pmv;
-}
-
 void ChessInstance::backwardTo(shared_ptr<Move> pmove)
 {
     while (!isStart() && pmove != pcurrentMove) {
@@ -136,7 +125,7 @@ void ChessInstance::to(shared_ptr<Move> pmove)
     if (pmove == pcurrentMove)
         return;
     toFirst();
-    for (auto& pm : getPrevMoves(pmove))
+    for (auto& pm : pmove->getPrevMoves())
         pboard->go(*pm);
     pcurrentMove = pmove;
 }
@@ -155,8 +144,8 @@ void ChessInstance::toLast()
 
 void ChessInstance::go(const int inc)
 {
-    //function<void(const ChessInstance*)> fward = inc > 0 ? &ChessInstance::forward : &ChessInstance::backward;//未成功!
-    auto fward = mem_fn(inc > 0 ? &ChessInstance::forward : &ChessInstance::backward);
+    function<void(ChessInstance*)> fward = inc > 0 ? &ChessInstance::forward : &ChessInstance::backward;
+    //auto fward = mem_fn(inc > 0 ? &ChessInstance::forward : &ChessInstance::backward);
     for (int i = abs(inc); i != 0; --i)
         fward(this);
 }

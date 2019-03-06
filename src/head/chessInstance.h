@@ -33,13 +33,11 @@ public:
     const PieceColor currentColor() const;
     const bool isStart() const;
     const bool isLast() const;
-
     // 基本走法
     void forward();
     void backward();
     void forwardOther();
     // 复合走法
-    const vector<shared_ptr<Move>> getPrevMoves(shared_ptr<Move> pmove) const;
     void backwardTo(shared_ptr<Move> pmove);
     void to(shared_ptr<Move> pmove);
     void toFirst();
@@ -47,11 +45,7 @@ public:
     void go(const int inc = 1);
     void cutNext();
     void cutOther();
-
     void changeSide(const ChangeType ct = ChangeType::EXCHANGE);
-
-    //shared_ptr<Move>& getRootMove() { return prootMove; }
-    //map<wstring, wstring>& getInfo() { return info; }
 
     const int getMovCount() const { return movCount; }
     const int getRemCount() const { return remCount; }
@@ -71,7 +65,6 @@ private:
     void setFEN(const wstring& pieceChars);
     void setBoard();
     void initSetMove(const RecFormat fmt);
-
     void readXQF(const string& filename);
     void readPGN(const string& filename, const RecFormat fmt);
     void readBIN(const string& filename);

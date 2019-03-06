@@ -1,6 +1,7 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+#include <vector>
 #include <memory>
 using namespace std;
 
@@ -30,6 +31,7 @@ public:
     void setNext(shared_ptr<Move> next);
     void setOther(shared_ptr<Move> other);
 
+    const vector<shared_ptr<Move>> getPrevMoves() const;
     const wstring toString() const;
 
     const wstring zhStr() const { return zh; }
