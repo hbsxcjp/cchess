@@ -33,11 +33,11 @@ public:
     const wstring toString() const;
 
     const wstring zhStr() const { return zh; }
-    void setZh(const wstring zhStr) { zh = zhStr; }
+    void setZh(const wstring& zhStr) { zh = zhStr; }
     const wstring iccsStr() const { return iccs; }
-    void setIccs(const wstring iccsStr) { iccs = iccsStr; }
+    void setIccs(const wstring& iccsStr) { iccs = iccsStr; }
     const wstring remarkStr() const { return remark; }
-    void setRemark(const wstring remarkStr) { remark = remarkStr; }
+    void setRemark(const wstring& remarkStr) { remark = remarkStr; }
     const int getStepNo() const { return stepNo; }
     void setStepNo(const int curStepNo) { stepNo = curStepNo; }
     const int getOthCol() const { return othCol; }

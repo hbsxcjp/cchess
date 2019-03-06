@@ -11,7 +11,14 @@ using namespace std;
 class Board;
 class Move;
 enum class PieceColor;
-enum class RecFormat;
+enum class RecFormat {
+    XQF,
+    ICCS,
+    ZH,
+    CC,
+    BIN,
+    JSON
+};
 enum class ChangeType {
     EXCHANGE,
     ROTATE,
@@ -41,49 +48,44 @@ public:
     void cutNext();
     void cutOther();
 
-    void setFEN(const wstring& pieceChars);
-    const wstring getPieceChars();
-    void setBoard();
-    void initSetMove(const RecFormat fmt);
     void changeSide(const ChangeType ct = ChangeType::EXCHANGE);
 
-    shared_ptr<Move>& getRootMove() { return prootMove; }
-    map<wstring, wstring>& getInfo() { return info; }
+    //shared_ptr<Move>& getRootMove() { return prootMove; }
+    //map<wstring, wstring>& getInfo() { return info; }
 
     const int getMovCount() const { return movCount; }
-    void setMovCount() { ++movCount; }
     const int getRemCount() const { return remCount; }
     const int getRemLenMax() const { return remLenMax; }
-    void setRemData(const int length);
-    /*
-    void setRemCount() { ++remCount; }
-    void setRemLenMax(const int curRemLenMax)
-    {
-        if (curRemLenMax > remLenMax)
-            remLenMax = curRemLenMax;
-    }*/
     const int getOthCol() const { return othCol; }
-    void setOthCol(const int curOthCol)
-    {
-        if (othCol < curOthCol)
-            othCol = curOthCol;
-    }
     const int getMaxRow() const { return maxRow; }
-    void setMaxRow(const int curMaxRow)
-    {
-        if (maxRow < curMaxRow)
-            maxRow = curMaxRow;
-    }
     const int getMaxCol() const { return maxCol; }
-    void setMaxCol() { ++maxCol; }
     const wstring getMoveInfo();
 
+    void write(const string& filename, const RecFormat fmt = RecFormat::ZH);
+    static void transDir(const string& dirfrom, const RecFormat fmt = RecFormat::XQF);
+    static void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
     // void loadViews(views);
     // void notifyViews();
 
 private:
-    static const wstring __fenToPieceChars(const wstring fen);
-    static const wstring __pieceCharsToFEN(const wstring& pieceChars);
+    void setFEN(const wstring& pieceChars);
+    void setBoard();
+    void initSetMove(const RecFormat fmt);
+
+    void readXQF(const string& filename);
+    void readPGN(const string& filename, const RecFormat fmt);
+    void readBIN(const string& filename);
+    void readJSON(const string& filename);
+    void __fromICCSZH(const wstring& moveStr, const RecFormat fmt);
+    void __fromCC(const wstring& fullMoveStr);
+    static const string getExtName(const RecFormat fmt);
+    static const RecFormat getRecFormat(const string& ext);
+
+    void writePGN(const string& filename, const RecFormat fmt = RecFormat::ZH);
+    const wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH);
+    const wstring toString_CC();
+    void writeBIN(const string& filenameconst);
+    void writeJSON(const string& filenameconst);
 
     map<wstring, wstring> info;
     shared_ptr<Board> pboard;
