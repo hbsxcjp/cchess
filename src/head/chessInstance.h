@@ -44,20 +44,42 @@ public:
     void setFEN(const wstring& pieceChars);
     const wstring getPieceChars();
     void setBoard();
-    void initSet(const RecFormat fmt);
+    void initSetMove(const RecFormat fmt);
     void changeSide(const ChangeType ct = ChangeType::EXCHANGE);
 
     shared_ptr<Move>& getRootMove() { return prootMove; }
     map<wstring, wstring>& getInfo() { return info; }
+
+    const int getMovCount() const { return movCount; }
+    void setMovCount() { ++movCount; }
+    const int getRemCount() const { return remCount; }
+    const int getRemLenMax() const { return remLenMax; }
+    void setRemData(const int length);
+    /*
+    void setRemCount() { ++remCount; }
+    void setRemLenMax(const int curRemLenMax)
+    {
+        if (curRemLenMax > remLenMax)
+            remLenMax = curRemLenMax;
+    }*/
+    const int getOthCol() const { return othCol; }
+    void setOthCol(const int curOthCol)
+    {
+        if (othCol < curOthCol)
+            othCol = curOthCol;
+    }
+    const int getMaxRow() const { return maxRow; }
+    void setMaxRow(const int curMaxRow)
+    {
+        if (maxRow < curMaxRow)
+            maxRow = curMaxRow;
+    }
+    const int getMaxCol() const { return maxCol; }
+    void setMaxCol() { ++maxCol; }
+    const wstring getMoveInfo();
+
     // void loadViews(views);
     // void notifyViews();
-
-    int movCount{ 0 }; //着法数量
-    int remCount{ 0 }; //注解数量
-    int remLenMax{ 0 }; //注解最大长度
-    int othCol{ 0 }; //# 存储最大变着层数
-    int maxRow{ 0 }; //# 存储最大着法深度
-    int maxCol{ 0 }; //# 存储视图最大列数
 
 private:
     static const wstring __fenToPieceChars(const wstring fen);
@@ -68,6 +90,13 @@ private:
     shared_ptr<Move> prootMove;
     shared_ptr<Move> pcurrentMove; // board对应状态：该着已执行
     PieceColor firstColor; // 棋局载入时需要设置此属性！
+
+    int movCount{ 0 }; //着法数量
+    int remCount{ 0 }; //注解数量
+    int remLenMax{ 0 }; //注解最大长度
+    int othCol{ 0 }; //# 存储最大变着层数
+    int maxRow{ 0 }; //# 存储最大着法深度
+    int maxCol{ 0 }; //# 存储视图最大列数
 };
 
 #endif

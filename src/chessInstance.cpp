@@ -49,7 +49,7 @@ ChessInstance::ChessInstance(const string& filename)
 
 inline const PieceColor ChessInstance::currentColor() const
 {
-    return pcurrentMove->stepNo % 2 == 0
+    return pcurrentMove->getStepNo() % 2 == 0
         ? firstColor
         : (firstColor == PieceColor::RED ? PieceColor::BLACK
                                          : PieceColor::RED);
@@ -158,35 +158,47 @@ const wstring ChessInstance::getPieceChars()
 
 void ChessInstance::setBoard() { pboard->set(getPieceChars()); }
 
+void ChessInstance::setRemData(const int length)
+{
+    if (length > 0) {
+        ++remCount;
+        if (length > remLenMax)
+            remLenMax = length;
+    }
+}
+
 // （rootMove）调用, 设置树节点的seat or zhStr'  // C++primer P512
-void ChessInstance::initSet(const RecFormat fmt)
+void ChessInstance::initSetMove(const RecFormat fmt)
 {
     auto __setRem = [&](const Move& move) {
+        setRemData(move.remarkStr().size());
+        /*
         int length = move.remark.size();
         if (length > 0) {
-            remCount += 1;
+            setRemCount();
             if (length > remLenMax)
-                remLenMax = length;
+                setRemLenMax(length);
         }
+        */
     };
 
     function<void(Move&)> __set = [&](Move& move) {
         switch (fmt) {
         case RecFormat::ICCS: {
-            move.setSeat(pboard->getSeat__ICCS(move.ICCS));
-            move.zh = pboard->getZH(move.fseat(), move.tseat());
+            move.setSeat(pboard->getSeats(move, fmt));
+            move.setZh(pboard->getZh(move));
             break;
         }
         case RecFormat::ZH:
         case RecFormat::CC: {
-            move.setSeat(pboard->getSeat__Zh(move.zh));
-            move.ICCS = pboard->getICCS(move.fseat(), move.tseat());
+            move.setSeat(pboard->getSeats(move, fmt));
+            move.setIccs(pboard->getIccs(move));
             /*
-            wstring zh{ getZH(move.fseat(), move.tseat()) };
+            wstring zh{ getZh(move) };
             // wcout << move.toString_zh() << L'\n';
-            if (move.zh != zh) {
-                wcout << L"move.zh: " << move.zh << L'\n'
-                      << L"getZH( ): " << zh << L'\n'
+            if (move.zhStr() != zh) {
+                wcout << L"move.zhStr(): " << move.zhStr() << L'\n'
+                      << L"getZh( ): " << zh << L'\n'
                       << move.toString() << L'\n' << pboard->toString() << endl;
                 return;
             } //*/
@@ -195,14 +207,14 @@ void ChessInstance::initSet(const RecFormat fmt)
         case RecFormat::XQF:
         case RecFormat::BIN:
         case RecFormat::JSON: {
-            move.ICCS = pboard->getICCS(move.fseat(), move.tseat());
-            move.zh = pboard->getZH(move.fseat(), move.tseat());
+            move.setIccs(pboard->getIccs(move));
+            move.setZh(pboard->getZh(move));
             /*
-            auto seats = getSeat__Zh(move.zh);
+            auto seats = getSeat__Zh(move.zhStr());
             // wcout << move.toString() << L'\n';
             if ((seats.first != move.fseat()) || (seats.second != move.tseat())) {
                 wcout << L"move.fs_ts: " << move.fseat() << L' ' << move.tseat() << L'\n'
-                      << L"getSeat__Zh( ): " << move.zh << L'\n'
+                      << L"getSeat__Zh( ): " << move.zhStr() << L'\n'
                       << move.toString() << L'\n' << pboard->toString() << endl;
                 return;
             } //*/
@@ -212,13 +224,14 @@ void ChessInstance::initSet(const RecFormat fmt)
             break;
         }
 
-        movCount += 1;
+        setMovCount();
         __setRem(move);
-        move.maxCol = maxCol; // # 本着在视图中的列数
-        if (move.othCol > othCol)
-            othCol = move.othCol;
-        if (move.stepNo > maxRow)
-            maxRow = move.stepNo;
+        move.setMaxCol(getMaxCol()); // # 本着在视图中的列数
+        //if (move.getOthCol() > getOthCol())
+        setOthCol(move.getOthCol());
+        //if (move.getStepNo() > maxRow)
+        setMaxRow(move.getStepNo());
+
         pboard->go(move);
         //wcout << move.toString() << L"\n" << pboard->toString() << endl;
 
@@ -226,7 +239,7 @@ void ChessInstance::initSet(const RecFormat fmt)
             __set(*move.next());
         pboard->back(move);
         if (move.other()) {
-            maxCol += 1;
+            setMaxCol();
             __set(*move.other());
         }
     };
@@ -265,8 +278,17 @@ void ChessInstance::changeSide(const ChangeType ct) // 未测试
     }
     pboard->set(seatPieces);
     if (ct != ChangeType::ROTATE)
-        initSet(RecFormat::BIN); //借用？
+        initSetMove(RecFormat::BIN); //借用？
     to(curmove);
+}
+
+const wstring ChessInstance::getMoveInfo()
+{
+    wstringstream wss{};
+    wss << L"【着法深度：" << maxRow << L", 变着广度：" << othCol
+        << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
+        << L", 注解数量：" << remCount << L", 注解最长：" << remLenMax << L"】\n";
+    return wss.str();
 }
 
 const wstring ChessInstance::__fenToPieceChars(const wstring fen)

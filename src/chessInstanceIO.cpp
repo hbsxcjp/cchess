@@ -6,12 +6,12 @@
 #include "move.h"
 #include "piece.h"
 #include "tools.h"
-#include <map>
 #include <cmath>
 #include <direct.h>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <regex>
 #include <sstream>
 using namespace std;
@@ -39,7 +39,7 @@ void ChessInstanceIO::read(const string& filename, ChessInstance& ci)
     }
 
     ci.setBoard();
-    ci.initSet(fmt);
+    ci.initSetMove(fmt);
 }
 
 void ChessInstanceIO::write(const string& fname, ChessInstance& ci, const RecFormat fmt)
@@ -103,10 +103,9 @@ void ChessInstanceIO::transDir(const string& dirfrom, const RecFormat fmt)
                         ChessInstance ci{};
                         read(filename, ci);
                         write(fileto, ci, fmt);
-                        movcount += ci.movCount;
-                        remcount += ci.remCount;
-                        if (ci.remLenMax > remlenmax)
-                            remlenmax = ci.remLenMax;
+                        movcount += ci.getMovCount();
+                        remcount += ci.getRemCount();
+                        remlenmax += ci.getRemLenMax();
                     } else
                         copyFile(filename.c_str(), (fileto + ext_old).c_str());
                 }
@@ -274,7 +273,7 @@ void ChessInstanceIO::readXQF(const string& filename, ChessInstance& ci)
         if (RemarkSize > 0) { // # 如果有注解
             char rem[RemarkSize + 1]{};
             __readbytes(rem, RemarkSize);
-            move.remark = s2ws(rem);
+            move.setRemark(s2ws(rem));
         }
 
         if (ChildTag & 0x80) { //# 有左子树
@@ -320,12 +319,12 @@ void ChessInstanceIO::__fromICCSZH(const wstring& moveStr, ChessInstance& ci, co
              p != wsregex_iterator{}; ++p) {
             auto newMove = make_shared<Move>();
             if (fmt == RecFormat::ZH)
-                newMove->zh = (*p)[1];
+                newMove->setZh((*p)[1]);
             else
-                newMove->ICCS = (*p)[1];
+                newMove->setIccs((*p)[1]);
             wstring rem{ (*p)[2] };
             if (rem.size() > 0)
-                newMove->remark = rem;
+                newMove->setRemark(rem);
             if (isOther) { // # 第一步为变着
                 pmove->setOther(newMove);
                 isOther = false;
@@ -343,7 +342,7 @@ void ChessInstanceIO::__fromICCSZH(const wstring& moveStr, ChessInstance& ci, co
     wsregex_token_iterator wtleft{ moveStr.begin(), moveStr.end(), spleft, -1 }, end{};
     wsmatch wsm;
     if (regex_search((*wtleft).first, (*wtleft).second, wsm, rempat))
-        prootMove->remark = wsm.str(1);
+        prootMove->setRemark(wsm.str(1));
     bool isOther{ false }; // 首次非变着
     for (; wtleft != end; ++wtleft) {
         //wcout << *wtleft << L"\n---------------------------------------------\n" << endl;
@@ -384,13 +383,13 @@ void ChessInstanceIO::__fromCC(const wstring& fullMoveStr, ChessInstance& ci)
     auto __setRem = [&](Move& move, int row, int col) {
         wstring key{ to_wstring(row) + L',' + to_wstring(col) };
         if (remm.find(key) != remm.end())
-            move.remark = remm[key];
+            move.setRemark(remm[key]);
     };
     function<void(Move&, int, int, bool)> __read = [&](Move& move, int row, int col, bool isOther) {
         wstring zhStr{ movv[row][col] };
         if (regex_match(zhStr, movefat)) {
             auto newMove = make_shared<Move>();
-            newMove->zh = zhStr.substr(0, 4);
+            newMove->setZh(zhStr.substr(0, 4));
             __setRem(*newMove, row, col);
             if (isOther)
                 move.setOther(newMove);
@@ -447,7 +446,7 @@ void ChessInstanceIO::readBIN(const string& filename, ChessInstance& ci)
 
             char rem[length + 1]{};
             ifs.read(rem, length);
-            move.remark = s2ws(rem);
+            move.setRemark(s2ws(rem));
         }
 
         if (hasNext) { //# 有左子树
@@ -481,7 +480,7 @@ void ChessInstanceIO::readJSON(const string& filename, ChessInstance& ci)
         int fseat{ item["f"].asInt() }, tseat{ item["t"].asInt() };
         move.setSeat(fseat, tseat);
         if (item.isMember("r"))
-            move.remark = s2ws(item["r"].asString());
+            move.setRemark(s2ws(item["r"].asString()));
         if (item.isMember("n")) { //# 有左子树
             move.setNext(make_shared<Move>());
             __read(*move.next(), item["n"]);
@@ -509,7 +508,7 @@ void ChessInstanceIO::writeBIN(const string& filename, ChessInstance& ci)
         ofs.put(klen).write(keys.c_str(), klen).put(vlen).write(values.c_str(), vlen);
     }
     function<void(const Move&)> __write = [&](const Move& move) {
-        string remark{ ws2s(move.remark) };
+        string remark{ ws2s(move.remarkStr()) };
         int len{ int(remark.size()) };
 
         ofs.put(char(move.fseat())).put(char(move.tseat()));
@@ -547,8 +546,8 @@ void ChessInstanceIO::writeJSON(const string& filename, ChessInstance& ci)
     function<void(const Move&, Json::Value&)> __write = [&](const Move& move, Json::Value& item) {
         item["f"] = move.fseat();
         item["t"] = move.tseat();
-        if (move.remark.size() > 0)
-            item["r"] = ws2s(move.remark);
+        if (move.remarkStr().size() > 0)
+            item["r"] = ws2s(move.remarkStr());
         if (move.next()) {
             Json::Value newItem{};
             __write(*move.next(), newItem);
@@ -583,22 +582,22 @@ const wstring ChessInstanceIO::toString_ICCSZH(ChessInstance& ci, const RecForma
 {
     wstringstream wss{};
     function<void(const Move&)> __remark = [&](const Move& move) {
-        if (move.remark.size() > 0)
-            wss << L"\n{" << move.remark << L"}\n";
+        if (move.remarkStr().size() > 0)
+            wss << L"\n{" << move.remarkStr() << L"}\n";
     };
 
     shared_ptr<Move>& prootMove = ci.getRootMove();
     __remark(*prootMove);
     function<void(const Move&, bool)> __moveStr = [&](const Move& move, bool isOther) {
-        int boutNum{ (move.stepNo + 1) / 2 };
-        bool isEven{ move.stepNo % 2 == 0 };
+        int boutNum{ (move.getStepNo() + 1) / 2 };
+        bool isEven{ move.getStepNo() % 2 == 0 };
         if (isOther)
             wss << L"(" << boutNum << L". " << (isEven ? L"... " : L"");
         else if (isEven)
             wss << L" ";
         else
             wss << boutNum << L". ";
-        wss << (fmt == RecFormat::ZH ? move.zh : move.ICCS) << L' ';
+        wss << (fmt == RecFormat::ZH ? move.zhStr() : move.iccsStr()) << L' ';
         __remark(move);
         if (move.other()) {
             __moveStr(*move.other(), true);
@@ -617,23 +616,23 @@ const wstring ChessInstanceIO::toString_ICCSZH(ChessInstance& ci, const RecForma
 const wstring ChessInstanceIO::toString_CC(ChessInstance& ci)
 {
     wstringstream remstrs{};
-    wstring lstr((ci.maxCol + 1) * 5, L'　');
-    vector<wstring> lineStr((ci.maxRow + 1) * 2, lstr);
+    wstring lstr((ci.getMaxCol() + 1) * 5, L'　');
+    vector<wstring> lineStr((ci.getMaxRow() + 1) * 2, lstr);
     function<void(const Move&)> __setChar = [&](const Move& move) {
-        int firstcol = move.maxCol * 5;
+        int firstcol = move.getMaxCol() * 5;
         for (int i = 0; i < 4; ++i)
-            lineStr[move.stepNo * 2][firstcol + i] = move.zh[i];
-        if (move.remark.size() > 0)
-            remstrs << L"(" << move.stepNo << L"," << move.maxCol << L"): {"
-                    << move.remark << L"}\n";
+            lineStr[move.getStepNo() * 2][firstcol + i] = move.zhStr()[i];
+        if (move.remarkStr().size() > 0)
+            remstrs << L"(" << move.getStepNo() << L"," << move.getMaxCol() << L"): {"
+                    << move.remarkStr() << L"}\n";
         if (move.next()) {
-            lineStr[move.stepNo * 2 + 1][firstcol + 2] = L'↓';
+            lineStr[move.getStepNo() * 2 + 1][firstcol + 2] = L'↓';
             __setChar(*move.next());
         }
         if (move.other()) {
-            int linel = move.other()->maxCol * 5;
+            int linel = move.other()->getMaxCol() * 5;
             for (int i = firstcol + 4; i < linel; ++i)
-                lineStr[move.stepNo * 2][i] = L'…';
+                lineStr[move.getStepNo() * 2][i] = L'…';
             __setChar(*move.other());
         }
     };
@@ -646,9 +645,7 @@ const wstring ChessInstanceIO::toString_CC(ChessInstance& ci)
     for (auto line : lineStr)
         wss << line << L'\n';
     wss << remstrs.str();
-    wss << L"【着法深度：" << ci.maxRow << L", 变着广度：" << ci.othCol
-        << L", 视图宽度：" << ci.maxCol << L", 着法数量：" << ci.movCount
-        << L", 注解数量：" << ci.remCount << L", 注解最长：" << ci.remLenMax << L"】\n";
+    wss << ci.getMoveInfo();
     return wss.str();
 }
 

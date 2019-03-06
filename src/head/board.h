@@ -11,6 +11,7 @@ class Piece;
 class Pieces;
 class Move;
 enum class PieceColor;
+enum class RecFormat;
 enum class BoardSide {
     BOTTOM,
     TOP
@@ -42,16 +43,17 @@ public:
     void set(const wstring& pieceChars);
     void set(vector<pair<int, shared_ptr<Piece>>> seatPieces);
 
-    const pair<int, int> getSeat__ICCS(const wstring& ICCS);
-    const wstring getICCS(const int fseat, const int tseat);
-    // 中文纵线着法->(fseat, tseat), 着法未走状态
-    const pair<int, int> getSeat__Zh(const wstring& Zh);
+    const pair<int, int> getSeats(const Move& move, RecFormat fmt);
+    const wstring getIccs(const Move& move);
     // (fseat, tseat)->中文纵线着法, 着法未走状态
-    const wstring getZH(const int fseat, const int tseat);
+    const wstring getZh(const Move& move);
     const wstring toString() const;
     const wstring test();
 
 private:
+    const pair<int, int> __getSeatFromICCS(const wstring& ICCS);
+    // 中文纵线着法->(fseat, tseat), 着法未走状态
+    const pair<int, int> __getSeatFromZh(const wstring& Zh);
     const vector<int> __getSeats(const vector<shared_ptr<Piece>>& pies) const;
     void __setPiece(shared_ptr<Piece> pie, const int tseat);
     static map<PieceColor, wstring> numChars;

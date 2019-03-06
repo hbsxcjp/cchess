@@ -1,5 +1,6 @@
 #include "board.h"
 #include "board_base.h"
+#include "chessInstanceIO.h"
 #include "move.h"
 #include "piece.h"
 #include "pieces.h"
@@ -135,16 +136,16 @@ void Board::set(const wstring& pieceChars)
     setBottomSide();
 }
 
-const wstring Board::getICCS(const int fseat, const int tseat)
+const wstring Board::getIccs(const Move& move)
 {
     wstringstream wss{};
     wstring ColChars{ L"abcdefghi" };
-    wss << ColChars[getCol(fseat)] << getRow(fseat) << ColChars[getCol(tseat)] << getRow(tseat);
+    wss << ColChars[getCol(move.fseat())] << getRow(move.fseat()) << ColChars[getCol(move.tseat())] << getRow(move.tseat());
     return wss.str();
 }
 
 //(fseat, tseat)->中文纵线着法
-const wstring Board::getZH(const int fseat, const int tseat)
+const wstring Board::getZh(const Move& move)
 {
     auto __find_index = [](const vector<int>& seats, const int seat) {
         int index{ 0 };
@@ -157,7 +158,7 @@ const wstring Board::getZH(const int fseat, const int tseat)
     };
 
     wstringstream wss{};
-    int fromRow{ getRow(fseat) }, fromCol{ getCol(fseat) };
+    int fseat{ move.fseat() }, tseat{ move.tseat() }, fromRow{ getRow(fseat) }, fromCol{ getCol(fseat) };
     shared_ptr<Piece> fromPiece{ getPiece(fseat) };
     PieceColor color{ fromPiece->color() };
     wchar_t name{ fromPiece->chName() };
@@ -187,14 +188,26 @@ const wstring Board::getZH(const int fseat, const int tseat)
     return wss.str();
 }
 
-const pair<int, int> Board::getSeat__ICCS(const wstring& ICCS)
+const pair<int, int> Board::getSeats(const Move& move, RecFormat fmt)
+{
+    switch (fmt) {
+    case RecFormat::ICCS:
+        return __getSeatFromICCS(move.iccsStr());
+    default:
+        //case RecFormat::ZH:
+        //case RecFormat::CC:
+        return __getSeatFromZh(move.zhStr());
+    }
+}
+
+const pair<int, int> Board::__getSeatFromICCS(const wstring& ICCS)
 {
     string iccs{ ws2s(ICCS) };
     return make_pair(getSeat(iccs[1] - 48, iccs[0] - 97), getSeat(iccs[3] - 48, iccs[2] - 97));
 }
 
 //中文纵线着法->(fseat, tseat)
-const pair<int, int> Board::getSeat__Zh(const wstring& zhStr)
+const pair<int, int> Board::__getSeatFromZh(const wstring& zhStr)
 {
     int index, fseat, tseat;
     vector<int> seats{};

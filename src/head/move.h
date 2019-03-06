@@ -32,20 +32,34 @@ public:
 
     const wstring toString() const;
 
-    wstring ICCS{}; // 着法数字字母描述
-    wstring zh{}; // 着法中文描述
-    wstring remark{}; // 注释
-    int stepNo{ 0 }; // 着法深度
-    int othCol{ 0 }; // 变着广度
-    int maxCol{ 0 }; // 图中列位置（需结合board确定）
+    const wstring zhStr() const { return zh; }
+    void setZh(const wstring zhStr) { zh = zhStr; }
+    const wstring iccsStr() const { return iccs; }
+    void setIccs(const wstring iccsStr) { iccs = iccsStr; }
+    const wstring remarkStr() const { return remark; }
+    void setRemark(const wstring remarkStr) { remark = remarkStr; }
+    const int getStepNo() const { return stepNo; }
+    void setStepNo(const int curStepNo) { stepNo = curStepNo; }
+    const int getOthCol() const { return othCol; }
+    void setOthCol(const int curOthCol) { othCol = curOthCol; }
+    const int getMaxCol() const { return maxCol; }
+    void setMaxCol(const int curMaxCol) { maxCol = curMaxCol; }
 
 private:
     int fromseat;
     int toseat;
-    shared_ptr<Piece> eatPie_ptr;
+    wstring remark{}; // 注释
+    wstring iccs{}; // 着法数字字母描述
+    wstring zh{}; // 着法中文描述
+
+    shared_ptr<Piece> eatPie_ptr{};
     shared_ptr<Move> prev_ptr{};
     shared_ptr<Move> next_ptr{};
     shared_ptr<Move> other_ptr{};
+
+    int stepNo{ 0 }; // 着法深度
+    int othCol{ 0 }; // 变着广度
+    int maxCol{ 0 }; // 图中列位置（需结合board确定）
 };
 
 #endif
