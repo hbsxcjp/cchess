@@ -2,7 +2,8 @@
 #define MOVE_H
 
 #include <memory>
-//#include <vector>
+#include <string>
+#include <vector>
 using namespace std;
 
 class Piece;
@@ -12,12 +13,13 @@ class Seat;
 class Move {
 
 public:
-    Move();
+    Move() = default;
 
     void setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat);
-    void setNext(shared_ptr<Move>& next);
-    void setOther(shared_ptr<Move>& other);
-    void setPrev(shared_ptr<Move>& prev) { prev_ = weak_ptr<Move>(prev); }
+    void setNext(shared_ptr<Move> next);
+    void setOther(shared_ptr<Move> other);
+    void setPrev(shared_ptr<Move> prev) { prev_ = weak_ptr<Move>(prev); }
+    vector<shared_ptr<Move>> getPrevMoves();
     void done();
     void undo();
 
@@ -40,7 +42,8 @@ public:
     void setOthCol(const int othCol) { othCol_ = othCol; }
     const int getMaxCol() const { return maxCol_; }
     void setMaxCol(const int maxCol) { maxCol_ = maxCol; }
-    
+
+    const wstring toString() const;
 private:
     shared_ptr<Seat> fseat_{};
     shared_ptr<Seat> tseat_{};

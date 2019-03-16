@@ -1,17 +1,24 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include <map>
 #include <memory>
 #include <vector>
 
 using namespace std;
 class Seat;
 class Piece;
+class Move;
 enum class PieceColor;
 enum class RecFormat;
 enum class BoardSide {
     BOTTOM,
     TOP
+};
+enum class ChangeType {
+    EXCHANGE,
+    ROTATE,
+    SYMMETRY
 };
 
 class Board {
@@ -24,10 +31,9 @@ public:
     //const bool isBlank(const shared_ptr<Seat>& seat) const { return getPiece(seat) == nullptr; }
     //const shared_ptr<Piece>& getPiece(const shared_ptr<Seat>& seat) const;
     //const PieceColor getColor(const shared_ptr<Seat>& seat) const;
-    //const shared_ptr<Piece>& getOthPie(const shared_ptr<Piece>& piece) const;
 
-    shared_ptr<Seat>& seat(const int row, const int col) { return seats_[row * ColNum + col]; }
-    vector<shared_ptr<Seat>> seats(const PieceColor color, const wchar_t name = L'\x00', const int col = -1) const;
+    shared_ptr<Seat>& getSeat(const int row, const int col) { return seats_[row * ColNum + col]; }
+    vector<shared_ptr<Seat>> getSeats(const PieceColor color, const wchar_t name = L'\x00', const int col = -1) const;
     //vector<shared_ptr<Seat>> getSideLiveSeats(const PieceColor color) const;
     //vector<shared_ptr<Seat>> getSideNameSeats(const PieceColor color, const wchar_t name) const;
     //vector<shared_ptr<Seat>> getSideNameColSeats(const PieceColor color, const wchar_t name, const int col) const;
@@ -39,30 +45,31 @@ public:
     const bool isKilled(const PieceColor color); //判断是否将军
     const bool isDied(const PieceColor color); //判断是否被将死
 
-    /*
-    const wstring getPieceChars() const;
+    const wstring getChars() const;
+    void putPieces(const wstring& chars);
+    shared_ptr<Seat>& getOthSeat(const shared_ptr<Seat>& seat, const ChangeType ct);
+    void changeSide(const ChangeType ct);
     void setBottomSide();
-    void set(const wstring& pieceChars);
-    void set(vector<pair<int, shared_ptr<Piece>>> seatPieces);
 
-    const pair<int, int> getSeats(const Move& move, RecFormat fmt);
-    const wstring getIccs(const Move& move);
+    const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> getMoveSeats(const Move& move, const RecFormat fmt);
+    const wstring getIccs(const Move& move) const;
     // (fseat, tseat)->中文纵线着法, 着法未走状态
     const wstring getZh(const Move& move);
+    //const wstring test();
+
     const wstring toString() const;
-    const wstring test();
-    */
 
 private:
-    //const pair<int, int> __getSeatFromICCS(const wstring& ICCS);
+    const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> __getSeatFromICCS(const wstring& ICCS);
     // 中文纵线着法->(fseat, tseat), 着法未走状态
-    //const pair<int, int> __getSeatFromZh(const wstring& Zh);
-    //const vector<int> __getSeats(const vector<shared_ptr<Piece>>& pies) const;
+    const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> __getSeatFromZh(const wstring& Zh);
+    //const vector<shared_ptr<Seat>> __getSeats(const vector<shared_ptr<Piece>>& pies) const;
 
-    //static map<PieceColor, wstring> numChars;
+    static map<PieceColor, wstring> __numChars;
+    //const shared_ptr<Piece> __getFreePie(wchar_t ch) const;
 
-    const vector<shared_ptr<Piece>> creatPieces();
-    vector<shared_ptr<Seat>> creatSeats();
+    const vector<shared_ptr<Piece>> __creatPieces();
+    vector<shared_ptr<Seat>> __creatSeats();
     // 棋盘数值常量
     const int RowNum{ 0x0A };
     const int ColNum{ 0x09 };
@@ -71,6 +78,5 @@ private:
     const vector<shared_ptr<Piece>> pieces_; // 一副棋子，固定的32个
     vector<shared_ptr<Seat>> seats_; // 一块棋盘位置容器，固定的90个
 };
-
 
 #endif

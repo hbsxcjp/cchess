@@ -13,11 +13,20 @@ enum class PieceColor {
     BLACK
 };
 
+static const wchar_t nullChar{ L'_' };
+
+static map<wchar_t, wchar_t> charNames{
+    { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
+    { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
+    { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
+    { L'P', L'兵' }, { L'p', L'卒' }
+};
+
 // 棋子类
 class Piece {
 
 public:
-    explicit Piece::Piece(const wchar_t ch)
+    explicit Piece(const wchar_t ch)
         : ch_{ ch }
         , name_{ charNames[ch] }
         , color_{ islower(ch) ? PieceColor::BLACK : PieceColor::RED }
@@ -31,17 +40,13 @@ public:
     virtual const bool isKing() const { return tolower(ch_) == L'k'; }
     virtual const bool isStronge() const { return static_cast<wstring>(L"nrcp").find(tolower(ch_)) != wstring::npos; }
 
+    static PieceColor getOthColor(const PieceColor color);
+    const wstring toString() const;
+
 private:
     const wchar_t ch_;
     const wchar_t name_;
     const PieceColor color_;
-};
-
-static map<wchar_t, wchar_t> charNames{
-    { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
-    { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
-    { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
-    { L'P', L'兵' }, { L'p', L'卒' }
 };
 
 /*

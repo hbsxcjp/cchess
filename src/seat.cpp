@@ -1,7 +1,16 @@
 #include "seat.h"
+#include "piece.h"
+#include <iomanip>
+#include <sstream>
+#include <string>
 
-
-
+const wstring Seat::toString() const
+{
+    wstringstream wss{};
+    wss << boolalpha;
+    wss << setw(3) << row_ << setw(3) << col_ << setw(3) << (piece_ ? piece_->name() : L'空') << L'\n';
+    return wss.str();
+}
 
 /*
 #include <algorithm>
