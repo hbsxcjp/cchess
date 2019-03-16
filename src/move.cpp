@@ -1,54 +1,43 @@
 #include "move.h"
-#include "board_base.h"
-#include "piece.h"
-#include <algorithm>
-#include <sstream>
+//#include "piece.h"
+#include "seat.h"
+//#include <algorithm>
+//#include <vector>
 using namespace std;
-using namespace Board_base;
 
-Move::Move()
-    : fromseat{ nullSeat }
-    , toseat{ nullSeat }
+void Move::setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat)
 {
+    fseat_ = fseat;
+    tseat_ = tseat;
 }
 
-void Move::setNext(shared_ptr<Move> next)
+void Move::setNext(shared_ptr<Move>& next)
 {
-    next_ptr = next;
-    if (next) {
-        next->setStepNo(stepNo + 1); // 步序号
-        next->setOthCol(othCol); // 变着层数
-        next->setPrev(make_shared<Move>(*this)); // 是否构成环形指针，造成不能自动析构？
-    }
+    next->setStepNo(stepNo_ + 1); // 步序号
+    next->setOthCol(othCol_); // 变着层数
+    auto prev = make_shared<Move>(*this);
+    next->setPrev(prev);
+    next_ = next;
 }
 
-void Move::setOther(shared_ptr<Move> other)
+void Move::setOther(shared_ptr<Move>& other)
 {
-    other_ptr = other;
-    if (other) {
-        other->setStepNo(stepNo); // 与premove的步数相同
-        other->setOthCol(othCol + 1); // 变着层数
-        other->setPrev(make_shared<Move>(*this)); // 是否构成环形指针，造成不能自动析构？
-    }
+    other->setStepNo(stepNo_); // 与premove的步数相同
+    other->setOthCol(othCol_ + 1); // 变着层数
+    auto prev = make_shared<Move>(*this);
+    other->setPrev(prev);
+    other_ = other;
 }
 
-const vector<shared_ptr<Move>> Move::getPrevMoves() const
+void Move::done()
 {
-    shared_ptr<Move> pmove{ make_shared<Move>(*this) };
-    vector<shared_ptr<Move>> pmv{ pmove };
-    while (!pmove->prev()) {
-        pmove = pmove->prev();
-        pmv.push_back(pmove);
-    }
-    std::reverse(pmv.begin(), pmv.end());
-    return pmv;
+    eatPie_ = tseat_->piece();
+    tseat_->put(fseat_->piece());
+    fseat_->pop();
 }
 
-const wstring Move::toString() const
+void Move::undo()
 {
-    wstringstream wss{};
-    wss << L"<rcm:" << stepNo << L' ' << othCol << L' '
-        << maxCol << L" f_t:" << fromseat << L' ' << toseat << L" e:" << eatPie_ptr->chName() << L" I:" << iccs << L" z:" << zh
-        << L",r:" << remark << L">";
-    return wss.str();
+    fseat_->put(tseat_->piece());
+    tseat_->put(eatPie_);
 }

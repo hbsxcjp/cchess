@@ -1,4 +1,83 @@
 #include "board.h"
+#include "move.h"
+#include "piece.h"
+#include "seat.h"
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+Board::Board()
+    : bottomColor{ PieceColor::RED }
+    , pieces_{ creatPieces() }
+    , seats_{ creatSeats() }
+{
+}
+
+vector<shared_ptr<Seat>> Board::seats(const PieceColor color, const wchar_t name, const int col) const
+{
+    vector<shared_ptr<Seat>> someSeats{};
+    for_each(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat>& seat) {
+        const shared_ptr<Piece>& pie{ seat->piece() };
+        if (pie && pie->color() == color
+            && (name == L'\x00' || name == pie->name())
+            && (col == -1 || col == seat->col()))
+            someSeats.push_back(seat);
+    });
+    return someSeats;
+}
+
+//判断是否将军
+const bool Board::isKilled(const PieceColor color)
+{
+    /*
+    PieceColor othColor = color == PieceColor::BLACK ? PieceColor::RED : PieceColor::BLACK;
+    int kingSeat{ pPieces->getKingPie(color)->seat() },
+        othKingSeat{ pPieces->getKingPie(othColor)->seat() };
+    if (isSameCol(kingSeat, othKingSeat)) {
+        vector<int> ss{ getSameColSeats(kingSeat, othKingSeat) };
+        if (std::all_of(ss.begin(), ss.end(),
+                [this](const int s) { return isBlank(s); }))
+            return true;
+    }
+    for (auto& ppie : pPieces->getLiveStrongePies(othColor)) {
+        auto ss = ppie->filterMoveSeats(*this);
+        if (std::find(ss.begin(), ss.end(), kingSeat) != ss.end())
+            return true;
+    }
+    */
+    return false;
+}
+
+//判断是否被将死
+const bool Board::isDied(const PieceColor color)
+{
+    /*
+    for (auto& ppie : pPieces->getLivePies(color))
+        if (ppie->getCanMoveSeats(*this).size() > 0)
+            return false;
+            */
+    return true;
+}
+
+const vector<shared_ptr<Piece>> Board::creatPieces()
+{
+    vector<shared_ptr<Piece>> pieces{};
+    wstring pieChars{ L"KAABBNNRRCCPPPPPkaabbnnrrccppppp" };
+    for (auto& ch : pieChars)
+        pieces.push_back(make_shared<Piece>(ch));
+    return pieces;
+}
+
+vector<shared_ptr<Seat>> Board::creatSeats()
+{
+    vector<shared_ptr<Seat>> seats{};
+    for (int r = 0; r < RowNum; ++r)
+        for (int c = 0; c < ColNum; ++c)
+            seats.push_back(make_shared<Seat>(static_cast<char>(r), static_cast<char>(c)));
+    return seats;
+}
+
+/*
 #include "board_base.h"
 #include "chessInstanceIO.h"
 #include "move.h"
@@ -335,3 +414,4 @@ const wstring Board::test()
 
     return wss.str();
 }
+*/

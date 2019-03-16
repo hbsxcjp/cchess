@@ -1,5 +1,9 @@
-#include "board_base.h"
+#include "seat.h"
 
+
+
+
+/*
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -223,6 +227,9 @@ const vector<const Seat*> Seats::sortPawnSeats(const bool isBottomSide, vector<S
 
     return seatv;
 }
+*/
+
+////
 
 /*
 

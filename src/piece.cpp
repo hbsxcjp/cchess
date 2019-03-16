@@ -1,5 +1,8 @@
 #include "piece.h"
-#include "board.h"
+using namespace std;
+
+
+/*
 #include "board_base.h"
 
 #include <algorithm>
@@ -123,3 +126,4 @@ const wstring Piece::toString() const
         << isBlank() << setw(8) << isKing() << setw(8) << isStronge() << L'\n';
     return wss.str();
 }
+*/

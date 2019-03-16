@@ -1,33 +1,33 @@
-#ifndef BOARD_BASE_H
-#define BOARD_BASE_H
+#ifndef SEAT_H
+#define SEAT_H
 
-#include <string>
-#include <utility>
-#include <vector>
+#include <memory>
+//#include <vector>
 using namespace std;
+class Piece;
 
-enum class BoardSide {
-    BOTTOM,
-    TOP
-};
-
-static const int NullRowCol{ -0x01 };
-
-namespace Board_base {
 class Seat {
 public:
-    const int col() const { return c; }
-    const int row() const { return r; }
-    //const int index() { return c << 4 | r; }
+    explicit Seat::Seat(char row, char col)
+        : row_{ row }
+        , col_{ col }
+    {
+    }
 
-    friend class Seats;
+    const int row() const { return row_; }
+    const int col() const { return col_; }
+    const shared_ptr<Piece>& piece() { return piece_; }
+
+    void pop() { piece_ = nullptr; } // 取出棋子(一元运算符)
+    void put(const shared_ptr<Piece>& pie) { piece_ = pie; } // 置入棋子
 
 private:
-    explicit Seat(int col, int row);
-    int c; //高四位
-    int r; //低四位
+    char row_; //低四位
+    char col_; //高四位
+    shared_ptr<Piece> piece_{};
 };
 
+/*
 class Seats {
 public:
     Seats();
@@ -39,9 +39,9 @@ public:
     const vector<const Seat*> bishopSeats(BoardSide bs) const;
     const vector<const Seat*> pawnSeats(BoardSide bs) const;
 
-    const bool isSameCol(const Seat& aseat, const Seat& bseat) const { return aseat.c == bseat.c; }
-    const Seat& rotateSeat(const Seat& seat) const { return seats[MaxCol - seat.c][MaxRow - seat.r]; }
-    const Seat& symmetrySeat(const Seat& seat) const { return seats[MaxCol - seat.c][seat.r]; }
+    const bool isSameCol(const Seat& aseat, const Seat& bseat) const { return aseat.col_ == bseat.col_; }
+    const Seat& rotateSeat(const Seat& seat) const { return seats[MaxCol - seat.col_][MaxRow - seat.row_]; }
+    const Seat& symmetrySeat(const Seat& seat) const { return seats[MaxCol - seat.col_][seat.row_]; }
     const vector<const Seat*> getSameColSeats(const Seat& aseat, const Seat& bseat) const;
 
     // 位置行走函数
@@ -67,7 +67,7 @@ private:
     static const int MinRow{ 0x00 };
     static const int MaxRow{ 0x09 };
 };
-}
+*/
 
 /*
 namespace Board_base {
