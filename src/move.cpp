@@ -1,54 +1,73 @@
 #include "move.h"
-#include "board_base.h"
+#include "board.h"
 #include "piece.h"
+#include "seat.h"
 #include <algorithm>
+#include <iomanip>
 #include <sstream>
+//#include <vector>
 using namespace std;
-using namespace Board_base;
 
-Move::Move()
-    : fromseat{ nullSeat }
-    , toseat{ nullSeat }
+void Move::setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat)
 {
+    fseat_ = fseat;
+    tseat_ = tseat;
+}
+
+void Move::setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats)
+{
+    setSeats(seats.first, seats.second);
 }
 
 void Move::setNext(shared_ptr<Move> next)
 {
-    next_ptr = next;
     if (next) {
-        next->setStepNo(stepNo + 1); // 步序号
-        next->setOthCol(othCol); // 变着层数
-        next->setPrev(make_shared<Move>(*this)); // 是否构成环形指针，造成不能自动析构？
+        next->setStepNo(stepNo_ + 1); // 步序号
+        next->setOthCol(othCol_); // 变着层数
+        next->setPrev(make_shared<Move>(*this));
     }
+    next_ = next;
 }
 
 void Move::setOther(shared_ptr<Move> other)
 {
-    other_ptr = other;
     if (other) {
-        other->setStepNo(stepNo); // 与premove的步数相同
-        other->setOthCol(othCol + 1); // 变着层数
-        other->setPrev(make_shared<Move>(*this)); // 是否构成环形指针，造成不能自动析构？
+        other->setStepNo(stepNo_); // 与premove的步数相同
+        other->setOthCol(othCol_ + 1); // 变着层数
+        other->setPrev(make_shared<Move>(*this));
     }
+    other_ = other;
 }
 
-const vector<shared_ptr<Move>> Move::getPrevMoves() const
+vector<shared_ptr<Move>> Move::getPrevMoves()
 {
-    shared_ptr<Move> pmove{ make_shared<Move>(*this) };
-    vector<shared_ptr<Move>> pmv{ pmove };
-    while (!pmove->prev()) {
-        pmove = pmove->prev();
-        pmv.push_back(pmove);
+    vector<shared_ptr<Move>> moves{};
+    shared_ptr<Move> next_move{ make_shared<Move>(*this) }, prev_move{};
+    while (prev_move = next_move->prev()) {
+        moves.push_back(next_move);
+        next_move = prev_move;
     }
-    std::reverse(pmv.begin(), pmv.end());
-    return pmv;
+    reverse(moves.begin(), moves.end());
+    return moves;
+}
+
+void Move::done()
+{
+    eatPie_ = tseat_->piece();
+    tseat_->put(fseat_->piece());
+    fseat_->put(Board::nullPiece);
+}
+
+void Move::undo()
+{
+    fseat_->put(tseat_->piece());
+    tseat_->put(eatPie_);
 }
 
 const wstring Move::toString() const
 {
     wstringstream wss{};
-    wss << L"<rcm:" << stepNo << L' ' << othCol << L' '
-        << maxCol << L" f_t:" << fromseat << L' ' << toseat << L" e:" << eatPie_ptr->chName() << L" I:" << iccs << L" z:" << zh
-        << L",r:" << remark << L">";
+    wss << fseat_->toString() << L'>' << tseat_->toString() << L'-' << (bool(eatPie_) ? eatPie_->name() : L'空')
+        << remark_ << L' ' << iccs_ << L' ' << zh_ << L' ' << stepNo_ << L' ' << othCol_ << L' ' << maxCol_;
     return wss.str();
 }

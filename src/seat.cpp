@@ -1,5 +1,18 @@
-#include "board_base.h"
+#include "seat.h"
+#include "piece.h"
+#include <iomanip>
+#include <sstream>
+#include <string>
 
+const wstring Seat::toString() const
+{
+    wstringstream wss{};
+    wss << boolalpha;
+    wss << row_ << col_ << setw(1) << piece_->name();
+    return wss.str();
+}
+
+/*
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -223,6 +236,9 @@ const vector<const Seat*> Seats::sortPawnSeats(const bool isBottomSide, vector<S
 
     return seatv;
 }
+*/
+
+////
 
 /*
 

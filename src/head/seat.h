@@ -1,33 +1,35 @@
-#ifndef BOARD_BASE_H
-#define BOARD_BASE_H
+#ifndef SEAT_H
+#define SEAT_H
 
-#include <string>
-#include <utility>
-#include <vector>
+#include <memory>
+//#include <vector>
 using namespace std;
+class Piece;
 
-enum class BoardSide {
-    BOTTOM,
-    TOP
-};
-
-static const int NullRowCol{ -0x01 };
-
-namespace Board_base {
 class Seat {
 public:
-    const int col() const { return c; }
-    const int row() const { return r; }
-    //const int index() { return c << 4 | r; }
+    explicit Seat(const int row, const int col, shared_ptr<Piece>& piece)
+        : row_{ row }
+        , col_{ col }
+        , piece_{ piece }
+    {
+    }
 
-    friend class Seats;
+    const int row() const { return row_; }
+    const int col() const { return col_; }
+    const int rc() const { return row_ * 10 + col_; } // 十位为行，个位为列
+    const shared_ptr<Piece>& piece() const { return piece_; }
+
+    void put(const shared_ptr<Piece>& piece) { piece_ = piece; } // 置入棋子
+    const wstring toString() const;
 
 private:
-    explicit Seat(int col, int row);
-    int c; //高四位
-    int r; //低四位
+    int row_; //低四位
+    int col_; //高四位
+    shared_ptr<Piece> piece_;
 };
 
+/*
 class Seats {
 public:
     Seats();
@@ -39,9 +41,9 @@ public:
     const vector<const Seat*> bishopSeats(BoardSide bs) const;
     const vector<const Seat*> pawnSeats(BoardSide bs) const;
 
-    const bool isSameCol(const Seat& aseat, const Seat& bseat) const { return aseat.c == bseat.c; }
-    const Seat& rotateSeat(const Seat& seat) const { return seats[MaxCol - seat.c][MaxRow - seat.r]; }
-    const Seat& symmetrySeat(const Seat& seat) const { return seats[MaxCol - seat.c][seat.r]; }
+    const bool isSameCol(const Seat& aseat, const Seat& bseat) const { return aseat.col_ == bseat.col_; }
+    const Seat& rotateSeat(const Seat& seat) const { return seats[MaxCol - seat.col_][MaxRow - seat.row_]; }
+    const Seat& symmetrySeat(const Seat& seat) const { return seats[MaxCol - seat.col_][seat.row_]; }
     const vector<const Seat*> getSameColSeats(const Seat& aseat, const Seat& bseat) const;
 
     // 位置行走函数
@@ -67,7 +69,7 @@ private:
     static const int MinRow{ 0x00 };
     static const int MaxRow{ 0x09 };
 };
-}
+*/
 
 /*
 namespace Board_base {

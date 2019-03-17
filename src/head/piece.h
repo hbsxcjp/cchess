@@ -1,6 +1,54 @@
 #ifndef PIECE_H
 #define PIECE_H
 
+//#include <memory>
+#include <map>
+#include <string>
+//#include <vector>
+using namespace std;
+
+class Board;
+enum class PieceColor {
+    RED,
+    BLACK,
+    BLANK
+};
+
+static map<wchar_t, wchar_t> charNames{
+    { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
+    { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
+    { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
+    { L'P', L'兵' }, { L'p', L'卒' }, { L'_', L'　' }
+};
+
+// 棋子类
+class Piece {
+
+public:
+    explicit Piece(const wchar_t ch)
+        : ch_{ ch }
+        , name_{ charNames[ch] }
+        , color_{ ch == L'_' ? PieceColor::BLANK : (islower(ch) ? PieceColor::BLACK : PieceColor::RED) }
+    {
+    }
+
+    const wchar_t ch() const { return ch_; }
+    const wchar_t name() const { return name_; }
+    const PieceColor color() const { return color_; }
+
+    virtual const bool isKing() const { return tolower(ch_) == L'k'; }
+    virtual const bool isStronge() const { return static_cast<wstring>(L"nrcp").find(tolower(ch_)) != wstring::npos; }
+
+    static PieceColor getOthColor(const PieceColor color);
+    const wstring toString() const;
+
+private:
+    const wchar_t ch_;
+    const wchar_t name_;
+    const PieceColor color_;
+};
+
+/*
 #include <map>
 #include <memory>
 #include <string>
@@ -21,7 +69,7 @@ public:
     Piece(const wchar_t _ch);
 
     const int seat() const { return st; }
-    const wchar_t wchar() const { return ch; }
+    const wchar_t ch_() const { return ch; }
     const PieceColor color() const { return clr; }
     const wchar_t chName() const { return name; }
     virtual const bool isBlank() const { return false; }
@@ -126,5 +174,6 @@ public:
     const bool isBlank() const { return true; }
     //void setSeat(int seat) {} // 加此函数，反而出现不明问题。
 };
+*/
 
 #endif
