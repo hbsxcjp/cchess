@@ -71,6 +71,8 @@ Instance::Instance(const string& filename)
 void Instance::write(const string& fname, const RecFormat fmt)
 {
     string filename{ fname + getExtName(fmt) };
+
+    cout << filename << endl;
     info_[L"Format"] = Tools::s2ws(getExtName(fmt));
     switch (fmt) {
     case RecFormat::BIN:
@@ -785,7 +787,6 @@ void Instance::setMoves(const RecFormat fmt)
             ++movCount;
         if (maxCol < curOthCol)
             maxCol = curOthCol;
-        move.setCC_Col(maxCol); // # 本着在视图中的列数
         if (maxRow < curMaxRow)
             maxRow = curMaxRow;
         if (move.other())
@@ -809,6 +810,7 @@ void Instance::setMoves(const RecFormat fmt)
             move.setIccs(board_->getIccs(move));
 
         __setData(move);
+        move.setCC_Col(maxCol); // # 本着在视图中的列数
         move.done();
         //board_->go(move);
         //wcout << move.toString() << L"\n" << board_->toString() << endl;

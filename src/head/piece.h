@@ -38,6 +38,7 @@ public:
 
     virtual const bool isKing() const { return tolower(ch_) == L'k'; }
     virtual const bool isPawn() const { return tolower(ch_) == L'p'; }
+    //virtual const bool isAdvBish() const { return static_cast<wstring>(L"an").find(tolower(ch_)) != wstring::npos; }
     virtual const bool isStronge() const { return static_cast<wstring>(L"nrcp").find(tolower(ch_)) != wstring::npos; }
     virtual const bool isLineMove() const { return static_cast<wstring>(L"krcp").find(tolower(ch_)) != wstring::npos; }
 
