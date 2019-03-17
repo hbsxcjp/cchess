@@ -64,11 +64,8 @@ Instance::Instance(const string& filename)
         readPGN(filename, fmt);
         break;
     }
-    //cout << "start setBoard!" << endl;
     setBoard();
-    //cout << "setBoard!" << endl;
-    initSetMove(fmt);
-    //cout << "initSetMove!" << endl;
+    setMoves(fmt);
 }
 
 void Instance::write(const string& fname, const RecFormat fmt)
@@ -77,13 +74,13 @@ void Instance::write(const string& fname, const RecFormat fmt)
     info_[L"Format"] = Tools::s2ws(getExtName(fmt));
     switch (fmt) {
     case RecFormat::BIN:
-        //writeBIN(filename);
+        writeBIN(filename);
         break;
     case RecFormat::JSON:
-        //writeJSON(filename);
+        writeJSON(filename);
         break;
     default:
-        //writePGN(filename, fmt);
+        writePGN(filename, fmt);
         break;
     }
 }
@@ -199,7 +196,7 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     }
 
     if (ct != ChangeType::ROTATE)
-        initSetMove(RecFormat::BIN); //借用RecFormat::BIN
+        setMoves(RecFormat::BIN); //借用RecFormat::BIN
     to(curmove);
 }
 
@@ -734,7 +731,7 @@ const wstring Instance::__moveInfo()
 
 void Instance::setFEN(const wstring& pieceChars)
 {
-    auto __pieceCharsToFEN = [](const wstring& pieceChars) {
+    auto __getFEN = [](const wstring& pieceChars) {
         //'下划线字符串对应数字字符'
         vector<pair<wstring, wstring>> line_nums{
             { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
@@ -746,13 +743,13 @@ void Instance::setFEN(const wstring& pieceChars)
             fen += pieceChars.substr(i, 9) + L"/";
         fen.erase(fen.size() - 1, 1);
         wstring::size_type pos;
-        for (auto linenum : line_nums)
+        for (auto& linenum : line_nums)
             while ((pos = fen.find(linenum.first)) != wstring::npos)
                 fen.replace(pos, linenum.first.size(), linenum.second);
         return fen;
     };
 
-    info_[L"FEN"] = __pieceCharsToFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
+    info_[L"FEN"] = __getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
 }
 
 void Instance::setBoard()
@@ -780,14 +777,15 @@ void Instance::setBoard()
 }
 
 // （rootMove）调用, 设置树节点的seat or zh'  // C++primer P512
-void Instance::initSetMove(const RecFormat fmt)
+void Instance::setMoves(const RecFormat fmt)
 {
-    function<void(Move&)> __setMovData = [&](const Move& move) {
+    function<void(Move&)> __setData = [&](const Move& move) {
         int curOthCol{ move.getOthCol() }, curMaxRow{ move.getStepNo() }, length{ int(move.remark().size()) };
         if (curMaxRow > 0) // 非rootMove
             ++movCount;
         if (maxCol < curOthCol)
             maxCol = curOthCol;
+        move.setCC_Col(maxCol); // # 本着在视图中的列数
         if (maxRow < curMaxRow)
             maxRow = curMaxRow;
         if (move.other())
@@ -810,9 +808,7 @@ void Instance::initSetMove(const RecFormat fmt)
         if (fmt != RecFormat::ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON
             move.setIccs(board_->getIccs(move));
 
-        move.setMaxCol(getMaxCol()); // # 本着在视图中的列数
-        __setMovData(move);
-
+        __setData(move);
         move.done();
         //board_->go(move);
         //wcout << move.toString() << L"\n" << board_->toString() << endl;
@@ -824,7 +820,7 @@ void Instance::initSetMove(const RecFormat fmt)
             __set(*move.other());
     };
 
-    __setMovData(*rootMove_);
+    __setData(*rootMove_);
     if (rootMove_->next())
         __set(*rootMove_->next()); // 驱动函数
 }

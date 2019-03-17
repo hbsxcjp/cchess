@@ -13,12 +13,12 @@ class Seat;
 class Move {
 
 public:
-    Move() = default;
+    Move();
 
     void setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat);
     void setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats);
-    void setNext(shared_ptr<Move> next);
-    void setOther(shared_ptr<Move> other);
+    void setNext(const shared_ptr<Move>& next);
+    void setOther(const shared_ptr<Move>& other);
     void setPrev(shared_ptr<Move> prev) { prev_ = weak_ptr<Move>(prev); }
     vector<shared_ptr<Move>> getPrevMoves();
     void done();
@@ -41,14 +41,14 @@ public:
     void setStepNo(const int stepNo) { stepNo_ = stepNo; }
     const int getOthCol() const { return othCol_; }
     void setOthCol(const int othCol) { othCol_ = othCol; }
-    const int getMaxCol() const { return maxCol_; }
-    void setMaxCol(const int maxCol) { maxCol_ = maxCol; }
+    const int getMaxCol() const { return CC_Col_; }
+    void setCC_Col(const int CC_Col) { CC_Col_ = CC_Col; }
 
     const wstring toString() const;
 private:
     shared_ptr<Seat> fseat_{};
     shared_ptr<Seat> tseat_{};
-    shared_ptr<Piece> eatPie_{};
+    shared_ptr<Piece> eatPie_;
     shared_ptr<Move> next_{};
     shared_ptr<Move> other_{};
     weak_ptr<Move> prev_{};
@@ -58,7 +58,7 @@ private:
     wstring zh_{}; // 着法中文描述
     int stepNo_{ 0 }; // 着法深度
     int othCol_{ 0 }; // 变着广度
-    int maxCol_{ 0 }; // 图中列位置（需结合board确定）
+    int CC_Col_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
 };
 
 #endif

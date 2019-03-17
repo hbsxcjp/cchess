@@ -69,7 +69,7 @@ private:
 
     void setFEN(const wstring& pieceChars);
     void setBoard();
-    void initSetMove(const RecFormat fmt);
+    void setMoves(const RecFormat fmt);
 
     map<wstring, wstring> info_;
     shared_ptr<Board> board_;

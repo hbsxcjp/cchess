@@ -8,6 +8,11 @@
 //#include <vector>
 using namespace std;
 
+Move::Move()
+    : eatPie_{ Board::nullPiece }
+{
+}
+
 void Move::setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat)
 {
     fseat_ = fseat;
@@ -19,31 +24,31 @@ void Move::setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& 
     setSeats(seats.first, seats.second);
 }
 
-void Move::setNext(shared_ptr<Move> next)
+void Move::setNext(const shared_ptr<Move>& next)
 {
-    if (next) {
-        next->setStepNo(stepNo_ + 1); // 步序号
-        next->setOthCol(othCol_); // 变着层数
-        next->setPrev(make_shared<Move>(*this));
-    }
     next_ = next;
+    if (next_) {
+        next_->setStepNo(stepNo_ + 1); // 步序号
+        next_->setOthCol(othCol_); // 变着层数
+        next_->setPrev(make_shared<Move>(*this));
+    }
 }
 
-void Move::setOther(shared_ptr<Move> other)
+void Move::setOther(const shared_ptr<Move>& other)
 {
-    if (other) {
-        other->setStepNo(stepNo_); // 与premove的步数相同
-        other->setOthCol(othCol_ + 1); // 变着层数
-        other->setPrev(make_shared<Move>(*this));
-    }
     other_ = other;
+    if (other_) {
+        other_->setStepNo(stepNo_); // 与premove的步数相同
+        other_->setOthCol(othCol_ + 1); // 变着层数
+        other_->setPrev(make_shared<Move>(*this));
+    }
 }
 
 vector<shared_ptr<Move>> Move::getPrevMoves()
 {
     vector<shared_ptr<Move>> moves{};
     shared_ptr<Move> next_move{ make_shared<Move>(*this) }, prev_move{};
-    while (prev_move = next_move->prev()) {
+    while (prev_move = next_move->prev()) { // 排除rootMove
         moves.push_back(next_move);
         next_move = prev_move;
     }

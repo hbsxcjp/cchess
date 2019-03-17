@@ -38,7 +38,7 @@ void ChessInstance::transDir(const string& dirfrom, const RecFormat fmt)
                         //cout << filename << endl;
 
                         Instance ci(filename);
-                        //ci.write(fileto, fmt);
+                        ci.write(fileto, fmt);
                         movcount += ci.getMovCount();
                         remcount += ci.getRemCount();
                         if (remlenmax < ci.getRemLenMax())
