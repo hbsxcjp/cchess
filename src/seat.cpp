@@ -8,7 +8,7 @@ const wstring Seat::toString() const
 {
     wstringstream wss{};
     wss << boolalpha;
-    wss << setw(3) << row_ << setw(3) << col_ << setw(3) << (piece_ ? piece_->name() : L'空') << L'\n';
+    wss << row_ << col_ << setw(1) << piece_->name();
     return wss.str();
 }
 

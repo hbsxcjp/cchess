@@ -8,9 +8,10 @@ class Piece;
 
 class Seat {
 public:
-    explicit Seat(int row, int col)
+    explicit Seat(const int row, const int col, shared_ptr<Piece>& piece)
         : row_{ row }
         , col_{ col }
+        , piece_{ piece }
     {
     }
 
@@ -19,15 +20,13 @@ public:
     const int rc() const { return row_ * 10 + col_; } // 十位为行，个位为列
     const shared_ptr<Piece>& piece() const { return piece_; }
 
-    void pop() { piece_ = nullptr; } // 取出棋子(一元运算符)
-    void put(const shared_ptr<Piece>& pie) { piece_ = pie; } // 置入棋子
-
+    void put(const shared_ptr<Piece>& piece) { piece_ = piece; } // 置入棋子
     const wstring toString() const;
 
 private:
     int row_; //低四位
     int col_; //高四位
-    shared_ptr<Piece> piece_{};
+    shared_ptr<Piece> piece_;
 };
 
 /*

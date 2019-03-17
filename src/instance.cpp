@@ -64,12 +64,11 @@ Instance::Instance(const string& filename)
         readPGN(filename, fmt);
         break;
     }
+    //cout << "start setBoard!" << endl;
     setBoard();
-    cout << "setBoard!\n"
-         << endl;
+    //cout << "setBoard!" << endl;
     initSetMove(fmt);
-    cout << "initSetMove!\n"
-         << endl;
+    //cout << "initSetMove!" << endl;
 }
 
 void Instance::write(const string& fname, const RecFormat fmt)
@@ -296,7 +295,7 @@ void Instance::readXQF(const string& filename)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
     setFEN(pieceChars);
-    wcout << pieceChars << endl;
+    //wcout << pieceChars << endl;
 
     function<void(Move&)> __read = [&](Move& move) {
         //auto __byteToSeat = [&](int a, int b) {
@@ -323,11 +322,10 @@ void Instance::readXQF(const string& filename)
         int fcolrow{ __subbyte(data[0], 0X18 + KeyXYf) }, tcolrow{ __subbyte(data[1], 0X20 + KeyXYt) };
         int frowcol{ fcolrow % 10 * 10 + fcolrow / 10 }, trowcol{ tcolrow % 10 * 10 + tcolrow / 10 }; // 行列转换
 
-        wcout << frowcol << L' ' << trowcol << endl;
+        //wcout << frowcol << L' ' << trowcol << endl;
         //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol % 10, frowcol / 10) }, &tseat{ board_->getSeat(trowcol % 10, trowcol / 10) };
         move.setSeats(board_->getMoveSeats(frowcol, trowcol));
         //wcout << move.toString() << endl;
-        //wcout << board_->toString() << endl;
         //move.setSeats(fseat, tseat);
         //move.setSeats(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
 
@@ -351,7 +349,7 @@ void Instance::readXQF(const string& filename)
             __readbytes(rem, RemarkSize);
             move.setRemark(Tools::s2ws(rem));
 
-            wcout << move.remark() << endl;
+            //wcout << move.remark() << endl;
         }
 
         if (ChildTag & 0x80) { //# 有左子树
@@ -364,7 +362,6 @@ void Instance::readXQF(const string& filename)
         }
     };
 
-    wcout << toString() << endl;
     __read(*rootMove_);
 }
 
@@ -760,7 +757,7 @@ void Instance::setFEN(const wstring& pieceChars)
 
 void Instance::setBoard()
 {
-    auto __fenToPieceChars = [](const wstring fen) {
+    auto __getChars = [](const wstring fen) {
         //'数字字符对应下划线字符串'
         vector<pair<wchar_t, wstring>> num_lines{
             { L'9', L"_________" }, { L'8', L"________" }, { L'7', L"_______" },
@@ -779,7 +776,7 @@ void Instance::setBoard()
     };
 
     wstring rfen{ info_[L"FEN"] };
-    board_->putPieces(__fenToPieceChars(rfen.substr(0, rfen.find(L' '))));
+    board_->putPieces(__getChars(rfen.substr(0, rfen.find(L' '))));
 }
 
 // （rootMove）调用, 设置树节点的seat or zh'  // C++primer P512
@@ -872,5 +869,7 @@ const RecFormat Instance::getRecFormat(const string& ext)
 
 const wstring Instance::toString()
 {
-    return board_->toString() + toString_CC();
+    wstringstream wss{};
+    wss << board_->toString() << toString_CC();
+    return wss.str();
 }

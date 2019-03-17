@@ -1,6 +1,7 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include "piece.h"
 #include <map>
 #include <memory>
 #include <vector>
@@ -9,7 +10,7 @@ using namespace std;
 class Seat;
 class Piece;
 class Move;
-enum class PieceColor;
+//enum class PieceColor;
 enum class RecFormat;
 enum class BoardSide {
     BOTTOM,
@@ -33,7 +34,8 @@ public:
     //const PieceColor getColor(const shared_ptr<Seat>& seat) const;
 
     shared_ptr<Seat>& getSeat(const int row, const int col) { return seats_[row * ColNum + col]; }
-    vector<shared_ptr<Seat>> getLiveSeats(const PieceColor color, const wchar_t name = L'\x00', const int col = -1) const;
+    shared_ptr<Seat>& getSeat(const int rowcol) { return seats_[rowcol / 10 * ColNum + rowcol % 10]; }
+    vector<shared_ptr<Seat>> getLiveSeats(const PieceColor color = PieceColor::BLANK, const wchar_t name = L'\x00', const int col = -1) const;
     //vector<shared_ptr<Seat>> getSideLiveSeats(const PieceColor color) const;
     //vector<shared_ptr<Seat>> getSideNameSeats(const PieceColor color, const wchar_t name) const;
     //vector<shared_ptr<Seat>> getSideNameColSeats(const PieceColor color, const wchar_t name, const int col) const;
@@ -59,18 +61,19 @@ public:
     //const wstring test();
 
     const wstring toString() const;
+    static shared_ptr<Piece> nullPiece;
 
 private:
     const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> __getSeatFromICCS(const wstring& ICCS);
     // 中文纵线着法->(fseat, tseat), 着法未走状态
     const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> __getSeatFromZh(const wstring& Zh);
     //const vector<shared_ptr<Seat>> __getSeats(const vector<shared_ptr<Piece>>& pies) const;
-
-    static map<PieceColor, wstring> __numChars;
     //const shared_ptr<Piece> __getFreePie(wchar_t ch) const;
 
     const vector<shared_ptr<Piece>> __creatPieces();
     vector<shared_ptr<Seat>> __creatSeats();
+    static wchar_t nullChar;
+    static map<PieceColor, wstring> __numChars;
     // 棋盘数值常量
     const int RowNum{ 10 };
     const int ColNum{ 9 };

@@ -35,7 +35,7 @@ void ChessInstance::transDir(const string& dirfrom, const RecFormat fmt)
                     string ext_old{ Tools::getExt(fname) };
                     if (extensions.find(ext_old) != string::npos) {
                         fcount += 1;
-                        cout << filename << endl;
+                        //cout << filename << endl;
 
                         Instance ci(filename);
                         //ci.write(fileto, fmt);

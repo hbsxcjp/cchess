@@ -5,6 +5,7 @@
 #include "seat.h"
 #include "tools.h"
 #include <algorithm>
+#include <assert.h>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -25,9 +26,9 @@ vector<shared_ptr<Seat>> Board::getLiveSeats(const PieceColor color, const wchar
     vector<shared_ptr<Seat>> someSeats{};
     for_each(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat>& seat) {
         const shared_ptr<Piece>& pie{ seat->piece() };
-        if (pie && pie->color() == color
-            && (name == L'\x00' || name == pie->name())
-            && (col == -1 || col == seat->col()))
+        if (((color == PieceColor::BLANK && color != pie->color()) || color == pie->color()) // 空则两方棋子全选
+            && (name == L'\x00' || name == pie->name()) // 空则各种棋子全选
+            && (col == -1 || col == seat->col())) // -1则各列棋子全选
             someSeats.push_back(seat);
     });
     return someSeats;
@@ -80,33 +81,34 @@ vector<shared_ptr<Seat>> Board::__creatSeats()
     vector<shared_ptr<Seat>> seats{};
     for (int r = 0; r < RowNum; ++r)
         for (int c = 0; c < ColNum; ++c)
-            seats.push_back(make_shared<Seat>(r, c));
+            seats.push_back(make_shared<Seat>(r, c, Board::nullPiece));
     return seats;
 }
 
 const wstring Board::getChars() const
 {
-    wstring chars{};
-    for_each(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat>& seat) { chars += seat->piece() ? seat->piece()->ch() : nullChar; });
-    return chars;
+    wstringstream wss{};
+    for_each(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat>& seat) { wss << seat->piece()->ch(); });
+    return wss.str();
 }
 
 void Board::putPieces(const wstring& chars)
 {
     function<const shared_ptr<Piece>&(wchar_t)>
         __getFreePie = [&](wchar_t ch) {
+            if (ch == Board::nullChar)
+                return Board::nullPiece;
             for (auto& pie : pieces_)
                 if (pie->ch() == ch)
                     if (all_of(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat> seat) { return seat->piece() != pie; }))
                         return pie;
-            return pieces_[0]; // 这一步不应该被执行，只是为满足编译不报警而已
+            return Board::nullPiece; // 这一步不应该被执行，只是为满足编译不报警而已
         };
 
-    for (int id = chars.size(); id >= 0; --id) {
-        wchar_t ch = chars[id];
-        if (ch != nullChar)
-            getSeat(id / 9, id % 9)->put(__getFreePie(ch));
-    }
+    assert(seats_.size() == chars.size());
+
+    for (int index = seats_.size() - 1; index <= 0; --index)
+        seats_[index]->put(__getFreePie(chars[index]));
     setBottomSide();
 }
 
@@ -118,7 +120,7 @@ void Board::setBottomSide()
 
 shared_ptr<Seat>& Board::getOthSeat(const shared_ptr<Seat>& seat, const ChangeType ct)
 {
-    if (ct == ChangeType::ROTATE) {
+    if (ct == ChangeType::ROTATE) { // 旋转
         int index{ 0 };
         for (auto& st : seats_) {
             if (seat == st)
@@ -126,7 +128,7 @@ shared_ptr<Seat>& Board::getOthSeat(const shared_ptr<Seat>& seat, const ChangeTy
             ++index;
         }
         return seats_[seats_.size() - index - 1];
-    } else
+    } else // ChangeType::SYMMETRY 对称
         return getSeat(seat->row(), ColNum - seat->col());
 }
 
@@ -134,7 +136,7 @@ void Board::changeSide(const ChangeType ct)
 {
     function<const shared_ptr<Piece>&(const shared_ptr<Piece>&)>
         __getOthPie = [&](const shared_ptr<Piece>& piece) {
-            if (!piece)
+            if (piece == Board::nullPiece)
                 return piece;
             int index{ 0 };
             for (auto& pie : pieces_) {
@@ -145,20 +147,12 @@ void Board::changeSide(const ChangeType ct)
             return pieces_[(index + 16) % 32];
         };
 
-    if (ct == ChangeType::EXCHANGE)
+    if (ct == ChangeType::EXCHANGE) // 交换红黑方
         for_each(seats_.begin(), seats_.end(), [&](shared_ptr<Seat>& seat) { seat->put(__getOthPie(seat->piece())); });
     else
-        for_each(seats_.begin(), seats_.end(), [&](shared_ptr<Seat>& seat) { getOthSeat(seat, ct)->put(seat->piece()); });
+        for_each(seats_.begin(), seats_.end(), [&](shared_ptr<Seat>& seat) { seat->put(getOthSeat(seat, ct)->piece()); });
     setBottomSide();
 }
-
-/*
-void Board::set(vector<pair<shared_ptr<Seat>, shared_ptr<Piece>>> seatPieces)
-{
-    for (auto& seatPie : seatPieces)
-        seatPie.first->put(seatPie.second);
-    setBottomSide();
-}*/
 
 const wstring Board::getIccs(const Move& move) const
 {
@@ -219,7 +213,7 @@ const wstring Board::getZh(const Move& move)
 
 const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::getMoveSeats(const int frowcol, const int trowcol)
 {
-    return make_pair(getSeat(frowcol / 10, frowcol % 10), getSeat(trowcol / 10, trowcol % 10));
+    return make_pair(getSeat(frowcol), getSeat(trowcol));
 }
 
 const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::getMoveSeats(const Move& move, const RecFormat fmt)
@@ -261,8 +255,8 @@ const wstring Board::toString() const
             ? rcpName[name]
             : name;
     };
-    for (auto& seat : seats_)
-        textBlankBoard[(9 - seat->row()) * 2 * 18 + seat->col() * 2] = __getName(*seat->piece());
+    for (auto& seat : getLiveSeats())
+        textBlankBoard[(ColNum - seat->row()) * 2 * (ColNum * 2) + seat->col() * 2] = __getName(*seat->piece());
     return textBlankBoard;
 }
 
@@ -352,6 +346,10 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
     }
     return make_pair(fseat, tseat);
 }
+
+wchar_t Board::nullChar{ L'_' };
+
+shared_ptr<Piece> Board::nullPiece{ make_shared<Piece>(Board::nullChar) };
 
 map<PieceColor, wstring> Board::__numChars{
     { PieceColor::RED, L"一二三四五六七八九" },

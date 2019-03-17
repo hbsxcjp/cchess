@@ -1,4 +1,5 @@
 #include "move.h"
+#include "board.h"
 #include "piece.h"
 #include "seat.h"
 #include <algorithm>
@@ -54,7 +55,7 @@ void Move::done()
 {
     eatPie_ = tseat_->piece();
     tseat_->put(fseat_->piece());
-    fseat_->pop();
+    fseat_->put(Board::nullPiece);
 }
 
 void Move::undo()
@@ -66,7 +67,7 @@ void Move::undo()
 const wstring Move::toString() const
 {
     wstringstream wss{};
-    wss << fseat_->toString() << L' ' << tseat_->toString() << L' ' << eatPie_->name() << L' '
-        << remark_ << L' ' << iccs_ << L' ' << zh_ << L' ' << stepNo_ << L' ' << othCol_ << L' ' << maxCol_ << L'\n';
+    wss << fseat_->toString() << L'>' << tseat_->toString() << L'-' << (bool(eatPie_) ? eatPie_->name() : L'空')
+        << remark_ << L' ' << iccs_ << L' ' << zh_ << L' ' << stepNo_ << L' ' << othCol_ << L' ' << maxCol_;
     return wss.str();
 }
