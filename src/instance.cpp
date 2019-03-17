@@ -39,10 +39,10 @@ Instance::Instance()
         { L"Title", L"" },
         { L"Variation", L"" },
         { L"Version", L"" } }
-    , board_(make_shared<Board>())
-    , rootMove_(make_shared<Move>())
-    , currentMove_(rootMove_)
-    , firstColor_(PieceColor::RED)
+    , board_{ make_shared<Board>() }
+    , rootMove_{ make_shared<Move>() }
+    , currentMove_{ rootMove_ }
+    , firstColor_{ PieceColor::RED }
 {
 }
 
@@ -295,8 +295,8 @@ void Instance::readXQF(const string& filename)
         if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
-    wcout << pieceChars << endl;
     setFEN(pieceChars);
+    wcout << pieceChars << endl;
 
     function<void(Move&)> __read = [&](Move& move) {
         //auto __byteToSeat = [&](int a, int b) {
@@ -320,9 +320,14 @@ void Instance::readXQF(const string& filename)
         char data[4]{};
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
-        int frowcol{ __subbyte(data[0], 0X18 + KeyXYf) }, trowcol{ __subbyte(data[1], 0X20 + KeyXYt) };
+        int fcolrow{ __subbyte(data[0], 0X18 + KeyXYf) }, tcolrow{ __subbyte(data[1], 0X20 + KeyXYt) };
+        int frowcol{ fcolrow % 10 * 10 + fcolrow / 10 }, trowcol{ tcolrow % 10 * 10 + tcolrow / 10 }; // 行列转换
+
+        wcout << frowcol << L' ' << trowcol << endl;
         //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol % 10, frowcol / 10) }, &tseat{ board_->getSeat(trowcol % 10, trowcol / 10) };
         move.setSeats(board_->getMoveSeats(frowcol, trowcol));
+        //wcout << move.toString() << endl;
+        //wcout << board_->toString() << endl;
         //move.setSeats(fseat, tseat);
         //move.setSeats(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
 
@@ -345,6 +350,7 @@ void Instance::readXQF(const string& filename)
             char rem[RemarkSize + 1]{};
             __readbytes(rem, RemarkSize);
             move.setRemark(Tools::s2ws(rem));
+
             wcout << move.remark() << endl;
         }
 
@@ -358,6 +364,7 @@ void Instance::readXQF(const string& filename)
         }
     };
 
+    wcout << toString() << endl;
     __read(*rootMove_);
 }
 
@@ -861,4 +868,9 @@ const RecFormat Instance::getRecFormat(const string& ext)
         return RecFormat::CC;
     else
         return RecFormat::CC;
+}
+
+const wstring Instance::toString()
+{
+    return board_->toString() + toString_CC();
 }

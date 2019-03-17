@@ -51,6 +51,7 @@ public:
     static const string getExtName(const RecFormat fmt);
     static const RecFormat getRecFormat(const string& ext);
 
+    const wstring toString();
 private:
     void readXQF(const string& filename);
     void readPGN(const string& filename, const RecFormat fmt);

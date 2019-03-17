@@ -80,7 +80,7 @@ vector<shared_ptr<Seat>> Board::__creatSeats()
     vector<shared_ptr<Seat>> seats{};
     for (int r = 0; r < RowNum; ++r)
         for (int c = 0; c < ColNum; ++c)
-            seats.push_back(make_shared<Seat>(static_cast<char>(r), static_cast<char>(c)));
+            seats.push_back(make_shared<Seat>(r, c));
     return seats;
 }
 
@@ -219,7 +219,7 @@ const wstring Board::getZh(const Move& move)
 
 const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::getMoveSeats(const int frowcol, const int trowcol)
 {
-    return make_pair(getSeat(frowcol % 10, frowcol / 10), getSeat(trowcol % 10, trowcol / 10));
+    return make_pair(getSeat(frowcol / 10, frowcol % 10), getSeat(trowcol / 10, trowcol % 10));
 }
 
 const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::getMoveSeats(const Move& move, const RecFormat fmt)
@@ -255,7 +255,7 @@ const wstring Board::toString() const
     map<wchar_t, wchar_t> rcpName{
         { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' }
     };
-    auto __getName = [&](Piece& pie) {
+    auto __getName = [&](const Piece& pie) {
         wchar_t name = pie.name();
         return (pie.color() == PieceColor::BLACK && rcpName.find(name) != rcpName.end())
             ? rcpName[name]
@@ -357,27 +357,3 @@ map<PieceColor, wstring> Board::__numChars{
     { PieceColor::RED, L"一二三四五六七八九" },
     { PieceColor::BLACK, L"１２３４５６７８９" }
 };
-
-/*
-const wstring Board::test()
-{
-    wstringstream wss{};
-    wss << L"test "
-           L"board.h\n----------------------------------------------------"
-           L"-\n";
-    wss << L"Board::toString():\n"
-        << toString();
-    wss << L"Piece::getCanMoveSeats():\n";
-
-    for (auto& ppie : pPieces->getLivePies()) {
-        wss << ppie->chName() << L' ' << ppie->wchar() << L'_' << setw(2)
-            << ppie->seat() << L'：';
-        for (auto s : ppie->getCanMoveSeats(*this))
-            wss << setw(2) << s << L' ';
-        wss << L'\n';
-    }
-    wss << pPieces->toString();
-
-    return wss.str();
-}
-*/

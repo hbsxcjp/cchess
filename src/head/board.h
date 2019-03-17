@@ -72,8 +72,8 @@ private:
     const vector<shared_ptr<Piece>> __creatPieces();
     vector<shared_ptr<Seat>> __creatSeats();
     // 棋盘数值常量
-    const int RowNum{ 0x0A };
-    const int ColNum{ 0x09 };
+    const int RowNum{ 10 };
+    const int ColNum{ 9 };
 
     PieceColor bottomColor; // 底端棋子颜色
     const vector<shared_ptr<Piece>> pieces_; // 一副棋子，固定的32个
