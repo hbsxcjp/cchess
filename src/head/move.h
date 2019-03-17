@@ -16,6 +16,7 @@ public:
     Move() = default;
 
     void setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat);
+    void setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats);
     void setNext(shared_ptr<Move> next);
     void setOther(shared_ptr<Move> other);
     void setPrev(shared_ptr<Move> prev) { prev_ = weak_ptr<Move>(prev); }

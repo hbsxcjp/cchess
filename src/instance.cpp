@@ -55,13 +55,13 @@ Instance::Instance(const string& filename)
         readXQF(filename);
         break;
     case RecFormat::BIN:
-        //readBIN(filename);
+        readBIN(filename);
         break;
     case RecFormat::JSON:
-        //readJSON(filename);
+        readJSON(filename);
         break;
     default:
-        //readPGN(filename, fmt);
+        readPGN(filename, fmt);
         break;
     }
     setBoard();
@@ -295,6 +295,7 @@ void Instance::readXQF(const string& filename)
         if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
+    wcout << pieceChars << endl;
     setFEN(pieceChars);
 
     function<void(Move&)> __read = [&](Move& move) {
@@ -319,9 +320,10 @@ void Instance::readXQF(const string& filename)
         char data[4]{};
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
-        int frc{ __subbyte(data[0], 0X18 + KeyXYf) }, trc{ __subbyte(data[1], 0X20 + KeyXYt) };
-        const shared_ptr<Seat>&fseat{ board_->getSeat(frc % 10, frc / 10) }, &tseat{ board_->getSeat(trc % 10, trc / 10) };
-        move.setSeats(fseat, tseat);
+        int frowcol{ __subbyte(data[0], 0X18 + KeyXYf) }, trowcol{ __subbyte(data[1], 0X20 + KeyXYt) };
+        //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol % 10, frowcol / 10) }, &tseat{ board_->getSeat(trowcol % 10, trowcol / 10) };
+        move.setSeats(board_->getMoveSeats(frowcol, trowcol));
+        //move.setSeats(fseat, tseat);
         //move.setSeats(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
 
         char ChildTag = data[2];
@@ -343,6 +345,7 @@ void Instance::readXQF(const string& filename)
             char rem[RemarkSize + 1]{};
             __readbytes(rem, RemarkSize);
             move.setRemark(Tools::s2ws(rem));
+            wcout << move.remark() << endl;
         }
 
         if (ChildTag & 0x80) { //# 有左子树
@@ -367,12 +370,12 @@ void Instance::readPGN(const string& filename, const RecFormat fmt)
     for (wsregex_iterator p(pgnTxt.begin(), pgnTxt.end(), pat); p != wsregex_iterator{}; ++p)
         info_[(*p)[1]] = (*p)[2];
     if (fmt == RecFormat::CC)
-        __fromCC(moveStr);
+        __readCC(moveStr);
     else
-        __fromICCSZH(moveStr, fmt);
+        __readICCSZH(moveStr, fmt);
 }
 
-void Instance::__fromICCSZH(const wstring& moveStr, const RecFormat fmt)
+void Instance::__readICCSZH(const wstring& moveStr, const RecFormat fmt)
 {
     wstring preStr{ LR"((?:\d+\.)?\s*\b([)" };
     wstring mvStr{ fmt == RecFormat::ZH ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
@@ -425,7 +428,7 @@ void Instance::__fromICCSZH(const wstring& moveStr, const RecFormat fmt)
     }
 }
 
-void Instance::__fromCC(const wstring& fullMoveStr)
+void Instance::__readCC(const wstring& fullMoveStr)
 {
     auto pos = fullMoveStr.find(L"\n(");
     wstring moveStr{ fullMoveStr.substr(0, pos) }, remStr{ pos < fullMoveStr.size() ? fullMoveStr.substr(pos) : L"" };
@@ -492,15 +495,15 @@ void Instance::readBIN(const string& filename)
         info_[Tools::s2ws(key)] = Tools::s2ws(value);
     }
     function<void(Move&)> __read = [&](Move& move) {
-        char frc{}, trc{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
+        char frowcol{}, trowcol{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
         //char fseat{}, tseat{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
         //ifs.get(fseat).get(tseat).get(hasNext).get(hasOther);
 
-        ifs.get(frc).get(trc).get(tag);
+        ifs.get(frowcol).get(trowcol).get(tag);
         //ifs.get(fseat).get(tseat).get(tag);
 
-        const shared_ptr<Seat>&fseat{ board_->getSeat(frc / 10, frc % 10) }, &tseat{ board_->getSeat(trc / 10, trc % 10) };
-        move.setSeats(fseat, tseat);
+        //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol / 10, frowcol % 10) }, &tseat{ board_->getSeat(trowcol / 10, trowcol % 10) };
+        move.setSeats(board_->getMoveSeats(frowcol, trowcol));
         //move.setSeat(fseat, tseat);
 
         hasNext = tag & 0x80;
@@ -544,11 +547,12 @@ void Instance::readJSON(const string& filename)
     for (auto& key : infoItem.getMemberNames())
         info_[Tools::s2ws(key)] = Tools::s2ws(infoItem[key].asString());
     function<void(Move&, Json::Value&)> __read = [&](Move& move, Json::Value& item) {
-        int frc{ item["f"].asInt() }, trc{ item["t"].asInt() };
-        const shared_ptr<Seat>&fseat{ board_->getSeat(frc / 10, frc % 10) }, &tseat{ board_->getSeat(trc / 10, trc % 10) };
-        //int fseat{ item["f"].asInt() }, tseat{ item["t"].asInt() };
+        int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
 
-        move.setSeats(fseat, tseat);
+        //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol / 10, frowcol % 10) }, &tseat{ board_->getSeat(trowcol / 10, trowcol % 10) };
+        //int fseat{ item["f"].asInt() }, tseat{ item["t"].asInt() };
+        move.setSeats(board_->getMoveSeats(frowcol, trowcol));
+        //move.setSeats(fseat, tseat);
 
         if (item.isMember("r"))
             move.setRemark(Tools::s2ws(item["r"].asString()));
@@ -580,8 +584,8 @@ void Instance::writeBIN(const string& filename)
         string remark{ Tools::ws2s(move.remark()) };
         int len{ int(remark.size()) };
 
-        int frc{ move.fseat()->rc() }, trc{ move.tseat()->rc() };
-        ofs.put(char(frc)).put(char(trc));
+        int frowcol{ move.fseat()->rc() }, trowcol{ move.tseat()->rc() };
+        ofs.put(char(frowcol)).put(char(trowcol));
         //ofs.put(char(move.fseat())).put(char(move.tseat()));
 
         //ofs.put(char(move.next() ? true : false)).put(char(move.other() ? true : false));
@@ -793,8 +797,9 @@ void Instance::initSetMove(const RecFormat fmt)
 
     function<void(Move&)> __set = [&](Move& move) {
         if (fmt == RecFormat::ICCS || fmt == RecFormat::ZH || fmt == RecFormat::CC) {
-            auto seats = board_->getMoveSeats(move, fmt);
-            move.setSeats(seats.first, seats.second);
+            //auto seats = board_->getMoveSeats(move, fmt);
+            move.setSeats(board_->getMoveSeats(move, fmt));
+            //move.setSeats(seats.first, seats.second);
         }
         if (fmt != RecFormat::ZH && fmt != RecFormat::CC)
             move.setZh(board_->getZh(move));

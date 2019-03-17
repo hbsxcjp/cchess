@@ -20,7 +20,7 @@ Board::Board()
 {
 }
 
-vector<shared_ptr<Seat>> Board::getSeats(const PieceColor color, const wchar_t name, const int col) const
+vector<shared_ptr<Seat>> Board::getLiveSeats(const PieceColor color, const wchar_t name, const int col) const
 {
     vector<shared_ptr<Seat>> someSeats{};
     for_each(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat>& seat) {
@@ -111,7 +111,7 @@ void Board::putPieces(const wstring& chars)
 }
 
 void Board::setBottomSide()
-{ //kingPiece->getSeats(PieceColor::RED)
+{ //kingPiece->getLiveSeats(PieceColor::RED)
     //for_each(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat>& seat) { if(shared_ptr<Piece>& pie = seat->piece()) ? pie->ch() : nullChar; });
     //bottomColor = getKingPie(PieceColor::RED)->seat() < 45 ? PieceColor::RED : PieceColor::BLACK;
 }
@@ -189,12 +189,12 @@ const wstring Board::getZh(const Move& move)
     //shared_ptr<Piece> fromPiece{ getPiece(fseat) };
     const PieceColor color{ fromPiece->color() };
     const wchar_t name{ fromPiece->name() };
-    vector<shared_ptr<Seat>> seats{ getSeats(color, name, fromCol) };
+    vector<shared_ptr<Seat>> seats{ getLiveSeats(color, name, fromCol) };
     int length{ static_cast<int>(seats.size()) };
 
     if (length > 1 && wstring(L"马车炮兵卒").find(name) != wstring::npos) {
         if (name == L'兵' || name == L'卒') {
-            //seats = sortPawnSeats(isBottomSide(color), getSeats(color, name));
+            //seats = sortPawnSeats(isBottomSide(color), getLiveSeats(color, name));
             //seats = sortPawnSeats(isBottomSide(color), getSideNameSeats(color, name));
             length = seats.size();
         } else if (isBottomSide(color)) //# '车', '马', '炮'
@@ -217,16 +217,17 @@ const wstring Board::getZh(const Move& move)
     return wss.str();
 }
 
+const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::getMoveSeats(const int frowcol, const int trowcol)
+{
+    return make_pair(getSeat(frowcol % 10, frowcol / 10), getSeat(trowcol % 10, trowcol / 10));
+}
+
 const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::getMoveSeats(const Move& move, const RecFormat fmt)
 {
-    switch (fmt) {
-    case RecFormat::ICCS:
+    if (fmt == RecFormat::ICCS)
         return __getSeatFromICCS(move.iccs());
-    default:
-        //case RecFormat::ZH:
-        //case RecFormat::CC:
+    else //case RecFormat::ZH: //case RecFormat::CC:
         return __getSeatFromZh(move.zh());
-    }
 }
 
 const wstring Board::toString() const
@@ -296,7 +297,7 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
     };*/
 
     if (wstring(L"帅仕相马车炮兵将士象卒").find(name) != wstring::npos) {
-        seats = getSeats(color, name, __getCol(__getNum(zhStr[1])));
+        seats = getLiveSeats(color, name, __getCol(__getNum(zhStr[1])));
         //seats = getSideNameColSeats(color, name, __getCol(__getNum(zhStr[1])));
 
         if (seats.size() < 1)
@@ -312,7 +313,7 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
         index = __getIndex[zhStr[0]];
         //index = __getIndex(zhStr[0]);
         name = zhStr[1];
-        seats = getSeats(color, name);
+        seats = getLiveSeats(color, name);
         //seats = getSideNameSeats(color, name);
 
         if (seats.size() < 2)

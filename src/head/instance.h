@@ -56,8 +56,8 @@ private:
     void readPGN(const string& filename, const RecFormat fmt);
     void readBIN(const string& filename);
     void readJSON(const string& filename);
-    void __fromICCSZH(const wstring& moveStr, const RecFormat fmt);
-    void __fromCC(const wstring& fullMoveStr);
+    void __readICCSZH(const wstring& moveStr, const RecFormat fmt);
+    void __readCC(const wstring& fullMoveStr);
     const wstring __moveInfo();
 
     void writePGN(const string& filename, const RecFormat fmt = RecFormat::ZH);

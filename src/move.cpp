@@ -13,6 +13,11 @@ void Move::setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat
     tseat_ = tseat;
 }
 
+void Move::setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats)
+{
+    setSeats(seats.first, seats.second);
+}
+
 void Move::setNext(shared_ptr<Move> next)
 {
     if (next) {

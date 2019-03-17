@@ -33,7 +33,7 @@ public:
     //const PieceColor getColor(const shared_ptr<Seat>& seat) const;
 
     shared_ptr<Seat>& getSeat(const int row, const int col) { return seats_[row * ColNum + col]; }
-    vector<shared_ptr<Seat>> getSeats(const PieceColor color, const wchar_t name = L'\x00', const int col = -1) const;
+    vector<shared_ptr<Seat>> getLiveSeats(const PieceColor color, const wchar_t name = L'\x00', const int col = -1) const;
     //vector<shared_ptr<Seat>> getSideLiveSeats(const PieceColor color) const;
     //vector<shared_ptr<Seat>> getSideNameSeats(const PieceColor color, const wchar_t name) const;
     //vector<shared_ptr<Seat>> getSideNameColSeats(const PieceColor color, const wchar_t name, const int col) const;
@@ -51,6 +51,7 @@ public:
     void changeSide(const ChangeType ct);
     void setBottomSide();
 
+    const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> getMoveSeats(const int frowcol, const int trowcol);
     const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> getMoveSeats(const Move& move, const RecFormat fmt);
     const wstring getIccs(const Move& move) const;
     // (fseat, tseat)->中文纵线着法, 着法未走状态
