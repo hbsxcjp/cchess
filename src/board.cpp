@@ -9,6 +9,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -19,6 +20,24 @@ Board::Board()
     , pieces_{ __creatPieces() }
     , seats_{ __creatSeats() }
 {
+}
+
+const vector<shared_ptr<Piece>> Board::__creatPieces()
+{
+    vector<shared_ptr<Piece>> pieces{};
+    wstring pieChars{ L"KAABBNNRRCCPPPPPkaabbnnrrccppppp" };
+    for (auto& ch : pieChars)
+        pieces.push_back(make_shared<Piece>(ch));
+    return pieces;
+}
+
+vector<shared_ptr<Seat>> Board::__creatSeats()
+{
+    vector<shared_ptr<Seat>> seats{};
+    for (int r = 0; r < RowNum; ++r)
+        for (int c = 0; c < ColNum; ++c)
+            seats.push_back(make_shared<Seat>(r, c, Board::nullPiece));
+    return seats;
 }
 
 vector<shared_ptr<Seat>> Board::getLiveSeats(const PieceColor color, const wchar_t name, const int col) const
@@ -67,49 +86,75 @@ const bool Board::isDied(const PieceColor color)
     return true;
 }
 
-const vector<shared_ptr<Piece>> Board::__creatPieces()
+const wstring Board::getFEN(const wstring& pieceChars) const
 {
-    vector<shared_ptr<Piece>> pieces{};
-    wstring pieChars{ L"KAABBNNRRCCPPPPPkaabbnnrrccppppp" };
-    for (auto& ch : pieChars)
-        pieces.push_back(make_shared<Piece>(ch));
-    return pieces;
+    //'下划线字符串对应数字字符'
+    vector<pair<wstring, wstring>> line_nums{
+        { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
+        { L"______", L"6" }, { L"_____", L"5" }, { L"____", L"4" },
+        { L"___", L"3" }, { L"__", L"2" }, { L"_", L"1" }
+    };
+    wstring fen{};
+    for (int i = 81; i >= 0; i -= 9)
+        fen += pieceChars.substr(i, 9) + L"/";
+    fen.erase(fen.size() - 1, 1);
+    wstring::size_type pos;
+    for (auto& linenum : line_nums)
+        while ((pos = fen.find(linenum.first)) != wstring::npos)
+            fen.replace(pos, linenum.first.size(), linenum.second);
+    return fen;
 }
 
-vector<shared_ptr<Seat>> Board::__creatSeats()
+void Board::putPieces(const wstring& fen)
 {
-    vector<shared_ptr<Seat>> seats{};
-    for (int r = 0; r < RowNum; ++r)
-        for (int c = 0; c < ColNum; ++c)
-            seats.push_back(make_shared<Seat>(r, c, Board::nullPiece));
-    return seats;
-}
-
-void Board::putPieces(const wstring& chars)
-{
-    function<const shared_ptr<Piece>&(wchar_t)>
-        __getFreePie = [&](wchar_t ch) {
-            if (ch == Board::__nullChar)
-                return Board::nullPiece;
-            for (auto& pie : pieces_)
-                if (pie->ch() == ch && all_of(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat> seat) { return seat->piece() != pie; }))
-                    return pie;
-            return Board::nullPiece; // 这一步不应该被执行，只是为满足编译不报警而已
-        };
-
+    wstring chars{ __getChars(fen) };
     if (seats_.size() != chars.size())
         cout << "错误：seats_.size() != chars.size()";
 
-    for (int index = seats_.size() - 1; index <= 0; --index)
-        seats_[index]->put(__getFreePie(chars[index]));
-
+    wchar_t ch{};
+    int chIndex{ -1 };
+    vector<bool> used(pieces_.size(), false);
+    for (auto& seat : seats_) {
+        int pieIndex{ -1 };
+        if ((ch = chars[++chIndex]) != __nullChar) {
+            for (auto& pie : pieces_)
+                if (!used[++pieIndex] && pie->ch() == ch) {
+                    seat->put(pie);
+                    used[pieIndex] = true;
+                    break;
+                }
+        } else
+            seat->put(nullPiece);
+    }
     setBottomSide();
 }
 
+const wstring Board::__getChars(const wstring& fen) const
+{
+    //'数字字符对应下划线字符串'
+    vector<pair<wchar_t, wstring>> num_lines{
+        { L'9', L"_________" }, { L'8', L"________" }, { L'7', L"_______" },
+        { L'6', L"______" }, { L'5', L"_____" }, { L'4', L"____" },
+        { L'3', L"___" }, { L'2', L"__" }, { L'1', L"_" }
+    };
+    wstring chars{};
+    wregex sp{ LR"(/)" };
+    for (wsregex_token_iterator wti{ fen.begin(), fen.end(), sp, -1 }; wti != wsregex_token_iterator{}; ++wti)
+        chars.insert(0, *wti);
+    wstring::size_type pos;
+    for (auto& numline : num_lines)
+        while ((pos = chars.find(numline.first)) != wstring::npos)
+            chars.replace(pos, 1, numline.second);
+    return chars;
+}
+
 void Board::setBottomSide()
-{ //kingPiece->getLiveSeats(PieceColor::RED)
-    //for_each(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat>& seat) { if(shared_ptr<Piece>& pie = seat->piece()) ? pie->ch() : __nullChar; });
-    //bottomColor = getKingPie(PieceColor::RED)->seat() < 45 ? PieceColor::RED : PieceColor::BLACK;
+{
+    for (auto& seat : seats_) {
+        auto pie = seat->piece();
+        if (pie->isKing())
+            bottomColor = pie->color();
+    }
 }
 
 shared_ptr<Seat>& Board::getOthSeat(const shared_ptr<Seat>& seat, const ChangeType ct)
@@ -326,19 +371,24 @@ map<PieceColor, wstring> Board::__numChars{
     { PieceColor::BLACK, L"１２３４５６７８９" }
 };
 
-const wstring Board::test()
+const wstring Board::test() //const
 {
     wstringstream wss{};
-    auto board = Board();
+    // Piece test
     wss << setw(4) << "color" << setw(6)
         << "char" << setw(5) << "name" << setw(8) << "isKing"
         << setw(8) << "isPawn" << setw(8) << "Stronge" << setw(8) << "Line\n";
     for (auto& pie : pieces_)
         wss << pie->toString() << L'\n';
-    wss << nullPiece << L'\n';
-    wss << setw(2) << "r" << setw(2) << "c" << setw(3) << "n\n";
-    for (auto& seat : seats_)
-        wss << seat->toString() << L'\n';
+    wss << nullPiece->toString() << L'\n';
+
+    // Board test
+    wstring fen{ L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR" };
+    //wstring fen{ L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" };
+    wstring chars{ __getChars(fen) };
+    wss << fen << L'\n' << chars << L'\n';
+    putPieces(fen);
+
     wss << toString();
     return wss.str();
 }

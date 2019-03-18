@@ -40,15 +40,18 @@ public:
     const bool isKilled(const PieceColor color); //判断是否将军
     const bool isDied(const PieceColor color); //判断是否被将死
 
-    void putPieces(const wstring& chars);
+    const wstring getFEN(const wstring& pieceChars) const;
+    void putPieces(const wstring& fen);
     void changeSide(const ChangeType ct);
     void setBottomSide();
 
     const wstring toString() const;
-    const wstring test();
+    const wstring test();// const;
     static shared_ptr<Piece> nullPiece;
 
 private:
+    const wstring __getChars(const wstring& fen) const;
+
     const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> __getSeatFromICCS(const wstring& ICCS);
     const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> __getSeatFromZh(const wstring& Zh); // 中文纵线着法->(fseat, tseat), 着法未走状态
     vector<shared_ptr<Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name);

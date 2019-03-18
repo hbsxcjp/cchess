@@ -22,7 +22,6 @@ public:
 
     void put(const shared_ptr<Piece>& piece) { piece_ = piece; } // 置入棋子
     const wstring toString() const;
-    const wstring test();
 
 private:
     int row_; //低四位

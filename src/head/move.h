@@ -45,7 +45,7 @@ public:
     void setCC_Col(const int CC_Col) { CC_Col_ = CC_Col; }
 
     const wstring toString() const;
-    const wstring test();
+    
 private:
     shared_ptr<Seat> fseat_{};
     shared_ptr<Seat> tseat_{};

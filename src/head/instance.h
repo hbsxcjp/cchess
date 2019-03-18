@@ -51,8 +51,9 @@ public:
     static const string getExtName(const RecFormat fmt);
     static const RecFormat getRecFormat(const string& ext);
 
-    const wstring toString();
-    const wstring test();
+    const wstring toString() const;
+    const wstring test() const;
+
 private:
     void readXQF(const string& filename);
     void readPGN(const string& filename, const RecFormat fmt);
@@ -60,13 +61,13 @@ private:
     void readJSON(const string& filename);
     void __readICCSZH(const wstring& moveStr, const RecFormat fmt);
     void __readCC(const wstring& fullMoveStr);
-    const wstring __moveInfo();
 
-    void writePGN(const string& filename, const RecFormat fmt = RecFormat::ZH);
-    const wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH);
-    const wstring toString_CC();
-    void writeBIN(const string& filenameconst);
-    void writeJSON(const string& filenameconst);
+    const wstring __moveInfo() const;
+    void writePGN(const string& filename, const RecFormat fmt = RecFormat::ZH) const;
+    const wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH) const;
+    const wstring toString_CC() const;
+    void writeBIN(const string& filenameconst) const;
+    void writeJSON(const string& filenameconst) const;
 
     void setFEN(const wstring& pieceChars);
     void setBoard();

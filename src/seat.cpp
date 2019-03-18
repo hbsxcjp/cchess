@@ -12,13 +12,6 @@ const wstring Seat::toString() const
     return wss.str();
 }
 
-const wstring Seat::test()
-{
-    wstringstream wss{};    
-    wss << toString();
-    return wss.str();
-}
-
 /*
 #include <algorithm>
 #include <cctype>

@@ -13,18 +13,12 @@ const wstring Piece::toString() const
 {
     wstringstream wss{};
     wss << boolalpha;
-    wss << setw(4) << static_cast<int>(color()) << setw(6)
-        << ch() << setw(5) << name() << setw(8) << isKing()
-        << setw(8) << isPawn() << setw(8) << isStronge() << setw(8) << isLineMove();
+    wss << setw(2) << static_cast<int>(color()) << static_cast<int>(getOthColor(color_))
+        << setw(6) << ch() << setw(5) << name() << setw(8)
+        << isKing() << setw(8) << isPawn() << setw(8) << isStronge() << setw(8) << isLineMove();
     return wss.str();
 }
 
-const wstring Piece::test()
-{
-    wstringstream wss{};
-    wss << toString();
-    return wss.str();
-}
 /*
 #include "board_base.h"
 

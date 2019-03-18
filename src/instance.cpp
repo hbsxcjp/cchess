@@ -294,7 +294,7 @@ void Instance::readXQF(const string& filename)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
     setFEN(pieceChars);
-    wcout << info_[L"FEN"] << endl;
+    //wcout << info_[L"FEN"] << endl;
 
     function<void(Move&)> __read = [&](Move& move) {
         //auto __byteToSeat = [&](int a, int b) {
@@ -574,7 +574,7 @@ void Instance::readJSON(const string& filename)
         __read(*rootMove_, rootItem);
 }
 
-void Instance::writeBIN(const string& filename)
+void Instance::writeBIN(const string& filename) const
 {
     ofstream ofs(filename, ios_base::binary);
     ofs.put(char(info_.size()));
@@ -608,7 +608,7 @@ void Instance::writeBIN(const string& filename)
     __write(*rootMove_);
 }
 
-void Instance::writeJSON(const string& filename)
+void Instance::writeJSON(const string& filename) const
 {
     ofstream ofs(filename);
     Json::Value root;
@@ -646,16 +646,16 @@ void Instance::writeJSON(const string& filename)
     writer->write(root, &ofs);
 }
 
-void Instance::writePGN(const string& filename, const RecFormat fmt)
+void Instance::writePGN(const string& filename, const RecFormat fmt) const
 {
     wstringstream wss{};
-    for (const auto m : info_)
+    for (const auto& m : info_)
         wss << L'[' << m.first << L" \"" << m.second << L"\"]\n";
     wss << L"》";
     Tools::writeTxt(filename, wss.str() + (fmt == RecFormat::CC ? toString_CC() : toString_ICCSZH(fmt)));
 }
 
-const wstring Instance::toString_ICCSZH(const RecFormat fmt)
+const wstring Instance::toString_ICCSZH(const RecFormat fmt) const
 {
     wstringstream wss{};
     function<void(const Move&)> __remark = [&](const Move& move) {
@@ -669,10 +669,14 @@ const wstring Instance::toString_ICCSZH(const RecFormat fmt)
         bool isEven{ move.getStepNo() % 2 == 0 };
         if (isOther)
             wss << L"(" << boutNum << L". " << (isEven ? L"... " : L"");
-        else if (isEven)
+        else 
+            wss << (isEven ? L" " : to_wstring(boutNum) + L". ");
+        /*
+        if (isEven)
             wss << L" ";
         else
             wss << boutNum << L". ";
+            */
         wss << (fmt == RecFormat::ZH ? move.zh() : move.iccs()) << L' ';
         __remark(move);
         if (move.other()) {
@@ -689,7 +693,7 @@ const wstring Instance::toString_ICCSZH(const RecFormat fmt)
     return wss.str();
 }
 
-const wstring Instance::toString_CC()
+const wstring Instance::toString_CC() const
 {
     wstringstream remstrs{};
     wstring lstr((getMaxCol() + 1) * 5, L'　');
@@ -723,7 +727,7 @@ const wstring Instance::toString_CC()
     return wss.str();
 }
 
-const wstring Instance::__moveInfo()
+const wstring Instance::__moveInfo() const
 {
     wstringstream wss{};
     wss << L"【着法深度：" << maxRow << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
@@ -733,103 +737,50 @@ const wstring Instance::__moveInfo()
 
 void Instance::setFEN(const wstring& pieceChars)
 {
-    auto __getFEN = [](const wstring& pieceChars) {
-        //'下划线字符串对应数字字符'
-        vector<pair<wstring, wstring>> line_nums{
-            { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
-            { L"______", L"6" }, { L"_____", L"5" }, { L"____", L"4" },
-            { L"___", L"3" }, { L"__", L"2" }, { L"_", L"1" }
-        };
-        wstring fen{};
-        for (int i = 81; i >= 0; i -= 9)
-            fen += pieceChars.substr(i, 9) + L"/";
-        fen.erase(fen.size() - 1, 1);
-        wstring::size_type pos;
-        for (auto& linenum : line_nums)
-            while ((pos = fen.find(linenum.first)) != wstring::npos)
-                fen.replace(pos, linenum.first.size(), linenum.second);
-        return fen;
-    };
-
-    info_[L"FEN"] = __getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
+    info_[L"FEN"] = board_->getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
 }
 
 void Instance::setBoard()
 {
-    auto __getChars = [](const wstring fen) {
-        //'数字字符对应下划线字符串'
-        vector<pair<wchar_t, wstring>> num_lines{
-            { L'9', L"_________" }, { L'8', L"________" }, { L'7', L"_______" },
-            { L'6', L"______" }, { L'5', L"_____" }, { L'4', L"____" },
-            { L'3', L"___" }, { L'2', L"__" }, { L'1', L"_" }
-        };
-        wstring chars{};
-        wregex sp{ LR"(/)" };
-        for (wsregex_token_iterator wti{ fen.begin(), fen.end(), sp, -1 }; wti != wsregex_token_iterator{}; ++wti)
-            chars.insert(0, *wti);
-        wstring::size_type pos;
-        for (auto& numline : num_lines)
-            while ((pos = chars.find(numline.first)) != wstring::npos)
-                chars.replace(pos, 1, numline.second);
-        return chars;
-    };
-
     wstring rfen{ info_[L"FEN"] };
-    
-    //wcout << __getChars(rfen.substr(0, rfen.find(L' '))) << endl;
-    
-    board_->putPieces(__getChars(rfen.substr(0, rfen.find(L' '))));
-    //wcout << board_->toString() << endl;
+    board_->putPieces(rfen.substr(0, rfen.find(L' ')));
 }
 
 // （rootMove）调用, 设置树节点的seat or zh'  // C++primer P512
 void Instance::setMoves(const RecFormat fmt)
 {
-    function<void(Move&)> __setData = [&](const Move& move) {
-        int curOthCol{ move.getOthCol() }, curMaxRow{ move.getStepNo() }, length{ int(move.remark().size()) };
-        if (curMaxRow > 0) // 非rootMove
-            ++movCount;
-        if (maxCol < curOthCol)
-            maxCol = curOthCol;
-        if (maxRow < curMaxRow)
-            maxRow = curMaxRow;
-        if (move.other())
-            ++maxCol;
-        if (length > 0) {
+    function<void(Move&)> __setRemData = [&](const Move& move) {
+        if (move.remark().size() > 0) {
             ++remCount;
-            if (length > remLenMax)
-                remLenMax = length;
+            remLenMax = max(remLenMax, static_cast<int>(move.remark().size()));
         }
     };
 
     function<void(Move&)> __set = [&](Move& move) {
-        if (fmt == RecFormat::ICCS || fmt == RecFormat::ZH || fmt == RecFormat::CC) {
-            //auto seats = board_->getMoveSeats(move, fmt);
+        if (fmt == RecFormat::ICCS || fmt == RecFormat::ZH || fmt == RecFormat::CC)
             move.setSeats(board_->getMoveSeats(move, fmt));
-            //move.setSeats(seats.first, seats.second);
-        }
         if (fmt != RecFormat::ZH && fmt != RecFormat::CC)
             move.setZh(board_->getZh(move));
-
-        //wcout << board_->toString() << '\n' << move.toString() << endl;
-
         if (fmt != RecFormat::ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON
             move.setIccs(board_->getIccs(move));
 
-        __setData(move);
+        ++movCount;
+        maxCol = max(maxCol, move.getOthCol());
+        maxRow = max(maxRow, move.getStepNo());
         move.setCC_Col(maxCol); // # 本着在视图中的列数
+        __setRemData(move);
+
         move.done();
-        //board_->go(move);
-        //wcout << move.toString() << L"\n" << board_->toString() << endl;
         if (move.next())
             __set(*move.next());
         move.undo();
-        //board_->back(move);
-        if (move.other())
+        if (move.other()) {
+            ++maxCol;
             __set(*move.other());
+        }
     };
 
-    __setData(*rootMove_);
+    __setRemData(*rootMove_);
     if (rootMove_->next())
         __set(*rootMove_->next()); // 驱动函数
 }
@@ -872,17 +823,16 @@ const RecFormat Instance::getRecFormat(const string& ext)
         return RecFormat::CC;
 }
 
-const wstring Instance::toString()
+const wstring Instance::toString() const
 {
     wstringstream wss{};
     wss << board_->toString() << toString_CC();
     return wss.str();
 }
 
-
-const wstring Instance::test()
+const wstring Instance::test() const
 {
-    wstringstream wss{};    
-    wss << toString();
+    wstringstream wss{};
+    wss << board_->test(); // << toString();
     return wss.str();
 }

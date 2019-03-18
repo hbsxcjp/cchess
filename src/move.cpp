@@ -76,10 +76,3 @@ const wstring Move::toString() const
         << remark_ << L' ' << iccs_ << L' ' << zh_ << L' ' << stepNo_ << L' ' << othCol_ << L' ' << CC_Col_;
     return wss.str();
 }
-
-const wstring Move::test()
-{
-    wstringstream wss{};    
-    wss << toString();
-    return wss.str();
-}
