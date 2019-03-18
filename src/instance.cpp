@@ -72,7 +72,7 @@ void Instance::write(const string& fname, const RecFormat fmt)
 {
     string filename{ fname + getExtName(fmt) };
 
-    cout << filename << endl;
+    //cout << filename << endl;
     info_[L"Format"] = Tools::s2ws(getExtName(fmt));
     switch (fmt) {
     case RecFormat::BIN:
