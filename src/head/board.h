@@ -45,6 +45,7 @@ public:
     void setBottomSide();
 
     const wstring toString() const;
+    const wstring test();
     static shared_ptr<Piece> nullPiece;
 
 private:

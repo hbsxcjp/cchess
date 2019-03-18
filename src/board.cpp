@@ -92,9 +92,8 @@ void Board::putPieces(const wstring& chars)
             if (ch == Board::__nullChar)
                 return Board::nullPiece;
             for (auto& pie : pieces_)
-                if (pie->ch() == ch)
-                    if (all_of(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat> seat) { return seat->piece() != pie; }))
-                        return pie;
+                if (pie->ch() == ch && all_of(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat> seat) { return seat->piece() != pie; }))
+                    return pie;
             return Board::nullPiece; // 这一步不应该被执行，只是为满足编译不报警而已
         };
 
@@ -103,6 +102,7 @@ void Board::putPieces(const wstring& chars)
 
     for (int index = seats_.size() - 1; index <= 0; --index)
         seats_[index]->put(__getFreePie(chars[index]));
+
     setBottomSide();
 }
 
@@ -222,7 +222,7 @@ const wstring Board::getZh(const Move& move)
                    : __getNumChar(toCol));
     //: (isBottom ? MaxCol - getCol(tseat) : getCol(tseat))];
 
-    wcout << wss.str() << endl;
+    //wcout << wss.str() << endl;
 
     return wss.str();
 }
@@ -325,3 +325,20 @@ map<PieceColor, wstring> Board::__numChars{
     { PieceColor::RED, L"一二三四五六七八九" },
     { PieceColor::BLACK, L"１２３４５６７８９" }
 };
+
+const wstring Board::test()
+{
+    wstringstream wss{};
+    auto board = Board();
+    wss << setw(4) << "color" << setw(6)
+        << "char" << setw(5) << "name" << setw(8) << "isKing"
+        << setw(8) << "isPawn" << setw(8) << "Stronge" << setw(8) << "Line\n";
+    for (auto& pie : pieces_)
+        wss << pie->toString() << L'\n';
+    wss << nullPiece << L'\n';
+    wss << setw(2) << "r" << setw(2) << "c" << setw(3) << "n\n";
+    for (auto& seat : seats_)
+        wss << seat->toString() << L'\n';
+    wss << toString();
+    return wss.str();
+}

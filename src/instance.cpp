@@ -294,7 +294,7 @@ void Instance::readXQF(const string& filename)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
     setFEN(pieceChars);
-    //wcout << pieceChars << endl;
+    wcout << info_[L"FEN"] << endl;
 
     function<void(Move&)> __read = [&](Move& move) {
         //auto __byteToSeat = [&](int a, int b) {
@@ -775,7 +775,11 @@ void Instance::setBoard()
     };
 
     wstring rfen{ info_[L"FEN"] };
+    
+    //wcout << __getChars(rfen.substr(0, rfen.find(L' '))) << endl;
+    
     board_->putPieces(__getChars(rfen.substr(0, rfen.find(L' '))));
+    //wcout << board_->toString() << endl;
 }
 
 // （rootMove）调用, 设置树节点的seat or zh'  // C++primer P512
@@ -806,6 +810,9 @@ void Instance::setMoves(const RecFormat fmt)
         }
         if (fmt != RecFormat::ZH && fmt != RecFormat::CC)
             move.setZh(board_->getZh(move));
+
+        //wcout << board_->toString() << '\n' << move.toString() << endl;
+
         if (fmt != RecFormat::ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON
             move.setIccs(board_->getIccs(move));
 
@@ -869,5 +876,13 @@ const wstring Instance::toString()
 {
     wstringstream wss{};
     wss << board_->toString() << toString_CC();
+    return wss.str();
+}
+
+
+const wstring Instance::test()
+{
+    wstringstream wss{};    
+    wss << toString();
     return wss.str();
 }

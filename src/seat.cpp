@@ -8,7 +8,14 @@ const wstring Seat::toString() const
 {
     wstringstream wss{};
     wss << boolalpha;
-    wss << row_ << col_ << setw(1) << piece_->name();
+    wss << setw(2) << row_ << setw(2) << col_ << setw(2) << piece_->name();
+    return wss.str();
+}
+
+const wstring Seat::test()
+{
+    wstringstream wss{};    
+    wss << toString();
     return wss.str();
 }
 

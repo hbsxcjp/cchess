@@ -18,7 +18,7 @@ static map<wchar_t, wchar_t> charNames{
     { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
     { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
     { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
-    { L'P', L'兵' }, { L'p', L'卒' }, { L'_', L'　' }
+    { L'P', L'兵' }, { L'p', L'卒' }, { L'_', L'-' } // L'　'
 };
 
 // 棋子类
@@ -44,6 +44,7 @@ public:
 
     static PieceColor getOthColor(const PieceColor color);
     const wstring toString() const;
+    const wstring test();
 
 private:
     const wchar_t ch_;
