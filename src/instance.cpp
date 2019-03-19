@@ -179,20 +179,20 @@ void Instance::changeSide(const ChangeType ct) // 未测试
 {
     auto curmove = currentMove_;
     toFirst();
-    board_->changeSide(ct);
+    setFEN(board_->changeSide(ct));
 
     if (ct == ChangeType::EXCHANGE)
         firstColor_ = Piece::getOthColor(firstColor_);
     else {
-        function<void(Move&)> __seat = [&](Move& move) {
+        function<void(Move&)> __setSeat = [&](Move& move) {
             move.setSeats(board_->getOthSeat(move.fseat(), ct), board_->getOthSeat(move.tseat(), ct));
             if (move.next())
-                __seat(*move.next());
+                __setSeat(*move.next());
             if (move.other())
-                __seat(*move.other());
+                __setSeat(*move.other());
         };
         if (rootMove_->next())
-            __seat(*rootMove_->next()); // 驱动调用递归函数
+            __setSeat(*rootMove_->next()); // 驱动调用递归函数
     }
 
     if (ct != ChangeType::ROTATE)
@@ -321,7 +321,7 @@ void Instance::readXQF(const string& filename)
 
         //wcout << frowcol << L' ' << trowcol << endl;
         //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol % 10, frowcol / 10) }, &tseat{ board_->getSeat(trowcol % 10, trowcol / 10) };
-        move.setSeats(board_->getMoveSeats(frowcol, trowcol));
+        move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
         //wcout << move.toString() << endl;
         //move.setSeats(fseat, tseat);
         //move.setSeats(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
@@ -504,7 +504,7 @@ void Instance::readBIN(const string& filename)
         //ifs.get(fseat).get(tseat).get(tag);
 
         //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol / 10, frowcol % 10) }, &tseat{ board_->getSeat(trowcol / 10, trowcol % 10) };
-        move.setSeats(board_->getMoveSeats(frowcol, trowcol));
+        move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
         //move.setSeat(fseat, tseat);
 
         hasNext = tag & 0x80;
@@ -552,7 +552,7 @@ void Instance::readJSON(const string& filename)
 
         //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol / 10, frowcol % 10) }, &tseat{ board_->getSeat(trowcol / 10, trowcol % 10) };
         //int fseat{ item["f"].asInt() }, tseat{ item["t"].asInt() };
-        move.setSeats(board_->getMoveSeats(frowcol, trowcol));
+        move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
         //move.setSeats(fseat, tseat);
 
         if (item.isMember("r"))

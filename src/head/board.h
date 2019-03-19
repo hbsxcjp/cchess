@@ -32,7 +32,6 @@ public:
     shared_ptr<Seat>& getSeat(const int rowcol) { return seats_[rowcol / 10 * ColNum + rowcol % 10]; }
     shared_ptr<Seat>& getOthSeat(const shared_ptr<Seat>& seat, const ChangeType ct);
     vector<shared_ptr<Seat>> getLiveSeats(const PieceColor color = PieceColor::BLANK, const wchar_t name = L'\x00', const int col = -1) const;
-    const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> getMoveSeats(const int frowcol, const int trowcol);
     const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> getMoveSeats(const Move& move, const RecFormat fmt);
     const wstring getIccs(const Move& move) const;
     const wstring getZh(const Move& move); // (fseat, tseat)->中文纵线着法, 着法未走状态
@@ -42,7 +41,7 @@ public:
 
     const wstring getFEN(const wstring& pieceChars) const;
     void putPieces(const wstring& fen);
-    void changeSide(const ChangeType ct);
+    const wstring changeSide(const ChangeType ct);
     void setBottomSide();
 
     const wstring toString() const;
@@ -54,9 +53,9 @@ private:
 
     const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> __getSeatFromICCS(const wstring& ICCS);
     const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> __getSeatFromZh(const wstring& Zh); // 中文纵线着法->(fseat, tseat), 着法未走状态
-    vector<shared_ptr<Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name);
+    const vector<shared_ptr<Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name);
     const vector<shared_ptr<Piece>> __creatPieces();
-    vector<shared_ptr<Seat>> __creatSeats();
+    const vector<shared_ptr<Seat>> __creatSeats();
     static wchar_t __nullChar;
     static map<PieceColor, wstring> __numChars;
     // 棋盘数值常量
