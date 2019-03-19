@@ -267,7 +267,9 @@ const wstring Board::getZh(const Move& move)
                    : __getNumChar(toCol));
     //: (isBottom ? MaxCol - getCol(tseat) : getCol(tseat))];
 
-    //wcout << wss.str() << endl;
+    //wcout << wss.str() << endl; {
+    if (wss.str().size() != 4)
+        cout << "move.zh().size()!=4" << endl;
 
     return wss.str();
 }
@@ -281,23 +283,25 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromI
 // '多兵排序'
 vector<shared_ptr<Seat>> Board::__sortPawnSeats(const PieceColor color, const wchar_t name)
 {
-    map<int, vector<shared_ptr<Seat>>> colSeats{};
     vector<shared_ptr<Seat>> seats(5);
     auto liveSeats = getLiveSeats(color, name);
     // 按列建立字典，按列排序
+    map<int, vector<shared_ptr<Seat>>> colSeats{};
     for_each(liveSeats.begin(), liveSeats.end(),
         [&](const shared_ptr<Seat>& seat) { colSeats[seat->col()].push_back(seat); });
+    if (isBottomSide(color)) {
+        //reverse(colSeats.begin(), colSeats.end()); // 列倒序
+        for (auto& colSeat : colSeats)
+            reverse(colSeat.second.begin(), colSeat.second.end()); // 每列位置倒序
+    }
     // 整合成一个数组
     auto pos = seats.begin();
-    for_each(colSeats.begin(), colSeats.end(), [&](pair<int, vector<shared_ptr<Seat>>> colSeat) {
-        if (colSeat.second.size() > 1) { // 筛除只有一个位置的列
-            std::sort(colSeat.second.begin(), colSeat.second.end()); // 每列排序
+    for (auto& colSeat : colSeats)
+        if (colSeat.second.size() > 1) // 筛除只有一个位置的列
             pos = copy(colSeat.second.begin(), colSeat.second.end(), pos); //按列存入
-        }
-    });
     seats = vector<shared_ptr<Seat>>{ seats.begin(), pos };
-    if (isBottomSide(color))
-        reverse(seats.begin(), seats.end()); // 根据棋盘顶底位置,是否反序
+    //if (isBottomSide(color))
+    //    reverse(seats.begin(), seats.end()); // 根据棋盘顶底位置,是否反序
     return seats;
 }
 

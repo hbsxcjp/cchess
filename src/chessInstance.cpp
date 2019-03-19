@@ -39,8 +39,8 @@ void ChessInstance::transDir(const string& dirfrom, const RecFormat fmt)
                         cout << filename << endl;
                         Instance ci(filename);
 
-                        ci.write(fileto, fmt);
-                        cout << fileto << endl;
+                        //ci.write(fileto, fmt);
+                        //cout << fileto << endl;
 
                         movcount += ci.getMovCount();
                         remcount += ci.getRemCount();

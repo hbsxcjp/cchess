@@ -41,7 +41,7 @@ public:
     void setStepNo(const int stepNo) { stepNo_ = stepNo; }
     const int getOthCol() const { return othCol_; }
     void setOthCol(const int othCol) { othCol_ = othCol; }
-    const int getMaxCol() const { return CC_Col_; }
+    const int getCC_Col() const { return CC_Col_; }
     void setCC_Col(const int CC_Col) { CC_Col_ = CC_Col; }
 
     const wstring toString() const;

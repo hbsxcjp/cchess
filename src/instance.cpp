@@ -71,8 +71,6 @@ Instance::Instance(const string& filename)
 void Instance::write(const string& fname, const RecFormat fmt)
 {
     string filename{ fname + getExtName(fmt) };
-
-    //cout << filename << endl;
     info_[L"Format"] = Tools::s2ws(getExtName(fmt));
     switch (fmt) {
     case RecFormat::BIN:
@@ -669,7 +667,7 @@ const wstring Instance::toString_ICCSZH(const RecFormat fmt) const
         bool isEven{ move.getStepNo() % 2 == 0 };
         if (isOther)
             wss << L"(" << boutNum << L". " << (isEven ? L"... " : L"");
-        else 
+        else
             wss << (isEven ? L" " : to_wstring(boutNum) + L". ");
         /*
         if (isEven)
@@ -699,20 +697,18 @@ const wstring Instance::toString_CC() const
     wstring lstr((getMaxCol() + 1) * 5, L'　');
     vector<wstring> lineStr((getMaxRow() + 1) * 2, lstr);
     function<void(const Move&)> __setChar = [&](const Move& move) {
-        int firstcol = move.getMaxCol() * 5;
+        int firstcol{ move.getCC_Col() * 5 }, row{ move.getStepNo() * 2 };
         for (int i = 0; i < 4; ++i)
-            lineStr[move.getStepNo() * 2][firstcol + i] = move.zh()[i];
+            lineStr[row][firstcol + i] = move.zh()[i];
         if (move.remark().size() > 0)
-            remstrs << L"(" << move.getStepNo() << L"," << move.getMaxCol() << L"): {"
-                    << move.remark() << L"}\n";
+            remstrs << L"(" << move.getStepNo() << L"," << move.getCC_Col() << L"): {" << move.remark() << L"}\n";
         if (move.next()) {
-            lineStr[move.getStepNo() * 2 + 1][firstcol + 2] = L'↓';
+            lineStr[row + 1][firstcol + 2] = L'↓';
             __setChar(*move.next());
         }
         if (move.other()) {
-            int linel = move.other()->getMaxCol() * 5;
-            for (int i = firstcol + 4; i < linel; ++i)
-                lineStr[move.getStepNo() * 2][i] = L'…';
+            for (int c = firstcol + 4, e = move.other()->getCC_Col() * 5; c < e; ++c)
+                lineStr[row][c] = L'…';
             __setChar(*move.other());
         }
     };
@@ -721,7 +717,7 @@ const wstring Instance::toString_CC() const
     wstringstream wss{};
     lineStr[0][0] = L'开';
     lineStr[0][1] = L'始';
-    for (auto line : lineStr)
+    for (auto& line : lineStr)
         wss << line << L'\n';
     wss << remstrs.str() << __moveInfo();
     return wss.str();
