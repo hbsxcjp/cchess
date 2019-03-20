@@ -98,9 +98,7 @@ const bool Instance::isLast() const { return currentMove_->next() == nullptr; }
 void Instance::forward()
 {
     if (!isLast()) {
-        currentMove_ = currentMove_->next();
-        currentMove_->done();
-        //board_->go(*currentMove_);
+        currentMove_ = currentMove_->next()->done();
     }
 }
 
@@ -108,7 +106,6 @@ void Instance::backward()
 {
     if (!isStart()) {
         currentMove_->undo();
-        //board_->back(*currentMove_);
         currentMove_ = currentMove_->prev();
     }
 }
@@ -118,8 +115,7 @@ void Instance::forwardOther()
 {
     if (currentMove_->other()) {
         currentMove_->undo();
-        currentMove_ = currentMove_->other();
-        currentMove_->done();
+        currentMove_ = currentMove_->other()->done();
         //auto toMove = currentMove_->other();
         //board_->back(*currentMove_);
         //board_->go(*toMove);
@@ -140,20 +136,18 @@ void Instance::to(shared_ptr<Move> move)
 {
     if (move == currentMove_)
         return;
-    toFirst();
-    for (auto& pmv : move->getPrevMoves())
-        pmv->done();
-    //board_->go(*pmv);
-    currentMove_ = move;
+    backFirst();
+    for (auto& mv : move->getPrevMoves())
+        currentMove_ = mv->done();
 }
 
-void Instance::toFirst()
+void Instance::backFirst()
 {
     while (!isStart())
         backward();
 }
 
-void Instance::toLast()
+void Instance::forLast()
 {
     while (!isLast())
         forward();
@@ -161,8 +155,8 @@ void Instance::toLast()
 
 void Instance::go(const int inc)
 {
-    function<void(Instance*)> fbward = inc > 0 ? &Instance::forward : &Instance::backward;
-    //auto fbward = mem_fn(inc > 0 ? &Instance::forward : &Instance::backward);
+    //function<void(Instance*)> fbward = inc > 0 ? &Instance::forward : &Instance::backward;
+    auto fbward = mem_fn(inc > 0 ? &Instance::forward : &Instance::backward);
     for (int i = abs(inc); i != 0; --i)
         fbward(this);
 }
@@ -178,7 +172,7 @@ void Instance::cutOther()
 void Instance::changeSide(const ChangeType ct) // 未测试
 {
     auto curmove = currentMove_;
-    toFirst();
+    backFirst();
     setFEN(board_->changeSide(ct));
 
     if (ct == ChangeType::EXCHANGE)
@@ -394,7 +388,7 @@ void Instance::__readICCSZH(const wstring& moveStr, const RecFormat fmt)
             else
                 newMove->setIccs((*p)[1]);
             wstring rem{ (*p)[2] };
-            if (rem.size() > 0)
+            if (!rem.empty())
                 newMove->setRemark(rem);
             if (isOther) { // # 第一步为变着
                 move->setOther(newMove);
@@ -446,7 +440,7 @@ void Instance::__readCC(const wstring& fullMoveStr)
             movv.push_back(linev);
         }
     map<wstring, wstring> remm{};
-    if (remStr.size() > 0)
+    if (!remStr.empty())
         for (wsregex_iterator rp{ remStr.begin(), remStr.end(), remfat }; rp != wsregex_iterator{}; ++rp)
             remm[(*rp)[1]] = (*rp)[2];
 
@@ -623,7 +617,7 @@ void Instance::writeJSON(const string& filename) const
         item["t"] = move.tseat()->rc();
         //item["f"] = move.fseat();
         //item["t"] = move.tseat();
-        if (move.remark().size() > 0)
+        if (!move.remark().empty())
             item["r"] = Tools::ws2s(move.remark());
         if (move.next()) {
             Json::Value newItem{};
@@ -647,8 +641,8 @@ void Instance::writeJSON(const string& filename) const
 void Instance::writePGN(const string& filename, const RecFormat fmt) const
 {
     wstringstream wss{};
-    for (const auto& m : info_)
-        wss << L'[' << m.first << L" \"" << m.second << L"\"]\n";
+    for (const auto& kv : info_)
+        wss << L'[' << kv.first << L" \"" << kv.second << L"\"]\n";
     wss << L"》";
     Tools::writeTxt(filename, wss.str() + (fmt == RecFormat::CC ? toString_CC() : toString_ICCSZH(fmt)));
 }
@@ -657,11 +651,10 @@ const wstring Instance::toString_ICCSZH(const RecFormat fmt) const
 {
     wstringstream wss{};
     function<void(const Move&)> __remark = [&](const Move& move) {
-        if (move.remark().size() > 0)
+        if (!move.remark().empty())
             wss << L"\n{" << move.remark() << L"}\n";
     };
 
-    __remark(*rootMove_);
     function<void(const Move&, bool)> __moveStr = [&](const Move& move, bool isOther) {
         int boutNum{ (move.getStepNo() + 1) / 2 };
         bool isEven{ move.getStepNo() % 2 == 0 };
@@ -685,6 +678,7 @@ const wstring Instance::toString_ICCSZH(const RecFormat fmt) const
             __moveStr(*move.next(), false);
     };
 
+    __remark(*rootMove_);
     // 驱动调用函数
     if (rootMove_->next())
         __moveStr(*rootMove_->next(), false);
@@ -693,33 +687,32 @@ const wstring Instance::toString_ICCSZH(const RecFormat fmt) const
 
 const wstring Instance::toString_CC() const
 {
-    wstringstream remstrs{};
+    wstringstream remStrs{};
     wstring lstr((getMaxCol() + 1) * 5, L'　');
     vector<wstring> lineStr((getMaxRow() + 1) * 2, lstr);
     function<void(const Move&)> __setChar = [&](const Move& move) {
         int firstcol{ move.getCC_Col() * 5 }, row{ move.getStepNo() * 2 };
         for (int i = 0; i < 4; ++i)
-            lineStr[row][firstcol + i] = move.zh()[i];
-        if (move.remark().size() > 0)
-            remstrs << L"(" << move.getStepNo() << L"," << move.getCC_Col() << L"): {" << move.remark() << L"}\n";
+            lineStr.at(row).at(firstcol + i) = move.zh()[i];
+        if (!move.remark().empty())
+            remStrs << L"(" << move.getStepNo() << L"," << move.getCC_Col() << L"): {" << move.remark() << L"}\n";
         if (move.next()) {
-            lineStr[row + 1][firstcol + 2] = L'↓';
+            lineStr.at(row + 1).at(firstcol + 2) = L'↓';
             __setChar(*move.next());
         }
         if (move.other()) {
             for (int c = firstcol + 4, e = move.other()->getCC_Col() * 5; c < e; ++c)
-                lineStr[row][c] = L'…';
+                lineStr.at(row).at(c) = L'…';
             __setChar(*move.other());
         }
     };
 
     __setChar(*rootMove_);
     wstringstream wss{};
-    lineStr[0][0] = L'开';
-    lineStr[0][1] = L'始';
+    lineStr.front().replace(0, 2, L"开始");
     for (auto& line : lineStr)
         wss << line << L'\n';
-    wss << remstrs.str() << __moveInfo();
+    wss << remStrs.str() << __moveInfo();
     return wss.str();
 }
 
@@ -746,7 +739,7 @@ void Instance::setBoard()
 void Instance::setMoves(const RecFormat fmt)
 {
     function<void(Move&)> __setRemData = [&](const Move& move) {
-        if (move.remark().size() > 0) {
+        if (!move.remark().empty()) {
             ++remCount;
             remLenMax = max(remLenMax, static_cast<int>(move.remark().size()));
         }

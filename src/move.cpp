@@ -13,60 +13,63 @@ Move::Move()
 {
 }
 
-void Move::setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat)
+const shared_ptr<Move>& Move::setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat)
 {
     fseat_ = fseat;
     tseat_ = tseat;
+    return move(shared_from_this());
 }
 
-void Move::setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats)
+const shared_ptr<Move>& Move::setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats)
 {
-    setSeats(seats.first, seats.second);
+    return setSeats(seats.first, seats.second);
 }
 
-void Move::setNext(const shared_ptr<Move>& next)
+const shared_ptr<Move>& Move::setNext(const shared_ptr<Move>& next)
 {
-    next_ = next;
-    if (next_) {
-        next_->setStepNo(stepNo_ + 1); // 步序号
-        next_->setOthCol(othCol_); // 变着层数
-        next_->setPrev(make_shared<Move>(*this));
+    if (next) {
+        next->setStepNo(stepNo_ + 1); // 步序号
+        next->setOthCol(othCol_); // 变着层数
+        next->setPrev(shared_from_this());
     }
+    return next_ = next;
 }
 
-void Move::setOther(const shared_ptr<Move>& other)
+const shared_ptr<Move>& Move::setOther(const shared_ptr<Move>& other)
 {
-    other_ = other;
-    if (other_) {
-        other_->setStepNo(stepNo_); // 与premove的步数相同
-        other_->setOthCol(othCol_ + 1); // 变着层数
-        other_->setPrev(make_shared<Move>(*this));
+    if (other) {
+        other->setStepNo(stepNo_); // 与premove的步数相同
+        other->setOthCol(othCol_ + 1); // 变着层数
+        other->setPrev(shared_from_this());
     }
+    return other_ = other;
 }
 
 vector<shared_ptr<Move>> Move::getPrevMoves()
 {
     vector<shared_ptr<Move>> moves{};
-    shared_ptr<Move> next_move{ make_shared<Move>(*this) }, prev_move{};
-    while (prev_move = next_move->prev()) { // 排除rootMove
-        moves.push_back(next_move);
-        next_move = prev_move;
+    shared_ptr<Move> this_move{ shared_from_this() }, prev_move{};
+    while ((prev_move = this_move->prev()) && prev_move->prev()) { // 排除rootMove
+        moves.push_back(prev_move);
+        this_move = prev_move;
     }
     reverse(moves.begin(), moves.end());
     return moves;
 }
 
-void Move::done()
+const shared_ptr<Move>& Move::done()
 {
     eatPie_ = tseat_->piece();
     tseat_->put(fseat_->piece());
     fseat_->put(Board::nullPiece);
+    return next();
 }
 
-void Move::undo()
+const shared_ptr<Move>& Move::undo()
 {
     fseat_->put(tseat_->piece());
     tseat_->put(eatPie_);
+    return prev();
 }
 
 const wstring Move::toString() const

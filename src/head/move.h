@@ -10,19 +10,19 @@ class Piece;
 class Seat;
 
 // 着法节点类
-class Move {
+class Move: public std::enable_shared_from_this<Move> {
 
 public:
     Move();
 
-    void setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat);
-    void setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats);
-    void setNext(const shared_ptr<Move>& next);
-    void setOther(const shared_ptr<Move>& other);
-    void setPrev(shared_ptr<Move> prev) { prev_ = weak_ptr<Move>(prev); }
+    const shared_ptr<Move>& setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat);
+    const shared_ptr<Move>& setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats);
+    const shared_ptr<Move>& setNext(const shared_ptr<Move>& next);
+    const shared_ptr<Move>& setOther(const shared_ptr<Move>& other);
+    void setPrev(const shared_ptr<Move>& prev) { prev_ = weak_ptr<Move>(prev); }
     vector<shared_ptr<Move>> getPrevMoves();
-    void done();
-    void undo();
+    const shared_ptr<Move>& done();
+    const shared_ptr<Move>& undo();
 
     const shared_ptr<Seat>& fseat() const { return fseat_; }
     const shared_ptr<Seat>& tseat() const { return tseat_; }

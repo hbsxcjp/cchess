@@ -35,8 +35,8 @@ public:
     void forwardOther();
     void backwardTo(shared_ptr<Move> move);
     void to(shared_ptr<Move> move);
-    void toFirst();
-    void toLast();
+    void backFirst();
+    void forLast();
     void go(const int inc);
     void cutNext();
     void cutOther();

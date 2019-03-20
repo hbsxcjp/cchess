@@ -45,10 +45,10 @@ vector<shared_ptr<Seat>> Board::getLiveSeats(const PieceColor color, const wchar
     vector<shared_ptr<Seat>> someSeats{};
     for_each(seats_.begin(), seats_.end(), [&](const shared_ptr<Seat>& seat) {
         const shared_ptr<Piece>& pie{ seat->piece() };
-        if ((color == PieceColor::BLANK && pie != nullPiece) // 空则两方棋子全选
-            || (color == pie->color()
-                   && (name == L'\x00' || name == pie->name()) // 空则各种棋子全选
-                   && (col == -1 || col == seat->col()))) // -1则各列棋子全选
+        if (pie->color() != PieceColor::BLANK
+            && (color == PieceColor::BLANK || color == pie->color()) // 空则两方棋子全选
+            && (name == L'\x00' || name == pie->name()) // 空则各种棋子全选
+            && (col == -1 || col == seat->col())) // -1则各列棋子全选
             someSeats.push_back(seat);
     });
     return someSeats;
@@ -242,21 +242,21 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromI
 // '多兵排序'
 const vector<shared_ptr<Seat>> Board::__sortPawnSeats(const PieceColor color, const wchar_t name)
 {
-    vector<shared_ptr<Seat>> seats = getLiveSeats(color, name); // 最多5个兵
+    vector<shared_ptr<Seat>> seats{ getLiveSeats(color, name) }; // 最多5个兵
     // 按列建立字典，按列排序
     bool isBottom{ isBottomSide(color) };
     map<int, vector<shared_ptr<Seat>>> colSeats{};
     for_each(seats.begin(), seats.end(),
-        [&](const shared_ptr<Seat>& seat) { colSeats[isBottom ? -seat->col() : seat->col()].push_back(seat); }); // 底边则列倒序
-    if (isBottom) // 根据棋盘顶底位置,是否反序
-        for (auto& colSeat : colSeats)
-            reverse(colSeat.second.begin(), colSeat.second.end()); // 每列位置倒序
+        [&](const shared_ptr<Seat>& seat) { colSeats[isBottom ? -seat->col() : seat->col()].push_back(seat); }); // 底边则列倒序,每列位置倒序
 
     // 整合成一个数组
     auto pos = seats.begin();
     for (auto& colSeat : colSeats)
-        if (colSeat.second.size() > 1) // 筛除只有一个位置的列
+        if (colSeat.second.size() > 1) { // 筛除只有一个位置的列
+            if (isBottom) // 根据棋盘顶底位置,是否反序
+                reverse(colSeat.second.begin(), colSeat.second.end());
             pos = copy(colSeat.second.begin(), colSeat.second.end(), pos); //按列存入
+        }
     seats = vector<shared_ptr<Seat>>{ seats.begin(), pos };
     return seats;
 }
@@ -273,7 +273,7 @@ const wstring Board::getZh(const Move& move)
     bool isSameRow{ toRow == fromRow }, isBottom{ isBottomSide(color) };
     vector<shared_ptr<Seat>> seats{ getLiveSeats(color, name, fromCol) };
     int length = seats.size();
-    auto __getNumChar = [&](int col) { return __numChars[color][isBottom ? ColNum - col - 1 : col]; };
+    auto __getNumChar = [&](int col) { return __numChars.at(color)[isBottom ? ColNum - col - 1 : col]; };
 
     if (length > 1 && fromPiece->isStronge()) {
         if (fromPiece->isPawn()) {
@@ -290,20 +290,20 @@ const wstring Board::getZh(const Move& move)
     //wcout << (toRow == fromRow ? L'平' : (isBottom == (toRow > fromRow) ? L'进' : L'退')) << endl;
     wss << (isSameRow ? L'平' : (isBottom == (toRow > fromRow) ? L'进' : L'退'))
         << ((fromPiece->isLineMove() && !isSameRow)
-                   ? __numChars[color][abs(fromRow - toRow) - 1]
+                   ? __numChars.at(color)[abs(fromRow - toRow) - 1]
                    : __getNumChar(toCol));
     //: (isBottom ? MaxCol - getCol(tseat) : getCol(tseat))];
 
-    //*
+    /*
     auto mvSeats = __getSeatFromZh(wss.str());
     if (mvSeats.first != fseat || mvSeats.second != tseat) {
         wcout << L"fseat:" << fseat->toString() << L"tseat:" << tseat->toString() << L'\n'
               << L"mvSeats.first:" << mvSeats.first->toString()
               << L"mvSeats.second:" << mvSeats.second->toString() << endl;
     }
-    //*/
     if (wss.str().size() != 4)
         cout << "move.zh().size()!=4" << endl;
+    //*/
 
     return wss.str();
 }
@@ -315,16 +315,13 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
     shared_ptr<Seat> fseat{}, tseat{};
     vector<shared_ptr<Seat>> seats{};
     // 根据最后一个字符判断该着法属于哪一方
-    PieceColor color{ __numChars[PieceColor::RED].find(zhStr.back()) != wstring::npos ? PieceColor::RED : PieceColor::BLACK };
+    PieceColor color{ __numChars.at(PieceColor::RED).find(zhStr.back()) != wstring::npos ? PieceColor::RED : PieceColor::BLACK };
     bool isBottom{ isBottomSide(color) };
     wchar_t name{ zhStr[0] };
-    auto __getNum = [&](const wchar_t wch) { return static_cast<int>(__numChars[color].find(wch)) + 1; };
+    auto __getNum = [&](const wchar_t wch) { return static_cast<int>(__numChars.at(color).find(wch)) + 1; };
     auto __getCol = [&](const int num) { return isBottom ? ColNum - num : num - 1; };
-    static map<wchar_t, int> __wchIndex{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 },
-        { L'四', 3 }, { L'五', 4 }, { L'前', 0 }, { L'中', 1 }, { L'后', 1 },
-        { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
 
-    if (__wchIndex.find(name) == __wchIndex.end()) { // 首字符为棋子名
+    if (wstring{ L"帅将仕士相象马车炮兵卒" }.find(name) != wstring::npos) { // 首字符为棋子名
         seats = getLiveSeats(color, name, __getCol(__getNum(zhStr[1])));
 
         if (seats.size() < 1)
@@ -332,12 +329,15 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
                   << __getCol(__getNum(zhStr[1])) << L' ' << L'\n' << toString() << endl;
 
         //# 排除：士、象同列时不分前后，以进、退区分棋子
-        index = (((seats.size() == 2) && (wstring(L"仕相士象").find(name) != wstring::npos)
-                     && ((zhStr[2] == L'退') == isBottom))
+        index = ((seats.size() == 2 && wstring(L"仕相士象").find(name) != wstring::npos
+                     && (zhStr[2] == L'退') == isBottom)
                 ? 1
                 : 0);
-    } else { //# 未获得棋子, 查找某个排序（前后中一二三四五）某方某个名称棋子
-        index = __wchIndex[zhStr[0]];
+    } else {
+        //# 未获得棋子, 查找某个排序（前后中一二三四五）某方某个名称棋子
+        const map<wchar_t, int> __preIndex{ { L'一', 0 }, { L'二', 1 }, { L'三', 2 }, { L'四', 3 }, { L'五', 4 },
+            { L'前', 0 }, { L'中', 1 }, { L'后', 1 } };
+        index = __preIndex.at(zhStr[0]);
         name = zhStr[1];
         if (name == L'兵' || name == L'卒') {
             seats = __sortPawnSeats(color, name);
@@ -352,13 +352,14 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
         if (seats.size() < 2)
             wcout << L"棋子列表少于2个:" << zhStr << L' ' << name << L' ' << toString();
     }
-    if (index < static_cast<int>(seats.size()) - 1)
-        wcout << L"index < seats.size()-1:" << zhStr << L' ' << name << L'\n' << toString();
+    if (index > static_cast<int>(seats.size()) - 1)
+        wcout << L"index > seats.size()-1:" << zhStr << L' ' << name << L'\n' << toString();
 
     fseat = seats[index];
 
     // '根据中文行走方向取得棋子的内部数据方向（进：1，退：-1，平：0）'
-    int movDir{ __wchIndex[zhStr[2]] * (isBottom ? 1 : -1) }, num{ __getNum(zhStr[3]) }, toCol{ __getCol(num) };
+    const map<wchar_t, int> __movIndex{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
+    int movDir{ __movIndex.at(zhStr[2]) * (isBottom ? 1 : -1) }, num{ __getNum(zhStr[3]) }, toCol{ __getCol(num) };
     //int movDir{ __wchIndex(zhStr[2]) * (isBottom ? 1 : -1) },
     if (wstring(L"帅车炮兵将卒").find(name) != wstring::npos) //#'获取直线走子toseat'
         tseat = (movDir == 0) ? getSeat(fseat->row(), toCol) : getSeat(fseat->row() + movDir * num, fseat->col());
@@ -368,7 +369,7 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
         tseat = getSeat(fseat->row() + movDir * inc, toCol);
     }
 
-    /*
+    //*
     Move mv{};
     mv.setSeats(fseat, tseat);
     if (zhStr != getZh(mv))
