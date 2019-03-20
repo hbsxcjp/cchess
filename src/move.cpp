@@ -1,15 +1,13 @@
 #include "move.h"
-#include "board.h"
 #include "piece.h"
 #include "seat.h"
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
-//#include <vector>
 using namespace std;
 
 Move::Move()
-    : eatPie_{ Board::nullPiece }
+    : eatPie_{ Piece::nullPiece }
 {
 }
 
@@ -25,7 +23,7 @@ const shared_ptr<Move>& Move::setSeats(const pair<const shared_ptr<Seat>, const 
     return setSeats(seats.first, seats.second);
 }
 
-const shared_ptr<Move>& Move::setNext(const shared_ptr<Move>& next)
+const shared_ptr<Move>& Move::addNext(const shared_ptr<Move>& next)
 {
     if (next) {
         next->setStepNo(stepNo_ + 1); // 步序号
@@ -35,7 +33,7 @@ const shared_ptr<Move>& Move::setNext(const shared_ptr<Move>& next)
     return next_ = next;
 }
 
-const shared_ptr<Move>& Move::setOther(const shared_ptr<Move>& other)
+const shared_ptr<Move>& Move::addOther(const shared_ptr<Move>& other)
 {
     if (other) {
         other->setStepNo(stepNo_); // 与premove的步数相同
@@ -61,7 +59,7 @@ const shared_ptr<Move>& Move::done()
 {
     eatPie_ = tseat_->piece();
     tseat_->put(fseat_->piece());
-    fseat_->put(Board::nullPiece);
+    fseat_->put(Piece::nullPiece);
     return next();
 }
 
@@ -71,6 +69,7 @@ const shared_ptr<Move>& Move::undo()
     tseat_->put(eatPie_);
     return prev();
 }
+
 
 const wstring Move::toString() const
 {

@@ -1,54 +1,77 @@
 #ifndef PIECE_H
 #define PIECE_H
 
-//#include <memory>
 #include <map>
+#include <memory>
 #include <string>
-//#include <vector>
 using namespace std;
 
 class Board;
-enum class PieceColor {
-    RED,
+enum class PieceColor { RED,
     BLACK,
-    BLANK
-};
-
-static map<wchar_t, wchar_t> charNames{
-    { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
-    { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
-    { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
-    { L'P', L'兵' }, { L'p', L'卒' }, { L'_', L'　' } // L'　'
-};
+    BLANK };
 
 // 棋子类
 class Piece {
 
 public:
-    explicit Piece(const wchar_t ch)
-        : ch_{ ch }
-        , name_{ charNames[ch] }
-        , color_{ ch == L'_' ? PieceColor::BLANK : (islower(ch) ? PieceColor::BLACK : PieceColor::RED) }
-    {
-    }
+    explicit Piece(const wchar_t ch);
 
     const wchar_t ch() const { return ch_; }
     const wchar_t name() const { return name_; }
     const PieceColor color() const { return color_; }
 
-    virtual const bool isKing() const { return tolower(ch_) == L'k'; }
-    virtual const bool isPawn() const { return tolower(ch_) == L'p'; }
-    //virtual const bool isAdvBish() const { return static_cast<wstring>(L"an").find(tolower(ch_)) != wstring::npos; }
-    virtual const bool isStronge() const { return static_cast<wstring>(L"nrcp").find(tolower(ch_)) != wstring::npos; }
-    virtual const bool isLineMove() const { return static_cast<wstring>(L"krcp").find(tolower(ch_)) != wstring::npos; }
-
-    static PieceColor getOthColor(const PieceColor color);
+    static shared_ptr<Piece> nullPiece;
     const wstring toString() const;
 
 private:
     const wchar_t ch_;
     const wchar_t name_;
     const PieceColor color_;
+};
+
+// 棋子辅助类
+class PieceAide {
+public:
+    static const wchar_t getNullChar() { return __nullChar; }
+    static const wchar_t getName(const wchar_t ch) { return __charNames.at(ch); }
+    static const PieceColor getColor(const wchar_t ch) { return ch == L'_' ? PieceColor::BLANK : (islower(ch) ? PieceColor::BLACK : PieceColor::RED); }
+    static const PieceColor getOthColor(const PieceColor color) { return color == PieceColor::RED ? PieceColor::BLACK : PieceColor::RED; }
+
+    static const bool isKing(const wchar_t name) { return static_cast<wstring>(L"将帅").find(name) != wstring::npos; }
+    static const bool isAdvBish(const wchar_t name) { return static_cast<wstring>(L"仕士相象").find(name) != wstring::npos; }
+    static const bool isStronge(const wchar_t name) { return static_cast<wstring>(L"马车炮兵卒").find(name) != wstring::npos; }
+    static const bool isLineMove(const wchar_t name) { return static_cast<wstring>(L"将帅车炮兵卒").find(name) != wstring::npos; }
+    static const bool isPawn(const wchar_t name) { return static_cast<wstring>(L"兵卒").find(name) != wstring::npos; }
+    static const bool isPieceName(const wchar_t name) { return static_cast<wstring>(L"帅将仕士相象马车炮兵卒").find(name) != wstring::npos; }
+
+    static const wchar_t getIndexChar(const int length, const int index) { return wstring(length == 2 ? L"前后" : (length == 3 ? L"前中后" : L"一二三四五"))[index]; }
+    static const wchar_t getMovChar(const bool isSameRow, bool isBottom, bool isForward) { return isSameRow ? L'平' : (isBottom == isForward ? L'进' : L'退'); }
+    static const wchar_t getColChar(const PieceColor color, bool isBottom, const int col) { return __getChar(color, isBottom ? ColNum - col - 1 : col); };
+    static const wchar_t getNumChar(const PieceColor color, const int num) { return __getChar(color, num - 1); };
+
+    static const PieceColor getColor_wch(const wchar_t wch) { return __numChars.at(PieceColor::RED).find(wch) != wstring::npos ? PieceColor::RED : PieceColor::BLACK; };
+
+    static const wchar_t getNum(const PieceColor color, const wchar_t numChar) { return static_cast<int>(__numChars.at(color).find(numChar)) + 1; }
+    static const wchar_t getCol(bool isBottom, const int num) { return isBottom ? ColNum - num : num - 1; }
+    static const int getMovDir(const bool isBottom, const wchar_t movChar) { return __movIndex.at(movChar) * (isBottom ? 1 : -1); }
+
+    // '根据中文行走方向取得棋子的内部数据方向（进：1，退：-1，平：0）'
+    //int movDir{ __movIndex.at(zhStr[2]) * (isBottom ? 1 : -1) }, num{ __getNum(zhStr[3]) }, toCol{ __getCol(num) };
+    //int movDir{ __wchIndex(zhStr[2]) * (isBottom ? 1 : -1) },
+
+    static const int RowNum{ 10 };
+    static const int ColNum{ 9 };
+
+private:
+    //auto __getNum = [&](const wchar_t wch) { return static_cast<int>(__numChars.at(color).find(wch)) + 1; };
+    //auto __getCol = [&](const int num) { return isBottom ? ColNum - num : num - 1; };
+
+    static const wchar_t __getChar(const PieceColor color, const int index) { return __numChars.at(color)[index]; };
+    static const wchar_t __nullChar{ L'_' };
+    static const map<wchar_t, wchar_t> __charNames;
+    static const map<PieceColor, wstring> __numChars;
+    static const map<wchar_t, int> __movIndex;
 };
 
 /*

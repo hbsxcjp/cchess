@@ -25,7 +25,7 @@ class Instance {
 public:
     Instance();
     Instance(const string& filename);
-    void write(const string& fname, const RecFormat fmt);
+    void write(const string& fname, const RecFormat fmt = RecFormat::CC);
 
     const PieceColor currentColor() const;
     const bool isStart() const;
@@ -63,7 +63,7 @@ private:
     void __readCC(const wstring& fullMoveStr);
 
     const wstring __moveInfo() const;
-    void writePGN(const string& filename, const RecFormat fmt = RecFormat::ZH) const;
+    void writePGN(const string& filename, const RecFormat fmt = RecFormat::CC) const;
     const wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH) const;
     const wstring toString_CC() const;
     void writeBIN(const string& filenameconst) const;

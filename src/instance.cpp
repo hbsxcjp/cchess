@@ -46,6 +46,7 @@ Instance::Instance()
 {
 }
 
+
 Instance::Instance(const string& filename)
     : Instance()
 {
@@ -87,7 +88,7 @@ void Instance::write(const string& fname, const RecFormat fmt)
 
 const PieceColor Instance::currentColor() const
 {
-    return currentMove_->getStepNo() % 2 == 0 ? firstColor_ : Piece::getOthColor(firstColor_);
+    return currentMove_->getStepNo() % 2 == 0 ? firstColor_ : PieceAide::getOthColor(firstColor_);
 }
 
 const bool Instance::isStart() const { return currentMove_->prev() == nullptr; }
@@ -161,12 +162,12 @@ void Instance::go(const int inc)
         fbward(this);
 }
 
-void Instance::cutNext() { currentMove_->setNext(nullptr); }
+void Instance::cutNext() { currentMove_->addNext(nullptr); }
 
 void Instance::cutOther()
 {
     if (currentMove_->other())
-        currentMove_->setOther(currentMove_->other()->other());
+        currentMove_->addOther(currentMove_->other()->other());
 }
 
 void Instance::changeSide(const ChangeType ct) // 未测试
@@ -176,7 +177,7 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     setFEN(board_->changeSide(ct));
 
     if (ct == ChangeType::EXCHANGE)
-        firstColor_ = Piece::getOthColor(firstColor_);
+        firstColor_ = PieceAide::getOthColor(firstColor_);
     else {
         function<void(Move&)> __setSeat = [&](Move& move) {
             move.setSeats(board_->getOthSeat(move.fseat(), ct), board_->getOthSeat(move.tseat(), ct));
@@ -343,14 +344,10 @@ void Instance::readXQF(const string& filename)
             //wcout << move.remark() << endl;
         }
 
-        if (ChildTag & 0x80) { //# 有左子树
-            move.setNext(make_shared<Move>());
-            __read(*move.next());
-        }
-        if (ChildTag & 0x40) { // # 有右子树
-            move.setOther(make_shared<Move>());
-            __read(*move.other());
-        }
+        if (ChildTag & 0x80) //# 有左子树
+            __read(*move.addNext());
+        if (ChildTag & 0x40) // # 有右子树
+            __read(*move.addOther());
     };
 
     __read(*rootMove_);
@@ -364,10 +361,7 @@ void Instance::readPGN(const string& filename, const RecFormat fmt)
     wregex pat{ LR"(\[(\w+)\s+\"(.*)\"\])" };
     for (wsregex_iterator p(pgnTxt.begin(), pgnTxt.end(), pat); p != wsregex_iterator{}; ++p)
         info_[(*p)[1]] = (*p)[2];
-    if (fmt == RecFormat::CC)
-        __readCC(moveStr);
-    else
-        __readICCSZH(moveStr, fmt);
+    fmt == RecFormat::CC ? __readCC(moveStr) : __readICCSZH(moveStr, fmt);
 }
 
 void Instance::__readICCSZH(const wstring& moveStr, const RecFormat fmt)
@@ -382,19 +376,10 @@ void Instance::__readICCSZH(const wstring& moveStr, const RecFormat fmt)
     auto setMoves = [&](shared_ptr<Move> move, const wstring mvstr, bool isOther) { //# 非递归
         for (wsregex_iterator p(mvstr.begin(), mvstr.end(), moveReg);
              p != wsregex_iterator{}; ++p) {
-            auto newMove = make_shared<Move>();
-            if (fmt == RecFormat::ZH)
-                newMove->setZh((*p)[1]);
-            else
-                newMove->setIccs((*p)[1]);
-            wstring rem{ (*p)[2] };
-            if (!rem.empty())
-                newMove->setRemark(rem);
-            if (isOther) { // # 第一步为变着
-                move->setOther(newMove);
-                isOther = false;
-            } else
-                move->setNext(newMove);
+            auto newMove = isOther ? move->addOther() : move->addNext();
+            fmt == RecFormat::ZH ? newMove->setZh((*p)[1]) : newMove->setIccs((*p)[1]);
+            newMove->setRemark((*p)[2]);
+            isOther = false; // # 仅第一步可为other，后续全为next
             move = newMove;
         }
         return move;
@@ -431,8 +416,7 @@ void Instance::__readCC(const wstring& fullMoveStr)
         movefat{ LR"(([^…　]{4}[…　]))" }, remfat{ LR"(\(\s*(\d+,\d+)\): \{([\s\S]*?)\})" };
     int row{ 0 };
     vector<vector<wstring>> movv{};
-    wsregex_token_iterator msp{ moveStr.begin(), moveStr.end(), spfat, -1 }, end{};
-    for (; msp != end; ++msp)
+    for (wsregex_token_iterator msp{ moveStr.begin(), moveStr.end(), spfat, -1 }, end{}; msp != end; ++msp)
         if (row++ % 2 == 0) {
             vector<wstring> linev{};
             for (wsregex_token_iterator mp{ (*msp).first, (*msp).second, mstrfat, 0 }; mp != end; ++mp)
@@ -440,25 +424,18 @@ void Instance::__readCC(const wstring& fullMoveStr)
             movv.push_back(linev);
         }
     map<wstring, wstring> remm{};
-    if (!remStr.empty())
-        for (wsregex_iterator rp{ remStr.begin(), remStr.end(), remfat }; rp != wsregex_iterator{}; ++rp)
-            remm[(*rp)[1]] = (*rp)[2];
+    for (wsregex_iterator rp{ remStr.begin(), remStr.end(), remfat }; rp != wsregex_iterator{}; ++rp)
+        remm[(*rp)[1]] = (*rp)[2];
 
     auto __setRem = [&](Move& move, int row, int col) {
-        wstring key{ to_wstring(row) + L',' + to_wstring(col) };
-        if (remm.find(key) != remm.end())
-            move.setRemark(remm[key]);
+        move.setRemark(remm[to_wstring(row) + L',' + to_wstring(col)]);
     };
     function<void(Move&, int, int, bool)> __read = [&](Move& move, int row, int col, bool isOther) {
         wstring zh{ movv[row][col] };
         if (regex_match(zh, movefat)) {
-            auto newMove = make_shared<Move>();
+            auto newMove = isOther ? move.addOther() : move.addNext();
             newMove->setZh(zh.substr(0, 4));
             __setRem(*newMove, row, col);
-            if (isOther)
-                move.setOther(newMove);
-            else
-                move.setNext(newMove);
             if (zh.back() == L'…')
                 __read(*newMove, row, col + 1, true);
             if (int(movv.size()) - 1 > row)
@@ -491,39 +468,24 @@ void Instance::readBIN(const string& filename)
     }
     function<void(Move&)> __read = [&](Move& move) {
         char frowcol{}, trowcol{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
-        //char fseat{}, tseat{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
-        //ifs.get(fseat).get(tseat).get(hasNext).get(hasOther);
-
         ifs.get(frowcol).get(trowcol).get(tag);
-        //ifs.get(fseat).get(tseat).get(tag);
-
-        //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol / 10, frowcol % 10) }, &tseat{ board_->getSeat(trowcol / 10, trowcol % 10) };
         move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
-        //move.setSeat(fseat, tseat);
-
         hasNext = tag & 0x80;
         hasOther = tag & 0x40;
         hasRemark = tag & 0x08;
-
         if (hasRemark) {
-            //if (length > 0) {
             char len[sizeof(int)]{};
             ifs.read(len, sizeof(int));
-            int length{ *(int*)len }; // 如果不采用位存储模式，此三行要移至if语句外！
+            int length{ *(int*)len };
 
             char rem[length + 1]{};
             ifs.read(rem, length);
             move.setRemark(Tools::s2ws(rem));
         }
-
-        if (hasNext) { //# 有左子树
-            move.setNext(make_shared<Move>());
-            __read(*move.next());
-        }
-        if (hasOther) { // # 有右子树
-            move.setOther(make_shared<Move>());
-            __read(*move.other());
-        }
+        if (hasNext)
+            __read(*move.addNext());
+        if (hasOther)
+            __read(*move.addOther());
     };
 
     __read(*rootMove_);
@@ -543,22 +505,13 @@ void Instance::readJSON(const string& filename)
         info_[Tools::s2ws(key)] = Tools::s2ws(infoItem[key].asString());
     function<void(Move&, Json::Value&)> __read = [&](Move& move, Json::Value& item) {
         int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
-
-        //const shared_ptr<Seat>&fseat{ board_->getSeat(frowcol / 10, frowcol % 10) }, &tseat{ board_->getSeat(trowcol / 10, trowcol % 10) };
-        //int fseat{ item["f"].asInt() }, tseat{ item["t"].asInt() };
         move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
-        //move.setSeats(fseat, tseat);
-
         if (item.isMember("r"))
             move.setRemark(Tools::s2ws(item["r"].asString()));
-        if (item.isMember("n")) { //# 有左子树
-            move.setNext(make_shared<Move>());
-            __read(*move.next(), item["n"]);
-        }
-        if (item.isMember("o")) { // # 有右子树
-            move.setOther(make_shared<Move>());
-            __read(*move.other(), item["o"]);
-        }
+        if (item.isMember("n")) //# 有左子树
+            __read(*move.addNext(), item["n"]);
+        if (item.isMember("o")) // # 有右子树
+            __read(*move.addOther(), item["o"]);
     };
 
     Json::Value rootItem{ root["moves"] };
@@ -578,19 +531,10 @@ void Instance::writeBIN(const string& filename) const
     function<void(const Move&)> __write = [&](const Move& move) {
         string remark{ Tools::ws2s(move.remark()) };
         int len{ int(remark.size()) };
-
-        int frowcol{ move.fseat()->rc() }, trowcol{ move.tseat()->rc() };
-        ofs.put(char(frowcol)).put(char(trowcol));
-        //ofs.put(char(move.fseat())).put(char(move.tseat()));
-
-        //ofs.put(char(move.next() ? true : false)).put(char(move.other() ? true : false));
+        ofs.put(char(move.fseat()->rc())).put(char(move.tseat()->rc()));
         ofs.put(char(move.next() ? 0x80 : 0x00) | char(move.other() ? 0x40 : 0x00) | char(len > 0 ? 0x08 : 0x00));
-
-        if (len > 0) {
-            ofs.write((char*)&len, sizeof(int)); // 如果不采用位存储模式，则移至if语句外，每move都要保存！
-            //if (len > 0)
-            ofs.write(remark.c_str(), len);
-        }
+        if (len > 0)
+            ofs.write((char*)&len, sizeof(int)).write(remark.c_str(), len);
         if (move.next())
             __write(*move.next());
         if (move.other())
@@ -608,33 +552,24 @@ void Instance::writeJSON(const string& filename) const
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
 
     Json::Value infoItem;
-    for (auto& k_v : info_)
-        infoItem[Tools::ws2s(k_v.first)] = Tools::ws2s(k_v.second);
+    for (auto& kv : info_)
+        infoItem[Tools::ws2s(kv.first)] = Tools::ws2s(kv.second);
     root["info_"] = infoItem;
 
-    function<void(const Move&, Json::Value&)> __write = [&](const Move& move, Json::Value& item) {
+    function<Json::Value(const Move&)> __writeItem = [&](const Move& move) {
+        Json::Value item{};
         item["f"] = move.fseat()->rc();
         item["t"] = move.tseat()->rc();
-        //item["f"] = move.fseat();
-        //item["t"] = move.tseat();
         if (!move.remark().empty())
             item["r"] = Tools::ws2s(move.remark());
-        if (move.next()) {
-            Json::Value newItem{};
-            __write(*move.next(), newItem);
-            item["n"] = newItem;
-        }
-        if (move.other()) {
-            Json::Value newItem{};
-            __write(*move.other(), newItem);
-            item["o"] = newItem;
-        }
+        if (move.next())
+            item["n"] = __writeItem(*move.next());
+        if (move.other())
+            item["o"] = __writeItem(*move.other());
+        return std::move(item);
     };
 
-    Json::Value rootItem{};
-    __write(*rootMove_, rootItem);
-    root["moves"] = rootItem;
-
+    root["moves"] = __writeItem(*rootMove_);
     writer->write(root, &ofs);
 }
 
@@ -643,8 +578,7 @@ void Instance::writePGN(const string& filename, const RecFormat fmt) const
     wstringstream wss{};
     for (const auto& kv : info_)
         wss << L'[' << kv.first << L" \"" << kv.second << L"\"]\n";
-    wss << L"》";
-    Tools::writeTxt(filename, wss.str() + (fmt == RecFormat::CC ? toString_CC() : toString_ICCSZH(fmt)));
+    Tools::writeTxt(filename, wss.str() + L"》" + (fmt == RecFormat::CC ? toString_CC() : toString_ICCSZH(fmt)));
 }
 
 const wstring Instance::toString_ICCSZH(const RecFormat fmt) const
@@ -652,23 +586,14 @@ const wstring Instance::toString_ICCSZH(const RecFormat fmt) const
     wstringstream wss{};
     function<void(const Move&)> __remark = [&](const Move& move) {
         if (!move.remark().empty())
-            wss << L"\n{" << move.remark() << L"}\n";
+            wss << (L"\n{" + move.remark() + L"}\n");
     };
 
     function<void(const Move&, bool)> __moveStr = [&](const Move& move, bool isOther) {
-        int boutNum{ (move.getStepNo() + 1) / 2 };
+        wstring boutNum{ to_wstring((move.getStepNo() + 1) / 2) };
         bool isEven{ move.getStepNo() % 2 == 0 };
-        if (isOther)
-            wss << L"(" << boutNum << L". " << (isEven ? L"... " : L"");
-        else
-            wss << (isEven ? L" " : to_wstring(boutNum) + L". ");
-        /*
-        if (isEven)
-            wss << L" ";
-        else
-            wss << boutNum << L". ";
-            */
-        wss << (fmt == RecFormat::ZH ? move.zh() : move.iccs()) << L' ';
+        wss << (isOther ? L"(" + boutNum + L". " + (isEven ? L"... " : L"") : (isEven ? L" " : boutNum + L". "))
+            << (fmt == RecFormat::ZH ? move.zh() : move.iccs() + L' ');
         __remark(move);
         if (move.other()) {
             __moveStr(*move.other(), true);
@@ -679,7 +604,6 @@ const wstring Instance::toString_ICCSZH(const RecFormat fmt) const
     };
 
     __remark(*rootMove_);
-    // 驱动调用函数
     if (rootMove_->next())
         __moveStr(*rootMove_->next(), false);
     return wss.str();
