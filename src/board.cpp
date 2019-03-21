@@ -17,18 +17,9 @@ using namespace std;
 
 Board::Board()
     : bottomColor{ PieceColor::RED }
-    , pieces_{ __creatPieces() }
+    , pieces_{ PieceAide::__creatPieces() }
     , seats_{ __creatSeats() }
 {
-}
-
-const vector<shared_ptr<Piece>> Board::__creatPieces()
-{
-    vector<shared_ptr<Piece>> pieces{};
-    wstring pieChars{ L"KAABBNNRRCCPPPPPkaabbnnrrccppppp" };
-    for (auto& ch : pieChars)
-        pieces.push_back(make_shared<Piece>(ch));
-    return pieces;
 }
 
 const vector<shared_ptr<Seat>> Board::__creatSeats()
@@ -317,7 +308,7 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
     shared_ptr<Seat> fseat{}, tseat{};
     vector<shared_ptr<Seat>> seats{};
     // 根据最后一个字符判断该着法属于哪一方
-    PieceColor color{ PieceAide::getColor_wch(zhStr.back()) };
+    PieceColor color{ PieceAide::getColor(zhStr.back()) };
     bool isBottom{ isBottomSide(color) };
     wchar_t name{ zhStr[0] };
     //auto __getNum = [&](const wchar_t wch) { return static_cast<int>(__numChars.at(color).find(wch)) + 1; };
@@ -367,6 +358,7 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
         int step{ abs(toCol - fseat->col()) }; //  相距1或2列
         tseat = getSeat(fseat->row() + movDir * (PieceAide::isAdvBish(name) ? step : (step == 1 ? 2 : 1)), toCol);
     }
+    
 
     //*
     Move mv{};

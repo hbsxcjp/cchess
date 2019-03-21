@@ -4,14 +4,14 @@
 #include <string>
 using namespace std;
 
-Piece::Piece(const wchar_t ch)
+Piece::Piece(const wchar_t ch, const wchar_t name)
     : ch_{ ch }
-    , name_{ PieceAide::getName(ch) }
-    , color_{ PieceAide::getColor(ch) }
+    , name_{ name }
+    , color_{ ch == PieceAide::getNullChar() ? PieceColor::BLANK : (islower(ch) ? PieceColor::BLACK : PieceColor::RED) }
 {
 }
 
-shared_ptr<Piece> Piece::nullPiece{ make_shared<Piece>(PieceAide::getNullChar()) };
+shared_ptr<Piece> Piece::nullPiece{ make_shared<Piece>(PieceAide::getNullChar(), L'　') };
 
 const wstring Piece::toString() const
 {
@@ -23,19 +23,29 @@ const wstring Piece::toString() const
     return wss.str();
 }
 
-const map<wchar_t, wchar_t> PieceAide::__charNames{
-    { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
-    { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
-    { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
-    { L'P', L'兵' }, { L'p', L'卒' }, { L'_', L'　' } // L'　'
-};
+const vector<shared_ptr<Piece>> PieceAide::__creatPieces()
+{
+    vector<shared_ptr<Piece>> pieces{};
+    const map<wchar_t, wchar_t> charNames{
+        { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
+        { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
+        { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
+        { L'P', L'兵' }, { L'p', L'卒' }
+    };
+    for (auto& ch : wstring{ L"KAABBNNRRCCPPPPPkaabbnnrrccppppp" })
+        pieces.push_back(make_shared<Piece>(ch, charNames.at(ch)));
+    return pieces;
+}
 
+const wstring PieceAide::__preChars{ L"前后前中后一二三四五" };
+const wstring PieceAide::__nameChars{ L"帅将仕士相象马车炮兵卒" };
+const wstring PieceAide::__movChars{ L"退平进" };
+//const map<wchar_t, int> PieceAide::__movIndex{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
 const map<PieceColor, wstring> PieceAide::__numChars{
     { PieceColor::RED, L"一二三四五六七八九" },
     { PieceColor::BLACK, L"１２３４５６７８９" }
 };
 
-const map<wchar_t, int> PieceAide::__movIndex{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
 /*
 #include "board_base.h"
 

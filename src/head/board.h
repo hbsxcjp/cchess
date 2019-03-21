@@ -53,7 +53,6 @@ private:
     const wstring __getChars(const wstring& fen) const;
     const vector<shared_ptr<Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name);
 
-    const vector<shared_ptr<Piece>> __creatPieces();
     const vector<shared_ptr<Seat>> __creatSeats();
 
     PieceColor bottomColor; // 底端棋子颜色
