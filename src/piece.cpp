@@ -4,47 +4,32 @@
 #include <string>
 using namespace std;
 
-Piece::Piece(const wchar_t ch, const wchar_t name)
-    : ch_{ ch }
-    , name_{ name }
-    , color_{ ch == PieceAide::getNullChar() ? PieceColor::BLANK : (islower(ch) ? PieceColor::BLACK : PieceColor::RED) }
-{
-}
-
-shared_ptr<Piece> Piece::nullPiece{ make_shared<Piece>(PieceAide::getNullChar(), L'　') };
-
 const wstring Piece::toString() const
 {
     wstringstream wss{};
     wss << boolalpha;
     wss << setw(2) << static_cast<int>(color())
-        << setw(6) << ch() << setw(5) << name() << setw(8) << PieceAide::isKing(name())
-        << setw(8) << PieceAide::isPawn(name()) << setw(8) << PieceAide::isStronge(name()) << setw(8) << PieceAide::isLineMove(name());
+        << setw(6) << ch() << setw(5) << name() << setw(8) << isKing(name())
+        << setw(8) << isPawn(name()) << setw(8) << isStronge(name()) << setw(8) << isLineMove(name());
     return wss.str();
 }
 
-const vector<shared_ptr<Piece>> PieceAide::__creatPieces()
+const vector<shared_ptr<Piece>> Piece::__creatPieces()
 {
     vector<shared_ptr<Piece>> pieces{};
-    const map<wchar_t, wchar_t> charNames{
-        { L'K', L'帅' }, { L'k', L'将' }, { L'A', L'仕' }, { L'a', L'士' },
-        { L'B', L'相' }, { L'b', L'象' }, { L'N', L'马' }, { L'n', L'马' },
-        { L'R', L'车' }, { L'r', L'车' }, { L'C', L'炮' }, { L'c', L'炮' },
-        { L'P', L'兵' }, { L'p', L'卒' }
+    const map<wchar_t, int> charIndexs{
+        { L'K', 0 }, { L'k', 1 }, { L'A', 2 }, { L'a', 3 }, { L'B', 4 }, { L'b', 5 },
+        { L'N', 6 }, { L'n', 6 }, { L'R', 7 }, { L'r', 7 }, { L'C', 8 }, { L'c', 8 }, { L'P', 9 }, { L'p', 10 }
     };
     for (auto& ch : wstring{ L"KAABBNNRRCCPPPPPkaabbnnrrccppppp" })
-        pieces.push_back(make_shared<Piece>(ch, charNames.at(ch)));
+        pieces.push_back(make_shared<Piece>(ch, __nameChars.at(charIndexs.at(ch)),
+            islower(ch) ? PieceColor::BLACK : PieceColor::RED));
     return pieces;
 }
 
-const wstring PieceAide::__preChars{ L"前后前中后一二三四五" };
-const wstring PieceAide::__nameChars{ L"帅将仕士相象马车炮兵卒" };
-const wstring PieceAide::__movChars{ L"退平进" };
-//const map<wchar_t, int> PieceAide::__movIndex{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
-const map<PieceColor, wstring> PieceAide::__numChars{
-    { PieceColor::RED, L"一二三四五六七八九" },
-    { PieceColor::BLACK, L"１２３４５６７８９" }
-};
+const wchar_t Piece::nullChar{ L'_' };
+shared_ptr<Piece> Piece::nullPiece{ make_shared<Piece>(nullChar, L'　', PieceColor::BLANK) };
+const wstring Piece::__nameChars{ L"帅将仕士相象马车炮兵卒" };
 
 /*
 #include "board_base.h"

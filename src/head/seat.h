@@ -1,9 +1,11 @@
 #ifndef SEAT_H
 #define SEAT_H
 
+#include <map>
 #include <memory>
-//#include <vector>
+#include <vector>
 using namespace std;
+enum class PieceColor;
 class Piece;
 
 class Seat {
@@ -19,14 +21,37 @@ public:
     const int col() const { return col_; }
     const int rc() const { return row_ * 10 + col_; } // 十位为行，个位为列
     const shared_ptr<Piece>& piece() const { return piece_; }
-
     void put(const shared_ptr<Piece>& piece) { piece_ = piece; } // 置入棋子
     const wstring toString() const;
+
+    static const PieceColor getColor(const wchar_t numZh);
+    static const wchar_t getIndexChar(const int length, const int index) { return (length == 2 ? __preChars.substr(0, 2) : (length == 3 ? __preChars.substr(2, 3) : __preChars.substr(5, 5)))[index]; }
+    static const wchar_t getMovChar(const bool isSameRow, bool isBottom, bool isForward) { return __movChars.at(isSameRow ? 1 : (isBottom == isForward ? 2 : 0)); }
+    static const wchar_t getNumChar(const PieceColor color, const int num) { return __getChar(color, num - 1); };
+    static const wchar_t getColChar(const PieceColor color, bool isBottom, const int col) { return __getChar(color, isBottom ? ColNum - col - 1 : col); };
+    static const int getIndex(const wchar_t preChar);
+
+    static const int getMovDir(const bool isBottom, const wchar_t movChar) { return static_cast<int>(__movChars.find(movChar) - 1) * (isBottom ? 1 : -1); }
+    static const int getNum(const PieceColor color, const wchar_t numChar) { return static_cast<int>(__numChars.at(color).find(numChar)) + 1; }
+    static const int getCol(bool isBottom, const int num) { return isBottom ? ColNum - num : num - 1; }
+    // '根据中文行走方向取得棋子的内部数据方向（进：1，退：-1，平：0）'
+    //int movDir{ __movIndex.at(zhStr[2]) * (isBottom ? 1 : -1) }, num{ __getNum(zhStr[3]) }, toCol{ __getCol(num) };
+    //int movDir{ __wchIndex(zhStr[2]) * (isBottom ? 1 : -1) },
+    static const vector<shared_ptr<Seat>> __creatSeats();
+
+    static const int RowNum{ 10 };
+    static const int ColNum{ 9 };
 
 private:
     int row_; //低四位
     int col_; //高四位
     shared_ptr<Piece> piece_;
+
+    static const wchar_t __getChar(const PieceColor color, const int index) { return __numChars.at(color)[index]; };
+    static const wstring __preChars;
+    static const wstring __movChars;
+    //static const map<wchar_t, int> __movIndex;
+    static const map<PieceColor, wstring> __numChars;
 };
 
 /*

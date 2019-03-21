@@ -12,6 +12,30 @@ const wstring Seat::toString() const
     return wss.str();
 }
 
+const PieceColor Seat::getColor(const wchar_t numZh) { return __numChars.at(PieceColor::RED).find(numZh) != wstring::npos ? PieceColor::RED : PieceColor::BLACK; }
+
+const int Seat::getIndex(const wchar_t preChar)
+{
+    int index{ static_cast<int>(__preChars.find(preChar)) };
+    return index <= 1 ? index : (index == 3 ? 1 : index - 5); // '中' '一二三四五'
+}
+
+const vector<shared_ptr<Seat>> Seat::__creatSeats()
+{
+    vector<shared_ptr<Seat>> seats{};
+    for (int r = 0; r < RowNum; ++r)
+        for (int c = 0; c < ColNum; ++c)
+            seats.push_back(make_shared<Seat>(r, c, Piece::nullPiece));
+    return seats;
+}
+
+const wstring Seat::__preChars{ L"前后前中后一二三四五" };
+const wstring Seat::__movChars{ L"退平进" };
+//const map<wchar_t, int> Seat::__movIndex{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
+const map<PieceColor, wstring> Seat::__numChars{
+    { PieceColor::RED, L"一二三四五六七八九" },
+    { PieceColor::BLACK, L"１２３４５６７８９" }
+};
 /*
 #include <algorithm>
 #include <cctype>
