@@ -264,7 +264,7 @@ const wstring Board::getZh(const Move& move)
     const PieceColor color{ fromPiece->color() };
     const wchar_t name{ fromPiece->name() };
     const int fromRow{ fseat->row() }, fromCol{ fseat->col() }, toRow{ tseat->row() }, toCol{ tseat->col() };
-    bool isSameRow{ toRow == fromRow }, isBottom{ isBottomSide(color) };
+    bool isSameRow{ fromRow == toRow }, isBottom{ isBottomSide(color) };
     vector<shared_ptr<Seat>> seats{ getLiveSeats(color, name, fromCol) };
     int length = seats.size();
     //auto __getNumChar = [&](int col) { return __numChars.at(color)[isBottom ? Seat::ColNum - col - 1 : col]; };
@@ -349,7 +349,7 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
     if (index > static_cast<int>(seats.size()) - 1)
         wcout << L"index > seats.size()-1:" << zhStr << L' ' << name << L'\n' << toString();
 
-    fseat = seats[index];
+    fseat = seats.at(index);
 
     // '根据中文行走方向取得棋子的内部数据方向（进：1，退：-1，平：0）'
     //const map<wchar_t, int> __movIndex{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
@@ -358,8 +358,8 @@ const pair<const shared_ptr<Seat>, const shared_ptr<Seat>> Board::__getSeatFromZ
     if (Piece::isLineMove(name))
         tseat = movDir == 0 ? getSeat(fseat->row(), toCol) : getSeat(fseat->row() + movDir * num, fseat->col());
     else { // 斜线走子：仕、相、马
-        int step{ abs(toCol - fseat->col()) }; //  相距1或2列
-        tseat = getSeat(fseat->row() + movDir * (Piece::isAdvBish(name) ? step : (step == 1 ? 2 : 1)), toCol);
+        int colDistance{ abs(toCol - fseat->col()) }; //  相距1或2列
+        tseat = getSeat(fseat->row() + movDir * (Piece::isAdvBish(name) ? colDistance : (colDistance == 1 ? 2 : 1)), toCol);
     }
 
     //*
