@@ -4,14 +4,13 @@
 
 #include <string>
 enum class RecFormat;
-using namespace std;
 
 
 class ChessInstance {
 public:
     //ChessInstance();
     
-    static void transDir(const string& dirfrom, const RecFormat fmt);
+    static void transDir(const std::string& dirfrom, const RecFormat fmt);
     static void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 
 private:

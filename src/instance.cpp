@@ -14,6 +14,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
+#include <vector>
 using namespace std;
 using namespace Json;
 
@@ -45,7 +46,6 @@ Instance::Instance()
     , firstColor_{ PieceColor::RED }
 {
 }
-
 
 Instance::Instance(const string& filename)
     : Instance()
@@ -88,7 +88,7 @@ void Instance::write(const string& fname, const RecFormat fmt)
 
 const PieceColor Instance::currentColor() const
 {
-    return currentMove_->getStepNo() % 2 == 0 ? firstColor_ : PieceAide::getOthColor(firstColor_);
+    return currentMove_->getStepNo() % 2 == 0 ? firstColor_ : Piece::getOthColor(firstColor_);
 }
 
 const bool Instance::isStart() const { return currentMove_->prev() == nullptr; }
@@ -177,7 +177,7 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     setFEN(board_->changeSide(ct));
 
     if (ct == ChangeType::EXCHANGE)
-        firstColor_ = PieceAide::getOthColor(firstColor_);
+        firstColor_ = Piece::getOthColor(firstColor_);
     else {
         function<void(Move&)> __setSeat = [&](Move& move) {
             move.setSeats(board_->getOthSeat(move.fseat(), ct), board_->getOthSeat(move.tseat(), ct));
@@ -617,7 +617,7 @@ const wstring Instance::toString_CC() const
     function<void(const Move&)> __setChar = [&](const Move& move) {
         int firstcol{ move.getCC_Col() * 5 }, row{ move.getStepNo() * 2 };
         for (int i = 0; i < 4; ++i)
-            lineStr.at(row).at(firstcol + i) = move.zh()[i];
+            lineStr.at(row).at(firstcol + i) = move.zh().at(i);
         if (!move.remark().empty())
             remStrs << L"(" << move.getStepNo() << L"," << move.getCC_Col() << L"): {" << move.remark() << L"}\n";
         if (move.next()) {
@@ -672,6 +672,10 @@ void Instance::setMoves(const RecFormat fmt)
     function<void(Move&)> __set = [&](Move& move) {
         if (fmt == RecFormat::ICCS || fmt == RecFormat::ZH || fmt == RecFormat::CC)
             move.setSeats(board_->getMoveSeats(move, fmt));
+
+        if (move.fseat()->piece() == Piece::nullPiece)
+            cout << "move.fseat() == Piece::nullPiece" << endl;
+
         if (fmt != RecFormat::ZH && fmt != RecFormat::CC)
             move.setZh(board_->getZh(move));
         if (fmt != RecFormat::ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON

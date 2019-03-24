@@ -17,7 +17,7 @@ int main(int argc, char const* argv[])
     std::ios_base::sync_with_stdio(false);
 
     auto time0 = steady_clock::now();
-    //*
+    /*
     if (argc == 7)
         ChessInstance::testTransDir(stoi(argv[1]), stoi(argv[2]),
             stoi(argv[3]), stoi(argv[4]), stoi(argv[5]), stoi(argv[6]));
@@ -26,10 +26,10 @@ int main(int argc, char const* argv[])
     //*/
     
     //*
-    //auto board = Board();
-    //wcout << board.test() << endl;
-    //auto instance = Instance("01.xqf");
-    //wcout << instance.test() << endl;
+    auto board = Board();
+    wcout << board.test() << endl;
+    auto instance = Instance("01.xqf");
+    wcout << instance.test() << endl;
     //*/
 
     auto time_d = steady_clock::now() - time0;

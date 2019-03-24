@@ -7,18 +7,18 @@
 using namespace std;
 
 Move::Move()
-    : eatPie_{ Piece::nullPiece }
+    : eatPie_{ PieceSpace::nullPiece }
 {
 }
 
-const shared_ptr<Move>& Move::setSeats(const shared_ptr<Seat>& fseat, const shared_ptr<Seat>& tseat)
+const shared_ptr<Move>& Move::setSeats(const shared_ptr<SeatSpace::Seat>& fseat, const shared_ptr<SeatSpace::Seat>& tseat)
 {
     fseat_ = fseat;
     tseat_ = tseat;
     return move(shared_from_this());
 }
 
-const shared_ptr<Move>& Move::setSeats(const pair<const shared_ptr<Seat>, const shared_ptr<Seat>>& seats)
+const shared_ptr<Move>& Move::setSeats(const pair<const shared_ptr<SeatSpace::Seat>, const shared_ptr<SeatSpace::Seat>>& seats)
 {
     return setSeats(seats.first, seats.second);
 }
@@ -59,7 +59,7 @@ const shared_ptr<Move>& Move::done()
 {
     eatPie_ = tseat_->piece();
     tseat_->put(fseat_->piece());
-    fseat_->put(Piece::nullPiece);
+    fseat_->put(PieceSpace::nullPiece);
     return next();
 }
 

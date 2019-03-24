@@ -3,7 +3,10 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+using namespace std;
+using namespace SeatSpace;
 
+/*
 const wstring Seat::toString() const
 {
     wstringstream wss{};
@@ -11,31 +14,53 @@ const wstring Seat::toString() const
     wss << setw(2) << row_ << setw(2) << col_ << setw(2) << piece_->name();
     return wss.str();
 }
+*/
 
-const PieceColor Seat::getColor(const wchar_t numZh) { return __numChars.at(PieceColor::RED).find(numZh) != wstring::npos ? PieceColor::RED : PieceColor::BLACK; }
+const int SeatSpace::RowNum{ 10 };
+const int SeatSpace::ColNum{ 9 };
+const std::wstring SeatSpace::movChars{ L"退平进" };
+const std::map<PieceColor, std::wstring> SeatSpace::numChars{
+    { PieceColor::RED, L"一二三四五六七八九" },
+    { PieceColor::BLACK, L"１２３４５６７８９" }
+};
 
-const int Seat::getIndex(const wchar_t preChar)
-{
-    int index{ static_cast<int>(__preChars.find(preChar)) };
-    return index <= 1 ? index : (index == 3 ? 1 : index - 5); // '中' '一二三四五'
-}
-
-const vector<shared_ptr<Seat>> Seat::__creatSeats()
+const vector<shared_ptr<SeatSpace::Seat>> SeatSpace::creatSeats()
 {
     vector<shared_ptr<Seat>> seats{};
     for (int r = 0; r < RowNum; ++r)
         for (int c = 0; c < ColNum; ++c)
-            seats.push_back(make_shared<Seat>(r, c, Piece::nullPiece));
+            seats.push_back(make_shared<Seat>(r, c, PieceSpace::nullPiece));
     return seats;
 }
 
-const wstring Seat::__preChars{ L"前后前中后一二三四五" };
-const wstring Seat::__movChars{ L"退平进" };
-//const map<wchar_t, int> Seat::__movIndex{ { L'进', 1 }, { L'退', -1 }, { L'平', 0 } };
-const map<PieceColor, wstring> Seat::__numChars{
-    { PieceColor::RED, L"一二三四五六七八九" },
-    { PieceColor::BLACK, L"１２３４５６７８９" }
-};
+const wchar_t SeatSpace::getChar(const PieceColor color, const int index) { return numChars.at(color)[index]; };
+
+const wstring SeatSpace::getPreChars(const int length)
+{
+    switch (length) {
+    case 2:
+        return L"前后";
+    case 3:
+        return L"前中后";
+    default:
+        return L"一二三四五";
+    }
+}
+
+const PieceColor SeatSpace::getColor(const wchar_t numZh) { return numChars.at(PieceColor::RED).find(numZh) != wstring::npos ? PieceColor::RED : PieceColor::BLACK; }
+const wchar_t SeatSpace::getIndexChar(const int length, const bool isBottom, const int index) { return getPreChars(length)[isBottom ? length - index - 1 : index]; }
+const wchar_t SeatSpace::getMovChar(const bool isSameRow, bool isBottom, bool isForward) { return movChars.at(isSameRow ? 1 : (isBottom == isForward ? 2 : 0)); }
+const wchar_t SeatSpace::getNumChar(const PieceColor color, const int num) { return getChar(color, num - 1); };
+const wchar_t SeatSpace::getColChar(const PieceColor color, bool isBottom, const int col) { return getChar(color, isBottom ? ColNum - col - 1 : col); };
+const int SeatSpace::getIndex(const int seatsLen, const bool isBottom, const wchar_t preChar)
+{
+    int index{ static_cast<int>(getPreChars(seatsLen).find(preChar)) };
+    return isBottom ? seatsLen - index - 1 : index;
+}
+const int SeatSpace::getMovDir(const bool isBottom, const wchar_t movChar) { return static_cast<int>(movChars.find(movChar) - 1) * (isBottom ? 1 : -1); }
+const int SeatSpace::getNum(const PieceColor color, const wchar_t numChar) { return static_cast<int>(numChars.at(color).find(numChar)) + 1; }
+const int SeatSpace::getCol(bool isBottom, const int num) { return isBottom ? ColNum - num : num - 1; }
+
 /*
 #include <algorithm>
 #include <cctype>
