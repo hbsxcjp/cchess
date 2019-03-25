@@ -1,14 +1,23 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "piece.h"
-#include "seat.h"
 #include <map>
 #include <memory>
 #include <vector>
 
+namespace PieceSpace {
+class Piece;
+}
 
+namespace SeatSpace {
+class Seat;
+}
+
+namespace MoveSpace {
 class Move;
+}
+
+enum class PieceColor;
 enum class RecFormat;
 enum class BoardSide {
     BOTTOM,
@@ -20,6 +29,8 @@ enum class ChangeType {
     SYMMETRY
 };
 
+namespace BoardSpace {
+
 class Board {
 public:
     Board();
@@ -27,13 +38,13 @@ public:
     const bool isBottomSide(const PieceColor color) const { return bottomColor == color; }
     const BoardSide getSide(const PieceColor color) const { return isBottomSide(color) ? BoardSide::BOTTOM : BoardSide::TOP; }
 
-    std::shared_ptr<SeatSpace::Seat>& getSeat(const int row, const int col) { return seats_[row * SeatSpace::ColNum + col]; }
-    std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) { return seats_[rowcol / 10 * SeatSpace::ColNum + rowcol % 10]; }
+    std::shared_ptr<SeatSpace::Seat>& getSeat(const int row, const int col);
+    std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol);
     std::shared_ptr<SeatSpace::Seat>& getOthSeat(const std::shared_ptr<SeatSpace::Seat>& seat, const ChangeType ct);
-    std::vector<std::shared_ptr<SeatSpace::Seat>> getLiveSeats(const PieceColor color = PieceColor::BLANK, const wchar_t name = L'\x00', const int col = -1) const;
-    const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>> getMoveSeats(const Move& move, const RecFormat fmt);
-    const std::wstring getIccs(const Move& move) const;
-    const std::wstring getZh(const Move& move); // (fseat, tseat)->中文纵线着法, 着法未走状态
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getLiveSeats(const PieceColor color, const wchar_t name = L'\x00', const int col = -1) const;
+    const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>> getMoveSeats(const MoveSpace::Move& move, const RecFormat fmt);
+    const std::wstring getIccs(const MoveSpace::Move& move) const;
+    const std::wstring getZh(const MoveSpace::Move& move); // (fseat, tseat)->中文纵线着法, 着法未走状态
 
     const bool isKilled(const PieceColor color); //判断是否将军
     const bool isDied(const PieceColor color); //判断是否被将死
@@ -56,5 +67,6 @@ private:
     const std::vector<std::shared_ptr<PieceSpace::Piece>> pieces_; // 一副棋子，固定的32个
     std::vector<std::shared_ptr<SeatSpace::Seat>> seats_; // 一块棋盘位置容器，固定的90个
 };
+}
 
 #endif

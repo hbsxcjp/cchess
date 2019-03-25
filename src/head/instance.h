@@ -6,9 +6,14 @@
 #include <memory>
 #include <string>
 
-
-class Board;
+namespace MoveSpace {
 class Move;
+}
+
+namespace BoardSpace {
+class Board;
+}
+
 enum class PieceColor;
 enum class ChangeType;
 enum class RecFormat {
@@ -20,6 +25,8 @@ enum class RecFormat {
     JSON
 };
 
+namespace InstanceSpace {
+
 class Instance {
 public:
     Instance();
@@ -29,14 +36,14 @@ public:
     const PieceColor currentColor() const;
     const bool isStart() const;
     const bool isLast() const;
-    void forward();
-    void backward();
+    void go();
+    void back();
     void forwardOther();
-    void backwardTo(std::shared_ptr<Move> move);
-    void to(std::shared_ptr<Move> move);
+    void backwardTo(std::shared_ptr<MoveSpace::Move> move);
+    void moveTo(std::shared_ptr<MoveSpace::Move> move);
     void backFirst();
-    void forLast();
-    void go(const int inc);
+    void goLast();
+    void move(const int inc);
     void cutNext();
     void cutOther();
     void changeSide(const ChangeType ct);
@@ -46,9 +53,6 @@ public:
     const int getRemLenMax() const { return remLenMax; }
     const int getMaxRow() const { return maxRow; }
     const int getMaxCol() const { return maxCol; }
-
-    static const std::string getExtName(const RecFormat fmt);
-    static const RecFormat getRecFormat(const std::string& ext);
 
     const std::wstring toString() const;
     const std::wstring test() const;
@@ -73,9 +77,9 @@ private:
     void setMoves(const RecFormat fmt);
 
     std::map<std::wstring, std::wstring> info_;
-    std::shared_ptr<Board> board_;
-    std::shared_ptr<Move> rootMove_;
-    std::shared_ptr<Move> currentMove_; // board对应该着已执行的状态
+    std::shared_ptr<BoardSpace::Board> board_;
+    std::shared_ptr<MoveSpace::Move> rootMove_;
+    std::shared_ptr<MoveSpace::Move> currentMove_; // board对应该着已执行的状态
     PieceColor firstColor_;
 
     int movCount{ 0 }; //着法数量
@@ -84,5 +88,9 @@ private:
     int maxRow{ 0 }; //# 存储最大着法深度
     int maxCol{ 0 }; //# 存储视图最大列数
 };
+
+extern const std::string getExtName(const RecFormat fmt);
+extern const RecFormat getRecFormat(const std::string& ext);
+}
 
 #endif

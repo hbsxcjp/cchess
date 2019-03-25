@@ -1,14 +1,19 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-#include "piece.h"
-#include "seat.h"
 #include <memory>
 #include <string>
 #include <vector>
 
+namespace PieceSpace {
 class Piece;
+}
+
+namespace SeatSpace {
 class Seat;
+}
+
+namespace MoveSpace {
 
 // 着法节点类
 class Move : public std::enable_shared_from_this<Move> {
@@ -62,5 +67,6 @@ private:
     int othCol_{ 0 }; // 变着广度
     int CC_Col_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
 };
+}
 
 #endif

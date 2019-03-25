@@ -6,8 +6,14 @@
 #include <string>
 #include <vector>
 
+namespace SeatSpace {
 class Seat;
+}
+
+namespace BoardSpace {
 class Board;
+}
+
 enum class PieceColor { RED,
     BLACK,
     BLANK };
@@ -67,11 +73,11 @@ public:
     const PieceColor color() const { return color_; }
 
     // 棋子可置放的全部位置
-    const std::vector<std::shared_ptr<Seat>> getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(const PieceColor bottomColor) const;
     // 棋子可移动到的全部位置, 筛除本方棋子所占位置
-    //virtual const std::vector<std::shared_ptr<Seat>> filterMoveSeats(const Board& board);
+    //virtual const std::vector<std::shared_ptr<SeatSpace::Seat>> filterMoveSeats(const BoardSpace::Board& board);
     // '获取棋子可走的位置, 不能被将军'
-    const std::vector<std::shared_ptr<Seat>> getMoveSeats(Board& board);
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> getMoveSeats(BoardSpace::Board& board);
 
     //virtual const std::wstring toString() const;
     const std::wstring toString() const;
@@ -80,12 +86,12 @@ public:
 
 protected:
     // 棋子可置放的全部位置
-    virtual const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const = 0;
+    virtual const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const = 0;
     // 棋子可移动到的全部位置
-    virtual const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    virtual const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
     // 筛除棋子行棋规则不允许的位置
-    virtual const std::vector<std::shared_ptr<Seat>> __filterMove_obstruct(const Board& board,
-        const std::vector<std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>>& seat_obss) const;
+    virtual const std::vector<std::shared_ptr<SeatSpace::Seat>> __filterMove_obstruct(const BoardSpace::Board& board,
+        const std::vector<std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>>& seat_obss) const;
 
 private:
     const wchar_t ch_;
@@ -98,8 +104,8 @@ public:
     using Piece::Piece;
 
 private:
-    const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const;
-    const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
 };
 
 class Advisor : public Piece {
@@ -107,8 +113,8 @@ public:
     using Piece::Piece;
 
 private:
-    const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const;
-    const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
 };
 
 class Bishop : public Piece {
@@ -116,8 +122,8 @@ public:
     using Piece::Piece;
 
 private:
-    const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const;
-    const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
 };
 
 class Knight : public Piece {
@@ -125,8 +131,8 @@ public:
     using Piece::Piece;
 
 private:
-    const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const;
-    const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
 };
 
 class Rook : public Piece {
@@ -134,8 +140,8 @@ public:
     using Piece::Piece;
 
 private:
-    const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const;
-    const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
 };
 
 class Cannon : public Piece {
@@ -143,8 +149,8 @@ public:
     using Piece::Piece;
 
 private:
-    const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const;
-    const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
 };
 
 class Pawn : public Piece {
@@ -152,8 +158,8 @@ public:
     using Piece::Piece;
 
 private:
-    const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const;
-    const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
 };
 
 class NullPiece : public Piece {
@@ -161,8 +167,8 @@ public:
     using Piece::Piece;
 
 private:
-    const std::vector<std::shared_ptr<Seat>> __getSeats(const PieceColor bottomColor) const;
-    const std::vector<std::shared_ptr<Seat>> __moveSeats(const Board& board) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSeats(const PieceColor bottomColor) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
 };
 
 extern const wchar_t nullChar;

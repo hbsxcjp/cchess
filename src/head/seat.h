@@ -1,12 +1,14 @@
 #ifndef SEAT_H
 #define SEAT_H
 
-#include "piece.h"
 #include <map>
 #include <memory>
 #include <vector>
 enum class PieceColor;
 
+namespace PieceSpace {
+    class Piece;
+}
 
 namespace SeatSpace {
 
@@ -21,7 +23,7 @@ public:
 
     const int row() const { return row_; }
     const int col() const { return col_; }
-    const int rc() const { return row_ * 10 + col_; } // 十位为行，个位为列
+    const int rowcolValue() const { return row_ * 10 + col_; } // 十位为行，个位为列
     const std::shared_ptr<PieceSpace::Piece>& piece() const { return piece_; }
     void put(const std::shared_ptr<PieceSpace::Piece>& piece) { piece_ = piece; } // 置入棋子
     const std::wstring toString() const;
@@ -32,15 +34,10 @@ private:
     std::shared_ptr<PieceSpace::Piece> piece_;
 };
 
-extern const int RowNum;
-extern const int ColNum;
-extern const std::wstring movChars;
-extern const std::map<PieceColor, std::wstring> numChars;
 extern const std::vector<std::shared_ptr<Seat>> creatSeats();
 
 extern const wchar_t getChar(const PieceColor color, const int index);
 extern const std::wstring getPreChars(const int length);
-
 extern const PieceColor getColor(const wchar_t numZh);
 extern const wchar_t getIndexChar(const int length, const bool isBottom, const int index);
 extern const wchar_t getMovChar(const bool isSameRow, bool isBottom, bool isForward);
@@ -50,6 +47,28 @@ extern const int getIndex(const int seatsLen, const bool isBottom, const wchar_t
 extern const int getMovDir(const bool isBottom, const wchar_t movChar);
 extern const int getNum(const PieceColor color, const wchar_t numChar);
 extern const int getCol(bool isBottom, const int num);
+
+extern const std::vector<std::pair<int,int>>& getKingRowCols(bool isBottom);
+extern const std::vector<std::pair<int,int>>& getAdviSorRowCols(bool isBottom);
+extern const std::vector<std::pair<int,int>>& getBishopRowCols(bool isBottom);
+extern const std::vector<std::pair<int,int>>& getPawnRowCols(bool isBottom);
+
+
+extern const int RowNum;
+extern const int RowLowIndex;
+extern const int RowLowMidIndex;
+extern const int RowLowUpIndex;
+extern const int RowUpLowIndex;
+extern const int RowUpMidIndex;
+extern const int RowUpIndex;
+extern const int ColNum;
+extern const int ColLowIndex;
+extern const int ColMidLowIndex;
+extern const int ColMidUpIndex;
+extern const int ColUpIndex;
+extern const std::wstring movChars;
+extern const std::map<PieceColor, std::wstring> numChars;
+
 }
 
 /*
