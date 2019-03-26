@@ -1,10 +1,28 @@
 #include "seat.h"
+#include "board.h"
 #include "piece.h"
 #include <iomanip>
 #include <sstream>
 #include <string>
 
 namespace SeatSpace {
+
+const bool Seat::isSameColor(const std::shared_ptr<PieceSpace::Piece>& piece) { return piece->color() == piece_->color(); }
+
+// '获取棋子可走的位置, 不能被将军'
+const std::vector<std::shared_ptr<Seat>> Seat::getMoveSeats(BoardSpace::Board& board)
+{
+    std::vector<std::shared_ptr<Seat>> seats{};
+    auto fseat = shared_from_this();
+    for (auto& tseat : piece_->filterSelfMoveSeats(board, shared_from_this())) {
+        auto eatPiece = SeatSpace::move(fseat, tseat, PieceSpace::nullPiece);
+        // 移动棋子后，检测是否会被对方将军
+        if (!board.isKilled(piece_->color()))
+            seats.push_back(tseat);
+        SeatSpace::move(tseat, fseat, eatPiece);
+    }
+    return seats;
+}
 
 const std::wstring Seat::toString() const
 {
@@ -14,109 +32,14 @@ const std::wstring Seat::toString() const
     return wss.str();
 }
 
-const std::vector<std::shared_ptr<Seat>> creatSeats()
+const std::shared_ptr<PieceSpace::Piece>& move(std::shared_ptr<Seat>& fseat, std::shared_ptr<Seat>& tseat,
+    const std::shared_ptr<PieceSpace::Piece>& fillPiece)
 {
-    std::vector<std::shared_ptr<Seat>> seats{};
-    for (int r = 0; r < RowNum; ++r)
-        for (int c = 0; c < ColNum; ++c)
-            seats.push_back(std::make_shared<Seat>(r, c, PieceSpace::nullPiece));
-    return seats;
+    auto& eatPiece = tseat->piece();
+    tseat->put(fseat->piece());
+    fseat->put(fillPiece);
+    return eatPiece;
 }
-
-const wchar_t getChar(const PieceColor color, const int index) { return numChars.at(color)[index]; };
-
-const std::wstring getPreChars(const int length)
-{
-    switch (length) {
-    case 2:
-        return L"前后";
-    case 3:
-        return L"前中后";
-    default:
-        return L"一二三四五";
-    }
-}
-
-const PieceColor getColor(const wchar_t numZh) { return numChars.at(PieceColor::RED).find(numZh) != std::wstring::npos ? PieceColor::RED : PieceColor::BLACK; }
-const wchar_t getIndexChar(const int length, const bool isBottom, const int index) { return getPreChars(length)[isBottom ? length - index - 1 : index]; }
-const wchar_t getMovChar(const bool isSameRow, bool isBottom, bool isForward) { return movChars.at(isSameRow ? 1 : (isBottom == isForward ? 2 : 0)); }
-const wchar_t getNumChar(const PieceColor color, const int num) { return getChar(color, num - 1); };
-const wchar_t getColChar(const PieceColor color, bool isBottom, const int col) { return getChar(color, isBottom ? ColNum - col - 1 : col); };
-const int getIndex(const int seatsLen, const bool isBottom, const wchar_t preChar)
-{
-    int index{ static_cast<int>(getPreChars(seatsLen).find(preChar)) };
-    return isBottom ? seatsLen - index - 1 : index;
-}
-const int getMovDir(const bool isBottom, const wchar_t movChar) { return static_cast<int>(movChars.find(movChar) - 1) * (isBottom ? 1 : -1); }
-const int getNum(const PieceColor color, const wchar_t numChar) { return static_cast<int>(numChars.at(color).find(numChar)) + 1; }
-const int getCol(bool isBottom, const int num) { return isBottom ? ColNum - num : num - 1; }
-
-const std::vector<std::pair<int, int>>& getKingRowCols(bool isBottom)
-{
-    int rowLow{ isBottom ? RowLowIndex : RowUpMidIndex }, rowUp{ isBottom ? RowLowMidIndex : RowUpIndex };
-    std::vector<std::pair<int, int>> rowCols{};
-    for (int row = rowLow; row <= rowUp; ++row)
-        for (int col = ColMidLowIndex; col <= ColMidUpIndex; ++col)
-            rowCols.push_back(std::make_pair(row, col));
-    return std::move(rowCols);
-}
-
-const std::vector<std::pair<int, int>>& getAdviSorRowCols(bool isBottom)
-{
-    int rowLow{ isBottom ? RowLowIndex : RowUpMidIndex }, rowUp{ isBottom ? RowLowMidIndex : RowUpIndex }, rmd{ isBottom ? 1 : 0 }; // 行列和的奇偶值
-    std::vector<std::pair<int, int>> rowCols{};
-    for (int row = rowLow; row <= rowUp; ++row)
-        for (int col = ColMidLowIndex; col <= ColMidUpIndex; ++col)
-            if ((col + row) % 2 == rmd)
-                rowCols.push_back(std::make_pair(row, col));
-    return std::move(rowCols);
-}
-
-const std::vector<std::pair<int, int>>& getBishopRowCols(bool isBottom)
-{
-    int rowLow{ isBottom ? RowLowIndex : RowUpLowIndex }, rowUp{ isBottom ? RowLowUpIndex : RowUpIndex };
-    std::vector<std::pair<int, int>> rowCols{};
-    for (int row = rowLow; row <= rowUp; row += 2)
-        for (int col = ColMidLowIndex; col <= ColMidUpIndex; col += 2) {
-            int gap{ row - col };
-            if ((isBottom && (gap == 2 || gap == -2 || gap == -6))
-                || (!isBottom && (gap == 7 || gap == 3 || gap == -1)))
-                rowCols.push_back(std::make_pair(row, col));
-        }
-    return std::move(rowCols);
-}
-
-const std::vector<std::pair<int, int>>& getPawnRowCols(bool isBottom)
-{
-    int lfrow{ isBottom ? RowLowUpIndex - 1 : RowUpLowIndex }, ufrow{ isBottom ? RowLowUpIndex : RowUpLowIndex + 1 },
-        ltrow{ isBottom ? RowUpLowIndex : RowLowIndex }, utrow{ isBottom ? RowUpIndex : RowLowUpIndex };
-    std::vector<std::pair<int, int>> rowCols{};
-    for (int col = ColLowIndex; col <= ColUpIndex; col += 2)
-        for (int row = lfrow; row <= ufrow; ++row)
-            rowCols.push_back(std::make_pair(row, col));
-    for (int col = ColLowIndex; col <= ColUpIndex; ++col)
-        for (int row = ltrow; row <= utrow; ++row)
-            rowCols.push_back(std::make_pair(row, col));
-    return std::move(rowCols);
-}
-
-const int RowNum{ 10 };
-const int RowLowIndex{ 0 };
-const int RowLowMidIndex{ 2 };
-const int RowLowUpIndex{ 4 };
-const int RowUpLowIndex{ 5 };
-const int RowUpMidIndex{ 7 };
-const int RowUpIndex{ 9 };
-const int ColNum{ 9 };
-const int ColLowIndex{ 0 };
-const int ColMidLowIndex{ 3 };
-const int ColMidUpIndex{ 5 };
-const int ColUpIndex{ 8 };
-const std::wstring movChars{ L"退平进" };
-const std::map<PieceColor, std::wstring> numChars{
-    { PieceColor::RED, L"一二三四五六七八九" },
-    { PieceColor::BLACK, L"１２３４５６７８９" }
-};
 
 /*
 #include <algorithm>
@@ -553,18 +476,18 @@ const std::vector<pair<int, int>> Board_base::getKnightMove_LegSeats(const int s
 // 车炮可走的四个方向位置
 const std::vector<std::vector<int>> Board_base::getRookCannonMoveSeat_Lines(const int seat)
 {
-    std::vector<std::vector<int>> res{ std::vector<int>{}, std::vector<int>{}, std::vector<int>{},
+    std::vector<std::vector<int>> seats{ std::vector<int>{}, std::vector<int>{}, std::vector<int>{},
         std::vector<int>{} };
     int row{ getRow(seat) }, left{ row * 9 - 1 }, right{ row * 9 + 9 };
     for (int i = seat - 1; i != left; --i)
-        res[0].push_back(i);
+        seats[0].push_back(i);
     for (int i = seat + 1; i != right; ++i)
-        res[1].push_back(i);
+        seats[1].push_back(i);
     for (int i = seat - 9; i > -1; i -= 9)
-        res[2].push_back(i);
+        seats[2].push_back(i);
     for (int i = seat + 9; i < 90; i += 9)
-        res[3].push_back(i);
-    return res;
+        seats[3].push_back(i);
+    return seats;
 }
 
 const std::vector<int> Board_base::getPawnMoveSeats(const bool isBottomSide, const int seat)
@@ -614,22 +537,22 @@ const std::vector<int> Board_base::getPawnMoveSeats(const bool isBottomSide, con
 const std::vector<int> Board_base::sortPawnSeats(const bool isBottomSide, std::vector<int> seats)
 {
     map<int, std::vector<int>> temp{};
-    std::vector<int> res(5);
+    std::vector<int> seats(5);
     // 按列建立字典，按列排序
     for_each(seats.begin(), seats.end(),
         [&](int s) { temp[getCol(s)].push_back(s); });
     // 筛除只有一个位置的列, 整合成一个数组
-    auto pos = res.begin();
+    auto pos = seats.begin();
     for_each(temp.begin(), temp.end(), [&](pair<int, std::vector<int>> col_seats) {
         if (col_seats.second.size() > 1) {
             std::sort(col_seats.second.begin(), col_seats.second.end()); // 每列排序
             pos = copy(col_seats.second.begin(), col_seats.second.end(), pos); //按列存入
         }
     });
-    res = std::vector<int>{ res.begin(), pos };
+    seats = std::vector<int>{ seats.begin(), pos };
     if (isBottomSide)
-        reverse(res.begin(), res.end()); // 根据棋盘顶底位置,是否反序
-    return res;
+        reverse(seats.begin(), seats.end()); // 根据棋盘顶底位置,是否反序
+    return seats;
 }
 
 // 测试

@@ -58,16 +58,18 @@ std::vector<std::shared_ptr<Move>> Move::getPrevMoves()
 
 const std::shared_ptr<Move>& Move::done()
 {
-    eatPie_ = tseat_->piece();
-    tseat_->put(fseat_->piece());
-    fseat_->put(PieceSpace::nullPiece);
+    eatPie_ = SeatSpace::move(fseat_, tseat_, PieceSpace::nullPiece);
+    //eatPie_ = tseat_->piece();
+    //tseat_->put(fseat_->piece());
+    //fseat_->put(PieceSpace::nullPiece);
     return next();
 }
 
 const std::shared_ptr<Move>& Move::undo()
 {
-    fseat_->put(tseat_->piece());
-    tseat_->put(eatPie_);
+    SeatSpace::move(tseat_, fseat_, eatPie_);
+    //fseat_->put(tseat_->piece());
+    //tseat_->put(eatPie_);
     return prev();
 }
 

@@ -7,12 +7,16 @@
 enum class PieceColor;
 
 namespace PieceSpace {
-    class Piece;
+class Piece;
+}
+
+namespace BoardSpace {
+class Board;
 }
 
 namespace SeatSpace {
 
-class Seat {
+class Seat: public std::enable_shared_from_this<Seat> {
 public:
     explicit Seat(int row, int col, const std::shared_ptr<PieceSpace::Piece>& piece)
         : row_{ row }
@@ -25,6 +29,10 @@ public:
     const int col() const { return col_; }
     const int rowcolValue() const { return row_ * 10 + col_; } // 十位为行，个位为列
     const std::shared_ptr<PieceSpace::Piece>& piece() const { return piece_; }
+    const bool isSameColor(const std::shared_ptr<PieceSpace::Piece>& piece);
+
+    // '获取棋子可走的位置, 不能被将军'
+    const std::vector<std::shared_ptr<Seat>> getMoveSeats(BoardSpace::Board& board);
     void put(const std::shared_ptr<PieceSpace::Piece>& piece) { piece_ = piece; } // 置入棋子
     const std::wstring toString() const;
 
@@ -34,41 +42,8 @@ private:
     std::shared_ptr<PieceSpace::Piece> piece_;
 };
 
-extern const std::vector<std::shared_ptr<Seat>> creatSeats();
-
-extern const wchar_t getChar(const PieceColor color, const int index);
-extern const std::wstring getPreChars(const int length);
-extern const PieceColor getColor(const wchar_t numZh);
-extern const wchar_t getIndexChar(const int length, const bool isBottom, const int index);
-extern const wchar_t getMovChar(const bool isSameRow, bool isBottom, bool isForward);
-extern const wchar_t getNumChar(const PieceColor color, const int num);
-extern const wchar_t getColChar(const PieceColor color, bool isBottom, const int col);
-extern const int getIndex(const int seatsLen, const bool isBottom, const wchar_t preChar);
-extern const int getMovDir(const bool isBottom, const wchar_t movChar);
-extern const int getNum(const PieceColor color, const wchar_t numChar);
-extern const int getCol(bool isBottom, const int num);
-
-extern const std::vector<std::pair<int,int>>& getKingRowCols(bool isBottom);
-extern const std::vector<std::pair<int,int>>& getAdviSorRowCols(bool isBottom);
-extern const std::vector<std::pair<int,int>>& getBishopRowCols(bool isBottom);
-extern const std::vector<std::pair<int,int>>& getPawnRowCols(bool isBottom);
-
-
-extern const int RowNum;
-extern const int RowLowIndex;
-extern const int RowLowMidIndex;
-extern const int RowLowUpIndex;
-extern const int RowUpLowIndex;
-extern const int RowUpMidIndex;
-extern const int RowUpIndex;
-extern const int ColNum;
-extern const int ColLowIndex;
-extern const int ColMidLowIndex;
-extern const int ColMidUpIndex;
-extern const int ColUpIndex;
-extern const std::wstring movChars;
-extern const std::map<PieceColor, std::wstring> numChars;
-
+extern const std::shared_ptr<PieceSpace::Piece>& move(std::shared_ptr<Seat>& fseat, std::shared_ptr<Seat>& tseat,
+    const std::shared_ptr<PieceSpace::Piece>& fillPiece);
 }
 
 /*
