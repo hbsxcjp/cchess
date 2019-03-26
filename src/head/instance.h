@@ -33,7 +33,7 @@ public:
     Instance(const std::string& filename);
     void write(const std::string& fname, const RecFormat fmt = RecFormat::CC);
 
-    const PieceColor currentColor() const;
+    //const PieceColor currentColor() const;
     const bool isStart() const;
     const bool isLast() const;
     void go();

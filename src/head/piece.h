@@ -176,13 +176,13 @@ extern const std::wstring nameChars;
 extern const std::shared_ptr<Piece> nullPiece;
 extern const std::vector<std::shared_ptr<Piece>> creatPieces();
 
-extern const PieceColor getOthColor(const PieceColor color);
-extern const bool isKing(const wchar_t name);
-extern const bool isAdvBish(const wchar_t name);
-extern const bool isStronge(const wchar_t name);
-extern const bool isLineMove(const wchar_t name);
-extern const bool isPawn(const wchar_t name);
-extern const bool isPieceName(const wchar_t name);
+//extern const PieceColor getOthColor(const PieceColor color);
+extern const bool isKing(const Piece& piece);
+extern const bool isAdvBish(const Piece& piece);
+extern const bool isStronge(const Piece& piece);
+extern const bool isLineMove(const Piece& piece);
+extern const bool isPawn(const Piece& piece);
+extern const bool isPieceName(const Piece& piece);
 }
 //*/
 

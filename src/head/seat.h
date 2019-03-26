@@ -29,8 +29,8 @@ public:
     const std::wstring toString() const;
 
 private:
-    int row_; //低四位
-    int col_; //高四位
+    const int row_; //低四位
+    const int col_; //高四位
     std::shared_ptr<PieceSpace::Piece> piece_;
 };
 

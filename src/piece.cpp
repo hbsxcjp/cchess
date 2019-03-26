@@ -7,11 +7,13 @@
 //#include <iterator>
 //#include <sstream>
 
+namespace SeatSpace {
 class Seat;
+}
 
 namespace PieceSpace {
 
-const std::vector<std::shared_ptr<Seat>> Piece::getSeats(const PieceColor bottomColor) const
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Piece::getSeats(const PieceColor bottomColor) const
 {
     return __getSeats(bottomColor);
 }
@@ -21,8 +23,8 @@ const std::wstring Piece::toString() const
     std::wstringstream wss{};
     wss << std::boolalpha;
     wss << std::setw(2) << static_cast<int>(color())
-        << std::setw(6) << ch() << std::setw(5) << name() << std::setw(8) << isKing(name())
-        << std::setw(8) << isPawn(name()) << std::setw(8) << isStronge(name()) << std::setw(8) << isLineMove(name());
+        << std::setw(6) << ch() << std::setw(5) << name() << std::setw(8) << isKing(*this)
+        << std::setw(8) << isPawn(*this) << std::setw(8) << isStronge(*this) << std::setw(8) << isLineMove(*this);
     return wss.str();
 }
 
@@ -77,13 +79,13 @@ const std::wstring nameChars{ L"帅将仕士相象马车炮兵卒" };
 const std::shared_ptr<Piece> nullPiece{ std::make_shared<NullPiece>(nullChar, L'　', PieceColor::BLANK) };
 const std::vector<std::shared_ptr<Piece>> creatPieces();
 
-const PieceColor getOthColor(const PieceColor color) { return color == PieceColor::RED ? PieceColor::BLACK : PieceColor::RED; }
-const bool isKing(const wchar_t name) { return nameChars.substr(0, 2).find(name) != std::wstring::npos; }
-const bool isAdvBish(const wchar_t name) { return nameChars.substr(2, 4).find(name) != std::wstring::npos; }
-const bool isStronge(const wchar_t name) { return nameChars.substr(6, 5).find(name) != std::wstring::npos; }
-const bool isLineMove(const wchar_t name) { return isKing(name) || nameChars.substr(7, 4).find(name) != std::wstring::npos; }
-const bool isPawn(const wchar_t name) { return nameChars.substr(nameChars.size() - 2, 2).find(name) != std::wstring::npos; }
-const bool isPieceName(const wchar_t name) { return nameChars.find(name) != std::wstring::npos; }
+//const PieceColor getOthColor(const PieceColor color) { return color == PieceColor::RED ? PieceColor::BLACK : PieceColor::RED; }
+const bool isKing(const Piece& piece) { return nameChars.substr(0, 2).find(piece.name()) != std::wstring::npos; }
+const bool isAdvBish(const Piece& piece) { return nameChars.substr(2, 4).find(piece.name()) != std::wstring::npos; }
+const bool isStronge(const Piece& piece) { return nameChars.substr(6, 5).find(piece.name()) != std::wstring::npos; }
+const bool isLineMove(const Piece& piece) { return isKing(piece) || nameChars.substr(7, 4).find(piece.name()) != std::wstring::npos; }
+const bool isPawn(const Piece& piece) { return nameChars.substr(nameChars.size() - 2, 2).find(piece.name()) != std::wstring::npos; }
+const bool isPieceName(const Piece& piece) { return nameChars.find(piece.name()) != std::wstring::npos; }
 
 /*
 #include "board_base.h"

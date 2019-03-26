@@ -86,10 +86,10 @@ void Instance::write(const std::string& fname, const RecFormat fmt)
     }
 }
 
-const PieceColor Instance::currentColor() const
-{
-    return currentMove_->getStepNo() % 2 == 0 ? firstColor_ : PieceSpace::getOthColor(firstColor_);
-}
+//const PieceColor Instance::currentColor() const
+//{
+//    return currentMove_->getStepNo() % 2 == 0 ? firstColor_ : PieceSpace::getOthColor(firstColor_);
+//}
 
 const bool Instance::isStart() const { return currentMove_->prev() == nullptr; }
 
@@ -177,7 +177,7 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     setFEN(board_->changeSide(ct));
 
     if (ct == ChangeType::EXCHANGE)
-        firstColor_ = PieceSpace::getOthColor(firstColor_);
+        ;//firstColor_ = PieceSpace::getOthColor(firstColor_);
     else {
         std::function<void(MoveSpace::Move&)> __setSeat = [&](MoveSpace::Move& move) {
             move.setSeats(board_->getOthSeat(move.fseat(), ct), board_->getOthSeat(move.tseat(), ct));
