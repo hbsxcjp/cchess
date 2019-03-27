@@ -16,7 +16,8 @@ class Board;
 
 namespace SeatSpace {
 
-class Seat: public std::enable_shared_from_this<Seat> {
+class Seat { // : public std::enable_shared_from_this<Seat>
+
 public:
     explicit Seat(int row, int col, const std::shared_ptr<PieceSpace::Piece>& piece)
         : row_{ row }
@@ -29,11 +30,11 @@ public:
     const int col() const { return col_; }
     const int rowcolValue() const { return row_ * 10 + col_; } // 十位为行，个位为列
     const std::shared_ptr<PieceSpace::Piece>& piece() const { return piece_; }
-    const bool isSameColor(const PieceSpace::Piece& piece);
+    const bool isDiffColor(const std::shared_ptr<Seat>& fseat);
+    const bool isNullPiece();
 
-    // '获取棋子可走的位置, 不能被将军'
-    const std::vector<std::shared_ptr<Seat>> getMoveSeats(BoardSpace::Board& board);
     void put(const std::shared_ptr<PieceSpace::Piece>& piece) { piece_ = piece; } // 置入棋子
+    const std::shared_ptr<PieceSpace::Piece>& moveTo(std::shared_ptr<Seat>& tseat, const std::shared_ptr<PieceSpace::Piece>& fillPiece);
     const std::wstring toString() const;
 
 private:
@@ -41,9 +42,6 @@ private:
     const int col_; //高四位
     std::shared_ptr<PieceSpace::Piece> piece_;
 };
-
-extern const std::shared_ptr<PieceSpace::Piece>& move(std::shared_ptr<Seat>& fseat, std::shared_ptr<Seat>& tseat,
-    const std::shared_ptr<PieceSpace::Piece>& fillPiece);
 }
 
 /*

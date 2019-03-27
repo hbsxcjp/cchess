@@ -7,21 +7,16 @@
 
 namespace SeatSpace {
 
-const bool Seat::isDiffColor(const PieceSpace::Piece& piece) { return piece.color() != piece_->color(); }
+const bool Seat::isDiffColor(const std::shared_ptr<Seat>& fseat) { return fseat->piece()->color() != piece_->color(); }
 
-// '获取棋子可走的位置, 不能被将军'
-const std::vector<std::shared_ptr<Seat>> Seat::getMoveSeats(BoardSpace::Board& board)
+const bool Seat::isNullPiece() { return piece_ == PieceSpace::nullPiece; }
+
+const std::shared_ptr<PieceSpace::Piece>& Seat::moveTo(std::shared_ptr<Seat>& tseat, const std::shared_ptr<PieceSpace::Piece>& fillPiece)
 {
-    std::vector<std::shared_ptr<Seat>> seats{};
-    auto fseat = shared_from_this();
-    for (auto& tseat : piece_->moveSeats(board, shared_from_this())) {
-        auto eatPiece = SeatSpace::move(fseat, tseat, PieceSpace::nullPiece);
-        // 移动棋子后，检测是否会被对方将军
-        if (!board.isKilled(piece_->color()))
-            seats.push_back(tseat);
-        SeatSpace::move(tseat, fseat, eatPiece);
-    }
-    return seats;
+    auto& eatPiece = tseat->piece();
+    tseat->put(this->piece());
+    this->put(fillPiece);
+    return eatPiece;
 }
 
 const std::wstring Seat::toString() const
@@ -30,15 +25,6 @@ const std::wstring Seat::toString() const
     wss << std::boolalpha;
     wss << std::setw(2) << row_ << std::setw(2) << col_ << std::setw(2) << piece_->name();
     return wss.str();
-}
-
-const std::shared_ptr<PieceSpace::Piece>& move(std::shared_ptr<Seat>& fseat, std::shared_ptr<Seat>& tseat,
-    const std::shared_ptr<PieceSpace::Piece>& fillPiece)
-{
-    auto& eatPiece = tseat->piece();
-    tseat->put(fseat->piece());
-    fseat->put(fillPiece);
-    return eatPiece;
 }
 
 /*

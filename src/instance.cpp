@@ -671,9 +671,9 @@ void Instance::setMoves(const RecFormat fmt)
 
     std::function<void(MoveSpace::Move&)> __set = [&](MoveSpace::Move& move) {
         if (fmt == RecFormat::ICCS || fmt == RecFormat::ZH || fmt == RecFormat::CC)
-            move.setSeats(board_->getMoveSeats(move, fmt));
+            move.setSeats(board_->getMoveSeat(move, fmt));
 
-        if (move.fseat()->piece() == PieceSpace::nullPiece)
+        if (move.fseat()->isNullPiece())
             std::cout << "move.fseat() ==  PieceSpace::nullPiece" << std::endl;
 
         if (fmt != RecFormat::ZH && fmt != RecFormat::CC)

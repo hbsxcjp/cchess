@@ -21,6 +21,7 @@ enum class PieceColor { RED,
 namespace PieceSpace {
 // 棋子类
 class Piece {
+    friend class BoardSpace::Board;
 
 public:
     explicit Piece(const wchar_t ch, const wchar_t name, const PieceColor color)
@@ -33,22 +34,17 @@ public:
     const wchar_t ch() const { return ch_; }
     const wchar_t name() const { return name_; }
     const PieceColor color() const { return color_; }
-
     // 棋子可置放的全部位置
     virtual const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board) = 0;
-
-protected:
     // 棋子可移动到的全部位置
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
-        const std::shared_ptr<SeatSpace::Seat>& fseat);
-    // 筛除本方棋子所占位置
-    std::vector<std::shared_ptr<SeatSpace::Seat>> __filterSelfMoveSeats(std::vector<std::shared_ptr<SeatSpace::Seat>> seats);
+    virtual const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+        const std::shared_ptr<SeatSpace::Seat>& fseat)
+        = 0;
 
     const std::wstring toString() const;
     virtual ~Piece() = default;
 
 private:
-
     const wchar_t ch_;
     const wchar_t name_;
     const PieceColor color_;
@@ -59,8 +55,8 @@ public:
     using Piece::Piece;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board);
 
-protected:
-    std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
         const std::shared_ptr<SeatSpace::Seat>& fseat);
 };
 
@@ -69,8 +65,8 @@ public:
     using Piece::Piece;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board);
 
-protected:
-    std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
         const std::shared_ptr<SeatSpace::Seat>& fseat);
 };
 
@@ -79,8 +75,8 @@ public:
     using Piece::Piece;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board);
 
-protected:
-    std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
         const std::shared_ptr<SeatSpace::Seat>& fseat);
 };
 
@@ -89,8 +85,8 @@ public:
     using Piece::Piece;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board);
 
-protected:
-    std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
         const std::shared_ptr<SeatSpace::Seat>& fseat);
 };
 
@@ -99,8 +95,8 @@ public:
     using Piece::Piece;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board);
 
-protected:
-    std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
         const std::shared_ptr<SeatSpace::Seat>& fseat);
 };
 
@@ -109,8 +105,8 @@ public:
     using Piece::Piece;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board);
 
-protected:
-    std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
         const std::shared_ptr<SeatSpace::Seat>& fseat);
 };
 
@@ -119,8 +115,8 @@ public:
     using Piece::Piece;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board);
 
-protected:
-    std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
         const std::shared_ptr<SeatSpace::Seat>& fseat);
 };
 
@@ -129,8 +125,8 @@ public:
     using Piece::Piece;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(BoardSpace::Board& board);
 
-protected:
-    std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
+private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(BoardSpace::Board& board,
         const std::shared_ptr<SeatSpace::Seat>& fseat);
 };
 

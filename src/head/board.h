@@ -7,6 +7,13 @@
 
 namespace PieceSpace {
 class Piece;
+class King;
+class Advisor;
+class Bishop;
+class Knight;
+class Rook;
+class Cannon;
+class Pawn;
 }
 
 namespace SeatSpace {
@@ -32,6 +39,14 @@ enum class ChangeType {
 namespace BoardSpace {
 
 class Board {
+    friend class PieceSpace::King;
+    friend class PieceSpace::Advisor;
+    friend class PieceSpace::Bishop;
+    friend class PieceSpace::Knight;
+    friend class PieceSpace::Rook;
+    friend class PieceSpace::Cannon;
+    friend class PieceSpace::Pawn;
+
 public:
     Board();
 
@@ -43,13 +58,10 @@ public:
     std::shared_ptr<SeatSpace::Seat>& getOthSeat(const std::shared_ptr<SeatSpace::Seat>& seat, const ChangeType ct);
     std::vector<std::shared_ptr<SeatSpace::Seat>> getLiveSeats(const PieceColor color, const wchar_t name = L'\x00', const int col = -1) const;
 
-    std::vector<std::shared_ptr<SeatSpace::Seat>> getAllSeats();
-    std::vector<std::shared_ptr<SeatSpace::Seat>> getKingSeats(const PieceSpace::Piece& piece);
-    std::vector<std::shared_ptr<SeatSpace::Seat>> getAdvisorSeats(const PieceSpace::Piece& piece);
-    std::vector<std::shared_ptr<SeatSpace::Seat>> getBishopSeats(const PieceSpace::Piece& piece);
-    std::vector<std::shared_ptr<SeatSpace::Seat>> getPawnSeats(const PieceSpace::Piece& piece);
+    // '获取棋子可走的位置, 不能被将军'
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(std::shared_ptr<SeatSpace::Seat>& fseat);
 
-    const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>> getMoveSeats(const MoveSpace::Move& move, const RecFormat fmt);
+    const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>> getMoveSeat(const MoveSpace::Move& move, const RecFormat fmt);
     const std::wstring getIccs(const MoveSpace::Move& move) const;
     const std::wstring getZh(const MoveSpace::Move& move); // (fseat, tseat)->中文纵线着法, 着法未走状态
 
@@ -69,6 +81,21 @@ private:
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>> __getSeatFromZh(const std::wstring& Zh); // 中文纵线着法->(fseat, tseat), 着法未走状态
     const std::wstring __getChars(const std::wstring& fen) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name);
+
+    std::shared_ptr<SeatSpace::Seat> getKingSeat(const PieceColor color);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getAllSeats();
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getKingSeats(const PieceColor color);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getAdvisorSeats(const PieceColor color);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getBishopSeats(const PieceColor color);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getPawnSeats(const PieceColor color);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getKingMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getAdvsiorMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getBishopMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getKnightMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getRookMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getCannonMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat);
+    const std::vector<std::vector<std::shared_ptr<SeatSpace::Seat>>> getRookCannonMoveSeat_Lines(const std::shared_ptr<SeatSpace::Seat>& fseat);
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getPawnMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat);
 
     PieceColor bottomColor; // 底端棋子颜色
     const std::vector<std::shared_ptr<PieceSpace::Piece>> pieces_; // 一副棋子，固定的32个
