@@ -7,14 +7,14 @@
 
 namespace SeatSpace {
 
-const bool Seat::isSameColor(const std::shared_ptr<PieceSpace::Piece>& piece) { return piece->color() == piece_->color(); }
+const bool Seat::isDiffColor(const PieceSpace::Piece& piece) { return piece.color() != piece_->color(); }
 
 // '获取棋子可走的位置, 不能被将军'
 const std::vector<std::shared_ptr<Seat>> Seat::getMoveSeats(BoardSpace::Board& board)
 {
     std::vector<std::shared_ptr<Seat>> seats{};
     auto fseat = shared_from_this();
-    for (auto& tseat : piece_->filterSelfMoveSeats(board, shared_from_this())) {
+    for (auto& tseat : piece_->moveSeats(board, shared_from_this())) {
         auto eatPiece = SeatSpace::move(fseat, tseat, PieceSpace::nullPiece);
         // 移动棋子后，检测是否会被对方将军
         if (!board.isKilled(piece_->color()))

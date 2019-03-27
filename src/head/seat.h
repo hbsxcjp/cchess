@@ -29,7 +29,7 @@ public:
     const int col() const { return col_; }
     const int rowcolValue() const { return row_ * 10 + col_; } // 十位为行，个位为列
     const std::shared_ptr<PieceSpace::Piece>& piece() const { return piece_; }
-    const bool isSameColor(const std::shared_ptr<PieceSpace::Piece>& piece);
+    const bool isSameColor(const PieceSpace::Piece& piece);
 
     // '获取棋子可走的位置, 不能被将军'
     const std::vector<std::shared_ptr<Seat>> getMoveSeats(BoardSpace::Board& board);

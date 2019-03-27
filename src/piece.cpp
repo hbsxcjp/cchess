@@ -21,36 +21,23 @@ const std::wstring Piece::toString() const
     return wss.str();
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Piece::filterSelfMoveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& seat)
-{
-    std::vector<std::shared_ptr<SeatSpace::Seat>> res = moveSeats(board, seat);
-    auto p = std::remove_if(res.begin(), res.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
-        return seat->isSameColor(shared_from_this());
-    });
-    return (std::vector<std::shared_ptr<SeatSpace::Seat>>{ res.begin(), p });
-}
-
-std::vector<std::shared_ptr<SeatSpace::Seat>> Piece::__filterObstructMoveSeats(BoardSpace::Board& board,
-    const std::vector<std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>>& seat_obss)
-{
-    std::vector<std::shared_ptr<SeatSpace::Seat>> res{};
-    for (auto& seat_obs : seat_obss)
-        if (seat_obs.second->piece() == PieceSpace::nullPiece)
-            res.push_back(seat_obs.first);
-    return res;
-}
-
 const std::vector<std::shared_ptr<SeatSpace::Seat>> King::getSeats(BoardSpace::Board& board)
 {
     return board.getKingSeats(*this);
 }
 
-const std::vector<std::shared_ptr<SeatSpace::Seat>> King::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& seat)
+std::vector<std::shared_ptr<SeatSpace::Seat>> King::moveSeats(BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat)
 {
-    auto seats = getSeats(board);
-    return seats;
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{ getSeats(board) }, result(seats.size());
+    auto canMove = [](const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat) {
+        return ((fseat->row() == tseat->row() && abs(fseat->col() - tseat->col()) == 1)
+            || (fseat->col() == tseat->col() && abs(fseat->row() - tseat->row()) == 1)
+            && tseat->isDiffColor(*this));
+    };
+    auto p = std::copy_if(seats.begin(), seats.end(), result.begin(),
+        [&](const std::shared_ptr<SeatSpace::Seat>& seat) { return canMove(fseat, seat); });
+    return (std::vector<std::shared_ptr<SeatSpace::Seat>>{ result.begin(), p });
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Advisor::getSeats(BoardSpace::Board& board)
@@ -58,11 +45,16 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Advisor::getSeats(BoardSpace
     return board.getAdvisorSeats(*this);
 }
 
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Advisor::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& seat)
+std::vector<std::shared_ptr<SeatSpace::Seat>> Advisor::moveSeats(BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat)
 {
-    auto seats = getSeats(board);
-    return seats;
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{ getSeats(board) }, result(seats.size());
+    auto canMove = [](const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat) {
+        return (abs(fseat->row() - tseat->row()) == 1 && abs(fseat->col() - tseat->col()) == 1&& tseat->isDiffColor(*this));
+    };
+    auto p = std::copy_if(seats.begin(), seats.end(), result.begin(),
+        [&](const std::shared_ptr<SeatSpace::Seat>& seat) { return canMove(fseat, seat); });
+    return (std::vector<std::shared_ptr<SeatSpace::Seat>>{ result.begin(), p });
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Bishop::getSeats(BoardSpace::Board& board)
@@ -70,11 +62,19 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Bishop::getSeats(BoardSpace:
     return board.getBishopSeats(*this);
 }
 
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Bishop::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& seat)
+std::vector<std::shared_ptr<SeatSpace::Seat>> Bishop::moveSeats(BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat)
 {
-    auto seats = getSeats(board);
-    return seats;
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{ getSeats(board) }, result(seats.size());
+    std::vector<std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>> result{};
+    auto canMove = [](const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat) {
+        return (abs(fseat->row() - tseat->row()) == 2 && abs(fseat->col() - tseat->col()) == 2
+            && board.getSeat((fseat->row() + tseat->row()) / 2, (fseat->col() + tseat->col()) / 2)->piece() == PieceSpace::nullPiece
+            && tseat->isDiffColor(*this));
+    };
+    auto p = std::copy_if(seats.begin(), seats.end(), result.begin(),
+        [&](const std::shared_ptr<SeatSpace::Seat>& seat) { return canMove(fseat, seat); });
+    return result;
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::getSeats(BoardSpace::Board& board)
@@ -83,10 +83,9 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::getSeats(BoardSpace:
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& seat)
+    const std::shared_ptr<SeatSpace::Seat>& fseat)
 {
-    auto seats = getSeats(board);
-    return seats;
+    return board.getAllSeats();
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::getSeats(BoardSpace::Board& board)
@@ -95,7 +94,7 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::getSeats(BoardSpace::B
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& seat)
+    const std::shared_ptr<SeatSpace::Seat>& fseat)
 {
     auto seats = getSeats(board);
     return seats;
@@ -107,7 +106,7 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::getSeats(BoardSpace:
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& seat)
+    const std::shared_ptr<SeatSpace::Seat>& fseat)
 {
     auto seats = getSeats(board);
     return seats;
@@ -119,7 +118,7 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::getSeats(BoardSpace::B
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& seat)
+    const std::shared_ptr<SeatSpace::Seat>& fseat)
 {
     auto seats = getSeats(board);
     return seats;
@@ -211,33 +210,33 @@ inline const std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::moveSeats(con
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::moveSeats(const BoardSpace::Board& board) const
 {
-    std::vector<std::shared_ptr<SeatSpace::Seat>> res{};
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
     for (auto seatLine : getRookCannonMoveSeat_Lines(seat()))
         for (auto seat : seatLine) {
-            res.push_back(seat);
+            seats.push_back(seat);
             if (!board.isBlank(seat))
                 break;
         }
-    return res;
+    return seats;
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::moveSeats(const BoardSpace::Board& board) const
 {
-    std::vector<std::shared_ptr<SeatSpace::Seat>> res{};
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
     for (auto seatLine : getRookCannonMoveSeat_Lines(seat())) {
         bool skip = false;
         for (auto seat : seatLine)
             if (!skip) {
                 if (board.isBlank(seat))
-                    res.push_back(seat);
+                    seats.push_back(seat);
                 else
                     skip = true;
             } else if (!board.isBlank(seat)) {
-                res.push_back(seat);
+                seats.push_back(seat);
                 break;
             }
     }
-    return res;
+    return seats;
 }
 
 inline const std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::moveSeats(const BoardSpace::Board& board) const { return getPawnMoveSeats(board.isBottomSide(color()), seat()); }
