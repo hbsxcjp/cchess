@@ -68,9 +68,10 @@ public:
     const bool isKilled(const PieceColor color); //判断是否将军
     const bool isDied(const PieceColor color); //判断是否被将死
 
+    const std::wstring getPieceChars() const;
     const std::wstring getFEN(const std::wstring& pieceChars) const;
     void putPieces(const std::wstring& fen);
-    const std::wstring changeSide(const ChangeType ct);
+    void changeSide(const ChangeType ct);
     void setBottomSide();
 
     const std::wstring toString() const;
@@ -83,7 +84,7 @@ private:
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name);
 
     std::shared_ptr<SeatSpace::Seat> getKingSeat(const PieceColor color);
-    std::vector<std::shared_ptr<SeatSpace::Seat>> getAllSeats();
+    std::vector<std::shared_ptr<SeatSpace::Seat>> getAllSeats() { return seats_; }
     std::vector<std::shared_ptr<SeatSpace::Seat>> getKingSeats(const PieceColor color);
     std::vector<std::shared_ptr<SeatSpace::Seat>> getAdvisorSeats(const PieceColor color);
     std::vector<std::shared_ptr<SeatSpace::Seat>> getBishopSeats(const PieceColor color);
@@ -130,6 +131,17 @@ private:
         static const int ColUpIndex;
         static const std::wstring movChars;
         static const std::map<PieceColor, std::wstring> numChars;
+
+        static const std::vector<std::shared_ptr<PieceSpace::Piece>> creatPieces();
+        static const bool isKing(const wchar_t name);
+        static const bool isAdvBish(const wchar_t name);
+        static const bool isStronge(const wchar_t name);
+        static const bool isLineMove(const wchar_t name);
+        static const bool isPawn(const wchar_t name);
+        static const bool isPieceName(const wchar_t name);
+
+        static const wchar_t nullChar;
+        static const std::wstring nameChars;
     };
 };
 }

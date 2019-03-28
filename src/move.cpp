@@ -7,10 +7,6 @@
 
 namespace MoveSpace {
 
-Move::Move()
-    : eatPie_{ PieceSpace::nullPiece }
-{
-}
 
 const std::shared_ptr<Move>& Move::setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat)
 {
@@ -58,18 +54,13 @@ std::vector<std::shared_ptr<Move>> Move::getPrevMoves()
 
 const std::shared_ptr<Move>& Move::done()
 {
-    eatPie_ = fseat_->moveTo(tseat_, PieceSpace::nullPiece);
-    //eatPie_ = tseat_->piece();
-    //tseat_->put(fseat_->piece());
-    //fseat_->put(PieceSpace::nullPiece);
+    eatPie_ = fseat_->to(tseat_);
     return next();
 }
 
 const std::shared_ptr<Move>& Move::undo()
 {
-    tseat_->moveTo(fseat_, eatPie_);
-    //fseat_->put(tseat_->piece());
-    //tseat_->put(eatPie_);
+    tseat_->to(fseat_, eatPie_);
     return prev();
 }
 

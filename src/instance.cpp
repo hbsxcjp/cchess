@@ -174,7 +174,8 @@ void Instance::changeSide(const ChangeType ct) // 未测试
 {
     auto curmove = currentMove_;
     backFirst();
-    setFEN(board_->changeSide(ct));
+    board_->changeSide(ct);
+    setFEN(board_->getPieceChars());
 
     if (ct == ChangeType::EXCHANGE)
         ;//firstColor_ = PieceSpace::getOthColor(firstColor_);
@@ -673,8 +674,8 @@ void Instance::setMoves(const RecFormat fmt)
         if (fmt == RecFormat::ICCS || fmt == RecFormat::ZH || fmt == RecFormat::CC)
             move.setSeats(board_->getMoveSeat(move, fmt));
 
-        if (move.fseat()->isNullPiece())
-            std::cout << "move.fseat() ==  PieceSpace::nullPiece" << std::endl;
+        if (!move.fseat()->piece())
+            std::cout << "!move.fseat()->piece()" << std::endl;
 
         if (fmt != RecFormat::ZH && fmt != RecFormat::CC)
             move.setZh(board_->getZh(move));

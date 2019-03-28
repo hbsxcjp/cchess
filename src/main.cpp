@@ -27,8 +27,8 @@ int main(int argc, char const* argv[])
     //*
     auto board = BoardSpace::Board();
     std::wcout << board.test() << std::endl;
-    auto instance = InstanceSpace::Instance("01.xqf");
-    std::wcout << instance.test() << std::endl;
+    //auto instance = InstanceSpace::Instance("01.xqf");
+    //std::wcout << instance.test() << std::endl;
     //*/
 
     auto time_d = steady_clock::now() - time0;

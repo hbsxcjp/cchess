@@ -19,7 +19,6 @@ namespace MoveSpace {
 class Move : public std::enable_shared_from_this<Move> {
 
 public:
-    Move();
 
     const std::shared_ptr<Move>& setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat);
     const std::shared_ptr<Move>& setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats);
@@ -55,7 +54,7 @@ public:
 private:
     std::shared_ptr<SeatSpace::Seat> fseat_{};
     std::shared_ptr<SeatSpace::Seat> tseat_{};
-    std::shared_ptr<PieceSpace::Piece> eatPie_;
+    std::shared_ptr<PieceSpace::Piece> eatPie_{};
     std::shared_ptr<Move> next_{};
     std::shared_ptr<Move> other_{};
     std::weak_ptr<Move> prev_{};
