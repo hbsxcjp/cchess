@@ -15,7 +15,7 @@ namespace SeatSpace {
 class Seat {
 
 public:
-    explicit Seat(int row, int col, const std::shared_ptr<PieceSpace::Piece> piece = nullptr)
+    explicit Seat(int row, int col, const std::shared_ptr<PieceSpace::Piece>& piece = nullptr)
         : row_{ row }
         , col_{ col }
         , piece_{ piece }
@@ -26,15 +26,16 @@ public:
     const int col() const { return col_; }
     const int rowcolValue() const { return row_ * 10 + col_; } // 十位为行，个位为列
     const std::shared_ptr<PieceSpace::Piece> piece() const { return piece_; }
-    const bool isDiffColor(const std::shared_ptr<Seat>& fseat);
+    const bool isDiffColor(const std::shared_ptr<Seat>& fseat) const;
 
-    void put(const std::shared_ptr<PieceSpace::Piece> piece = nullptr) { piece_ = piece; } // 置入棋子
-    const std::shared_ptr<PieceSpace::Piece>& to(std::shared_ptr<Seat>& tseat, const std::shared_ptr<PieceSpace::Piece> fillPiece = nullptr);
+    void put(const std::shared_ptr<PieceSpace::Piece>& piece = nullptr) { piece_ = piece; } // 置入棋子
+    const std::shared_ptr<PieceSpace::Piece>& to(std::shared_ptr<Seat>& tseat,
+        const std::shared_ptr<PieceSpace::Piece>& fillPiece = nullptr);
     const std::wstring toString() const;
 
 private:
-    const int row_; 
-    const int col_; 
+    const int row_;
+    const int col_;
     std::shared_ptr<PieceSpace::Piece> piece_;
 };
 }

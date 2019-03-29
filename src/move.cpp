@@ -7,36 +7,35 @@
 
 namespace MoveSpace {
 
-
-const std::shared_ptr<Move>& Move::setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat)
+const std::shared_ptr<Move>& Move::setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat,
+    const std::shared_ptr<SeatSpace::Seat>& tseat)
 {
     fseat_ = fseat;
     tseat_ = tseat;
     return move(shared_from_this());
 }
 
-const std::shared_ptr<Move>& Move::setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats)
+const std::shared_ptr<Move>& Move::setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>,
+    const std::shared_ptr<SeatSpace::Seat>>& seats)
 {
     return setSeats(seats.first, seats.second);
 }
 
-const std::shared_ptr<Move>& Move::addNext(const std::shared_ptr<Move>& next)
+const std::shared_ptr<Move>& Move::addNext()
 {
-    if (next) {
-        next->setStepNo(stepNo_ + 1); // 步序号
-        next->setOthCol(othCol_); // 变着层数
-        next->setPrev(shared_from_this());
-    }
+    auto next = std::make_shared<Move>();
+    next->setStepNo(stepNo_ + 1); // 步序号
+    next->setOthCol(othCol_); // 变着层数
+    next->setPrev(shared_from_this());
     return next_ = next;
 }
 
-const std::shared_ptr<Move>& Move::addOther(const std::shared_ptr<Move>& other)
+const std::shared_ptr<Move>& Move::addOther()
 {
-    if (other) {
-        other->setStepNo(stepNo_); // 与premove的步数相同
-        other->setOthCol(othCol_ + 1); // 变着层数
-        other->setPrev(shared_from_this());
-    }
+    auto other = std::make_shared<Move>();
+    other->setStepNo(stepNo_); // 与premove的步数相同
+    other->setOthCol(othCol_ + 1); // 变着层数
+    other->setPrev(shared_from_this());
     return other_ = other;
 }
 

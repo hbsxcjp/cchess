@@ -19,16 +19,6 @@ namespace MoveSpace {
 class Move : public std::enable_shared_from_this<Move> {
 
 public:
-
-    const std::shared_ptr<Move>& setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat);
-    const std::shared_ptr<Move>& setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats);
-    const std::shared_ptr<Move>& addNext(const std::shared_ptr<Move>& next = std::make_shared<Move>());
-    const std::shared_ptr<Move>& addOther(const std::shared_ptr<Move>& other = std::make_shared<Move>());
-    void setPrev(const std::shared_ptr<Move>& prev) { prev_ = std::weak_ptr<Move>(prev); }
-    std::vector<std::shared_ptr<Move>> getPrevMoves();
-    const std::shared_ptr<Move>& done();
-    const std::shared_ptr<Move>& undo();
-
     const std::shared_ptr<SeatSpace::Seat>& fseat() const { return fseat_; }
     const std::shared_ptr<SeatSpace::Seat>& tseat() const { return tseat_; }
     const std::shared_ptr<PieceSpace::Piece>& eatPie() const { return eatPie_; }
@@ -48,6 +38,17 @@ public:
     void setOthCol(const int othCol) { othCol_ = othCol; }
     const int getCC_Col() const { return CC_Col_; }
     void setCC_Col(const int CC_Col) { CC_Col_ = CC_Col; }
+
+    const std::shared_ptr<Move>& setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat);
+    const std::shared_ptr<Move>& setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats);
+    void setPrev(const std::shared_ptr<Move>& prev) { prev_ = std::weak_ptr<Move>(prev); }
+    void cutNext() { next_ = nullptr; }
+    void cutOther() { other_ && (other_ = other_->other()); }
+    const std::shared_ptr<Move>& addNext();
+    const std::shared_ptr<Move>& addOther();
+    std::vector<std::shared_ptr<Move>> getPrevMoves(); 
+    const std::shared_ptr<Move>& done();
+    const std::shared_ptr<Move>& undo();
 
     const std::wstring toString() const;
 

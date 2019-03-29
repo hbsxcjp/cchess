@@ -69,7 +69,7 @@ Instance::Instance(const std::string& filename)
     setMoves(fmt);
 }
 
-void Instance::write(const std::string& fname, const RecFormat fmt)
+void Instance::write(const std::string& fname, const RecFormat fmt)// const
 {
     std::string filename{ fname + getExtName(fmt) };
     info_[L"Format"] = Tools::s2ws(getExtName(fmt));
@@ -125,7 +125,7 @@ void Instance::forwardOther()
 }
 
 // 复合走法
-void Instance::backwardTo(std::shared_ptr<MoveSpace::Move> move)
+void Instance::backwardTo(std::shared_ptr<MoveSpace::Move>& move)
 {
     while (!isStart() && move != currentMove_) {
         back();
@@ -133,7 +133,7 @@ void Instance::backwardTo(std::shared_ptr<MoveSpace::Move> move)
     }
 }
 
-void Instance::moveTo(std::shared_ptr<MoveSpace::Move> move)
+void Instance::moveTo(std::shared_ptr<MoveSpace::Move>& move)
 {
     if (move == currentMove_)
         return;
@@ -162,13 +162,13 @@ void Instance::move(const int inc)
         fbward(this);
 }
 
-void Instance::cutNext() { currentMove_->addNext(nullptr); }
+//void Instance::cutNext() { currentMove_->cutNext(nullptr); }
 
-void Instance::cutOther()
-{
-    if (currentMove_->other())
-        currentMove_->addOther(currentMove_->other()->other());
-}
+//void Instance::cutOther()
+//{
+//    if (currentMove_->other())
+//        currentMove_->addOther(currentMove_->other()->other());
+//}
 
 void Instance::changeSide(const ChangeType ct) // 未测试
 {
@@ -178,7 +178,7 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     setFEN(board_->getPieceChars());
 
     if (ct == ChangeType::EXCHANGE)
-        ;//firstColor_ = PieceSpace::getOthColor(firstColor_);
+        ; //firstColor_ = PieceSpace::getOthColor(firstColor_);
     else {
         std::function<void(MoveSpace::Move&)> __setSeat = [&](MoveSpace::Move& move) {
             move.setSeats(board_->getOthSeat(move.fseat(), ct), board_->getOthSeat(move.tseat(), ct));

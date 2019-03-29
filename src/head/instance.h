@@ -31,7 +31,7 @@ class Instance {
 public:
     Instance();
     Instance(const std::string& filename);
-    void write(const std::string& fname, const RecFormat fmt = RecFormat::CC);
+    void write(const std::string& fname, const RecFormat fmt = RecFormat::CC);// const;
 
     //const PieceColor currentColor() const;
     const bool isStart() const;
@@ -39,13 +39,13 @@ public:
     void go();
     void back();
     void forwardOther();
-    void backwardTo(std::shared_ptr<MoveSpace::Move> move);
-    void moveTo(std::shared_ptr<MoveSpace::Move> move);
+    void backwardTo(std::shared_ptr<MoveSpace::Move>& move);
+    void moveTo(std::shared_ptr<MoveSpace::Move>& move);
     void backFirst();
     void goLast();
     void move(const int inc);
-    void cutNext();
-    void cutOther();
+    //void cutNext();
+    //void cutOther();
     void changeSide(const ChangeType ct);
 
     const int getMovCount() const { return movCount; }

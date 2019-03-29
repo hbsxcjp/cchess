@@ -10,84 +10,83 @@ namespace PieceSpace {
 const std::wstring Piece::toString() const
 {
     std::wstringstream wss{};
-    wss << std::boolalpha << std::setw(3) << static_cast<int>(color()) << std::setw(5) << ch() << std::setw(5) << name();
+    wss << std::boolalpha << static_cast<int>(color()) << ch() << name();
     return wss.str();
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> King::getSeats(BoardSpace::Board& board)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> King::getSeats(const BoardSpace::Board& board) const
 {
     return board.getKingSeats(color());
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> King::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& fseat)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> King::moveSeats(const BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat) const
 {
     return board.getKingMoveSeats(fseat);
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Advisor::getSeats(BoardSpace::Board& board)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Advisor::getSeats(const BoardSpace::Board& board) const
 {
     return board.getAdvisorSeats(color());
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Advisor::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& fseat)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Advisor::moveSeats(const BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat) const
 {
     return board.getAdvsiorMoveSeats(fseat);
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Bishop::getSeats(BoardSpace::Board& board)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Bishop::getSeats(const BoardSpace::Board& board) const
 {
     return board.getBishopSeats(color());
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Bishop::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& fseat)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Bishop::moveSeats(const BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat) const
 {
     return board.getBishopMoveSeats(fseat);
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::getSeats(BoardSpace::Board& board)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::getSeats(const BoardSpace::Board& board) const
 {
     return board.getAllSeats();
 }
 
-
-std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& fseat)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::moveSeats(const BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat) const
 {
     return board.getKnightMoveSeats(fseat);
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::getSeats(BoardSpace::Board& board)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::getSeats(const BoardSpace::Board& board) const
 {
     return board.getAllSeats();
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& fseat)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::moveSeats(const BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat) const
 {
     return board.getRookMoveSeats(fseat);
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::getSeats(BoardSpace::Board& board)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::getSeats(const BoardSpace::Board& board) const
 {
     return board.getAllSeats();
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& fseat)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::moveSeats(const BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat) const
 {
     return board.getCannonMoveSeats(fseat);
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::getSeats(BoardSpace::Board& board)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::getSeats(const BoardSpace::Board& board) const
 {
     return board.getPawnSeats(color());
 }
 
-std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::moveSeats(BoardSpace::Board& board,
-    const std::shared_ptr<SeatSpace::Seat>& fseat)
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::moveSeats(const BoardSpace::Board& board,
+    const std::shared_ptr<SeatSpace::Seat>& fseat) const
 {
     return board.getPawnMoveSeats(fseat);
 }
