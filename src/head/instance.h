@@ -91,6 +91,8 @@ private:
 
 extern const std::string getExtName(const RecFormat fmt);
 extern const RecFormat getRecFormat(const std::string& ext);
+const std::wstring getFEN(const std::wstring& pieceChars);
+const std::wstring getPieceChars(const std::wstring& fen);
 }
 
 #endif

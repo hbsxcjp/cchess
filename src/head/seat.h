@@ -29,7 +29,7 @@ public:
     const bool isDiffColor(const std::shared_ptr<Seat>& fseat) const;
 
     void put(const std::shared_ptr<PieceSpace::Piece>& piece = nullptr) { piece_ = piece; } // 置入棋子
-    const std::shared_ptr<PieceSpace::Piece>& to(std::shared_ptr<Seat>& tseat,
+    const std::shared_ptr<PieceSpace::Piece> to(std::shared_ptr<Seat>& tseat,
         const std::shared_ptr<PieceSpace::Piece>& fillPiece = nullptr);
     const std::wstring toString() const;
 

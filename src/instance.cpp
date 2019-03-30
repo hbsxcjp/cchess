@@ -69,7 +69,7 @@ Instance::Instance(const std::string& filename)
     setMoves(fmt);
 }
 
-void Instance::write(const std::string& fname, const RecFormat fmt)// const
+void Instance::write(const std::string& fname, const RecFormat fmt) // const
 {
     std::string filename{ fname + getExtName(fmt) };
     info_[L"Format"] = Tools::s2ws(getExtName(fmt));
@@ -651,13 +651,13 @@ const std::wstring Instance::__moveInfo() const
 
 void Instance::setFEN(const std::wstring& pieceChars)
 {
-    info_[L"FEN"] = board_->getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
+    info_[L"FEN"] = getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
 }
 
 void Instance::setBoard()
 {
     std::wstring rfen{ info_[L"FEN"] };
-    board_->putPieces(rfen.substr(0, rfen.find(L' ')));
+    board_->putPieces(getPieceChars(rfen.substr(0, rfen.find(L' '))));
 }
 
 // （rootMove）调用, 设置树节点的seat or zh'  // C++primer P512
@@ -741,6 +741,38 @@ const RecFormat getRecFormat(const std::string& ext)
         return RecFormat::CC;
 }
 
+const std::wstring getFEN(const std::wstring& pieceChars)
+{
+    //'下划线字符串对应数字字符'
+    std::vector<std::pair<std::wstring, std::wstring>> line_nums{
+        { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
+        { L"______", L"6" }, { L"_____", L"5" }, { L"____", L"4" },
+        { L"___", L"3" }, { L"__", L"2" }, { L"_", L"1" }
+    };
+    std::wstring fen{};
+    for (int i = 81; i >= 0; i -= 9)
+        fen += pieceChars.substr(i, 9) + L"/";
+    fen.erase(fen.size() - 1, 1);
+    std::wstring::size_type pos;
+    for (auto& linenum : line_nums)
+        while ((pos = fen.find(linenum.first)) != std::wstring::npos)
+            fen.replace(pos, linenum.first.size(), linenum.second);
+    return fen;
+}
+
+const std::wstring getPieceChars(const std::wstring& fen)
+{
+    std::wstring pieceChars{};
+    std::wregex sp{ LR"(/)" };
+    for (std::wsregex_token_iterator wti{ fen.begin(), fen.end(), sp, -1 }; wti != std::wsregex_token_iterator{}; ++wti) {
+        std::wstringstream line{};
+        for (const auto& wch : std::wstring{ *wti })
+            line << (isdigit(wch) ? std::wstring(wch - 48, BoardSpace::nullChar) : std::wstring{ wch }); // ASCII: 0:48
+        pieceChars.insert(0, line.str());
+    }
+    return pieceChars;
+}
+
 const std::wstring Instance::toString() const
 {
     std::wstringstream wss{};
@@ -751,7 +783,15 @@ const std::wstring Instance::toString() const
 const std::wstring Instance::test() const
 {
     std::wstringstream wss{};
-    wss << board_->test(); // << toString();
+    for (const auto& fen : { L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR",
+             L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" }) {
+        auto pieceChars = getPieceChars(fen);
+        board_->putPieces(pieceChars);
+        wss << fen << L'\n' << getFEN(pieceChars) << L'\n'
+            << pieceChars << L'\n' << board_->getPieceChars() << L'\n';
+            
+        wss << board_->test() << L'\n';
+    }
     return wss.str();
 }
 }

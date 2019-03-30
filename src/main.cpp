@@ -1,4 +1,5 @@
 #include "board.h"
+#include "tools.h"
 #include "chessInstance.h"
 #include "instance.h"
 #include "move.h"
@@ -7,6 +8,7 @@
 #include <chrono>
 #include <iostream>
 #include <locale>
+//#define NDEBUG
 
 int main(int argc, char const* argv[])
 {
@@ -25,10 +27,11 @@ int main(int argc, char const* argv[])
     //*/
 
     //*
-    auto board = BoardSpace::Board();
-    std::wcout << board.test() << std::endl;
-    //auto instance = InstanceSpace::Instance("01.xqf");
-    //std::wcout << instance.test() << std::endl;
+    //auto board = BoardSpace::Board();
+    //Tools::writeTxt("a.txt", board.test());
+    //std::wcout << board.test() << std::endl;
+    auto instance = InstanceSpace::Instance(); //"01.xqf"
+    Tools::writeTxt("a.txt", instance.test());
     //*/
 
     auto time_d = steady_clock::now() - time0;
