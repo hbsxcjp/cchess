@@ -1,10 +1,9 @@
 #include "board.h"
-#include "tools.h"
 #include "chessInstance.h"
 #include "instance.h"
-#include "move.h"
 #include "piece.h"
 #include "seat.h"
+#include "tools.h"
 #include <chrono>
 #include <iostream>
 #include <locale>
@@ -18,19 +17,19 @@ int main(int argc, char const* argv[])
     std::ios_base::sync_with_stdio(false);
 
     auto time0 = steady_clock::now();
-    /*
+    //*
     if (argc == 7)
-        ChessInstance::testTransDir(stoi(argv[1]), stoi(argv[2]),
-            stoi(argv[3]), stoi(argv[4]), stoi(argv[5]), stoi(argv[6]));
+        ChessInstance::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
+            std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));
     else
         ChessInstance::testTransDir(0, 2, 0, 1, 3, 4);
     //*/
 
-    //*
+    /*
     //auto board = BoardSpace::Board();
     //Tools::writeTxt("a.txt", board.test());
     //std::wcout << board.test() << std::endl;
-    auto instance = InstanceSpace::Instance(); //"01.xqf"
+    auto instance = InstanceSpace::Instance("01.xqf"); //
     Tools::writeTxt("a.txt", instance.test());
     //*/
 

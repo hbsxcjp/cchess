@@ -13,9 +13,7 @@ class Board;
 }
 
 enum class PieceColor { RED,
-    BLACK,
-    BLANK
-};
+    BLACK };
 
 namespace PieceSpace {
 // 棋子类
