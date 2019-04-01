@@ -42,17 +42,7 @@ class Board {
 public:
     Board();
 
-    const std::shared_ptr<SeatSpace::Seat> getSeat(const int row, const int col) const;
-    const std::shared_ptr<SeatSpace::Seat> getSeat(const int rowcol) const;
-    const std::shared_ptr<SeatSpace::Seat> getOthSeat(const std::shared_ptr<SeatSpace::Seat>& seat, const ChangeType ct) const;
     const std::wstring getPieceChars() const;
-    void putPieces(const std::wstring& pieceChars);
-    void changeSide(const ChangeType ct);
-    // '获取棋子可走的位置, 不能被将军'
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(std::shared_ptr<SeatSpace::Seat>& fseat);
-    const bool isKilled(const PieceColor color); //判断是否将军
-    const bool isDied(const PieceColor color); //判断是否被将死
-
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
     getMoveSeat(const std::wstring& ICCSZh, const RecFormat fmt) const;
     const std::wstring getIccs(const std::shared_ptr<SeatSpace::Seat>& fseat,
@@ -60,15 +50,23 @@ public:
     const std::wstring getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
         const std::shared_ptr<SeatSpace::Seat>& tseat) const; // (fseat, tseat)->中文纵线着法, 着法未走状态
 
+    const std::shared_ptr<SeatSpace::Seat> getSeat(const int row, const int col) const;
+    const std::shared_ptr<SeatSpace::Seat> getSeat(const int rowcol) const;
+    const std::shared_ptr<SeatSpace::Seat> getOthSeat(const std::shared_ptr<SeatSpace::Seat>& seat, const ChangeType ct) const;
+    const bool isKilled(const PieceColor color) const; //判断是否将军
+    const bool isDied(const PieceColor color) const; //判断是否被将死
+    // '获取棋子可走的位置, 不能被将军'
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(std::shared_ptr<SeatSpace::Seat>& fseat) const;
     const std::wstring toString() const;
     const std::wstring test();
+
+    void putPieces(const std::wstring& pieceChars);
+    void changeSide(const ChangeType ct);
 
 private:
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>> __getSeatFromIccs(const std::wstring& ICCS) const;
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>> __getSeatFromZh(const std::wstring& Zh) const; // 中文纵线着法->(fseat, tseat), 着法未走状态
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name) const;
-
-    void __setBottomSide();
     const bool __isBottomSide(const PieceColor color) const { return bottomColor == color; }
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats() const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color) const;
@@ -90,6 +88,7 @@ private:
         const std::shared_ptr<SeatSpace::Seat>& fseat) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getPawnMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
 
+    void __setBottomSide();
     PieceColor bottomColor; // 底端棋子颜色
     const std::vector<std::shared_ptr<PieceSpace::Piece>> pieces_; // 一副棋子，固定的32个
     const std::vector<std::shared_ptr<SeatSpace::Seat>> seats_; // 一块棋盘位置容器，固定的90个

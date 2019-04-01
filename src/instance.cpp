@@ -46,10 +46,10 @@ Instance::Instance()
 {
 }
 
-Instance::Instance(const std::string& filename)
-    : Instance()
+void Instance::read(const std::string& filename)
 {
     RecFormat fmt{ getRecFormat(Tools::getExt(filename)) };
+    info_[L"Format"] = Tools::s2ws(getExtName(fmt));
     switch (fmt) {
     case RecFormat::XQF:
         readXQF(filename);
@@ -64,17 +64,16 @@ Instance::Instance(const std::string& filename)
         readPGN(filename, fmt);
         break;
     }
-    std::wcout << L"readFile finished!" << std::endl;
+    //std::wcout << L"readFile finished!" << std::endl;
     setBoard();
-    std::wcout << L"setBoard finished!" << std::endl;
+    //std::wcout << L"setBoard finished!" << std::endl;
     setMoves(fmt);
-    std::wcout << L"setMoves finished!" << std::endl;
+    //std::wcout << L"setMoves finished!" << std::endl;
 }
 
-void Instance::write(const std::string& fname, const RecFormat fmt) // const
+void Instance::write(const std::string& fname, const RecFormat fmt) const
 {
     std::string filename{ fname + getExtName(fmt) };
-    info_[L"Format"] = Tools::s2ws(getExtName(fmt));
     switch (fmt) {
     case RecFormat::BIN:
         writeBIN(filename);
@@ -659,14 +658,14 @@ void Instance::setMoves(const RecFormat fmt)
 #endif
 
         if (fmt != RecFormat::ZH && fmt != RecFormat::CC) {
-            std::wcout << L"getZh() : " << move.fseat_->toString() << L' ' << move.tseat_->toString()
-                << L'\n' << board_->toString() << std::endl;
+            //std::wcout << L"getZh() : " << move.fseat_->toString() << L' ' << move.tseat_->toString();
+            // << L'\n' << board_->toString() << std::endl;
             move.zh_ = board_->getZh(move.fseat_, move.tseat_);
-            std::cout << "getZh() finished! " << std::endl;
+            //std::cout << "getZh() finished! " << std::endl;
         }
         if (fmt != RecFormat::ICCS) { //RecFormat::XQF RecFormat::BIN RecFormat::JSON
             move.iccs_ = board_->getIccs(move.fseat_, move.tseat_);
-            std::cout << "getIccs() finished! " << std::endl;
+            //std::cout << "getIccs() finished! " << std::endl;
         }
 
 #ifndef NDEBUG

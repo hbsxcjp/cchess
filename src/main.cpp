@@ -29,7 +29,8 @@ int main(int argc, char const* argv[])
     //auto board = BoardSpace::Board();
     //Tools::writeTxt("a.txt", board.test());
     //std::wcout << board.test() << std::endl;
-    auto instance = InstanceSpace::Instance("01.xqf"); //
+    InstanceSpace::Instance instance{};
+    instance.read("01.xqf"); //
     Tools::writeTxt("a.txt", instance.test());
     //*/
 

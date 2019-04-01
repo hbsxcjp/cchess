@@ -35,11 +35,18 @@ namespace InstanceSpace {
 class Instance {
 public:
     Instance();
-    Instance(const std::string& filename);
-    void write(const std::string& fname, const RecFormat fmt = RecFormat::CC); // const;
-
+    void write(const std::string& fname, const RecFormat fmt = RecFormat::CC) const;
     const bool isStart() const;
     const bool isLast() const;
+    const int getMovCount() const { return movCount; }
+    const int getRemCount() const { return remCount; }
+    const int getRemLenMax() const { return remLenMax; }
+    const int getMaxRow() const { return maxRow; }
+    const int getMaxCol() const { return maxCol; }
+    const std::wstring toString() const;
+    const std::wstring test() const;
+
+    void read(const std::string& filename);
     void go();
     void back();
     void forwardOther();
@@ -48,16 +55,24 @@ public:
     void moveInc(const int inc);
     void changeSide(const ChangeType ct);
 
-    const int getMovCount() const { return movCount; }
-    const int getRemCount() const { return remCount; }
-    const int getRemLenMax() const { return remLenMax; }
-    const int getMaxRow() const { return maxRow; }
-    const int getMaxCol() const { return maxCol; }
-
-    const std::wstring toString() const;
-    const std::wstring test() const;
-
 private:
+    const std::wstring __moveInfo() const;
+    void writePGN(const std::string& filename, const RecFormat fmt = RecFormat::CC) const;
+    const std::wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH) const;
+    const std::wstring toString_CC() const;
+    void writeBIN(const std::string& filenameconst) const;
+    void writeJSON(const std::string& filenameconst) const;
+
+    void readXQF(const std::string& filename);
+    void readPGN(const std::string& filename, const RecFormat fmt);
+    void readBIN(const std::string& filename);
+    void readJSON(const std::string& filename);
+    void __readICCSZH(const std::wstring& moveStr, const RecFormat fmt);
+    void __readCC(const std::wstring& fullMoveStr);
+    void setFEN(const std::wstring& pieceChars);
+    void setBoard();
+    void setMoves(const RecFormat fmt);
+
     // 着法节点类
     class Move : public std::enable_shared_from_this<Move> {
     public:
@@ -70,6 +85,7 @@ private:
         const std::shared_ptr<Move>& done();
         const std::shared_ptr<Move>& undo();
         std::vector<std::shared_ptr<Move>> getPrevMoves();
+
         const std::wstring toString() const;
 
         std::shared_ptr<SeatSpace::Seat> fseat_{};
@@ -86,24 +102,6 @@ private:
         int o_{ 0 }; // 变着广度
         int CC_Col_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
     };
-
-    void readXQF(const std::string& filename);
-    void readPGN(const std::string& filename, const RecFormat fmt);
-    void readBIN(const std::string& filename);
-    void readJSON(const std::string& filename);
-    void __readICCSZH(const std::wstring& moveStr, const RecFormat fmt);
-    void __readCC(const std::wstring& fullMoveStr);
-
-    const std::wstring __moveInfo() const;
-    void writePGN(const std::string& filename, const RecFormat fmt = RecFormat::CC) const;
-    const std::wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH) const;
-    const std::wstring toString_CC() const;
-    void writeBIN(const std::string& filenameconst) const;
-    void writeJSON(const std::string& filenameconst) const;
-
-    void setFEN(const std::wstring& pieceChars);
-    void setBoard();
-    void setMoves(const RecFormat fmt);
 
     std::map<std::wstring, std::wstring> info_;
     std::shared_ptr<BoardSpace::Board> board_;

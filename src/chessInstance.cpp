@@ -36,7 +36,8 @@ void ChessInstance::transDir(const std::string& dirfrom, const RecFormat fmt)
                         fcount += 1;
 
                         std::cout << filename << std::endl;
-                        InstanceSpace::Instance ci(filename);
+                        InstanceSpace::Instance ci{};
+                        ci.read(filename);
 
                         //ci.write(fileto, fmt);
                         //std::cout << fileto << std::endl;

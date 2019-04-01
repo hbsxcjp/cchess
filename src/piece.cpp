@@ -10,7 +10,7 @@ namespace PieceSpace {
 const std::wstring Piece::toString() const
 {
     std::wstringstream wss{};
-    wss << std::boolalpha << static_cast<int>(color()) << ch() << name();
+    wss << static_cast<int>(color_) << ch_ << name_; //<< std::boolalpha 
     return wss.str();
 }
 
