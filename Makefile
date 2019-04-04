@@ -1,4 +1,4 @@
-objects = obj/tools.o obj/piece.o obj/seat.o obj/board.o obj/instance.o obj/chessInstance.o obj/main.o \
+objects = obj/tools.o obj/piece.o obj/seat.o obj/board.o obj/instance.o obj/main.o \
             obj/jsoncpp.o 
 
 vpath %.h src/head src/json
@@ -10,8 +10,6 @@ a.exe: $(objects)
 
 obj/main.o: main.cpp
 	gcc -c -o obj/main.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/main.cpp
-obj/chessInstance.o: chessInstance.cpp
-	gcc -c -o obj/chessInstance.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/chessInstance.cpp
 obj/instance.o: instance.cpp
 	gcc -c -o obj/instance.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/instance.cpp
 obj/board.o: board.cpp

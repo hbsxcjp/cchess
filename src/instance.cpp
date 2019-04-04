@@ -6,6 +6,7 @@
 #include "tools.h"
 #include <algorithm>
 #include <cmath>
+#include <direct.h>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -113,7 +114,7 @@ void Instance::back()
 }
 
 //'移动到当前节点的另一变着'
-void Instance::forwardOther()
+void Instance::goOther()
 {
     if (currentMove_->other_) {
         currentMove_->undo();
@@ -137,7 +138,7 @@ void Instance::goLast()
         go();
 }
 
-void Instance::moveInc(const int inc)
+void Instance::goInc(const int inc)
 {
     //std::function<void(Instance*)> fbward = inc > 0 ? &Instance::go : &Instance::back;
     auto fbward = std::mem_fn(inc > 0 ? &Instance::go : &Instance::back);
@@ -155,8 +156,9 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     if (ct == ChangeType::EXCHANGE)
         firstColor_ = firstColor_ == PieceColor::RED ? PieceColor::BLACK : PieceColor::RED;
     else {
+        auto getChangeSeat = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotateSeat : &BoardSpace::Board::getSymmetrySeat);
         std::function<void(Move&)> __setSeat = [&](Move& move) {
-            move.setSeats(board_->getOthSeat(move.fseat_, ct), board_->getOthSeat(move.tseat_, ct));
+            move.setSeats(getChangeSeat(this->board_, move.fseat_), getChangeSeat(this->board_, move.tseat_));
             if (move.next_)
                 __setSeat(*move.next_);
             if (move.other_)
@@ -647,9 +649,12 @@ void Instance::setMoves(const RecFormat fmt)
     };
 
     std::function<void(Move&)> __set = [&](Move& move) {
-        if (fmt == RecFormat::ICCS || fmt == RecFormat::ZH || fmt == RecFormat::CC) {
-            move.setSeats(board_->getMoveSeat(fmt == RecFormat::ICCS ? move.iccs_ : move.zh_, fmt));
-            std::cout << "getMoveSeat() finished! " << std::endl;
+        if (fmt == RecFormat::ICCS) {
+            move.setSeats(board_->getMoveSeatFromIccs(move.iccs_));
+            std::cout << "getMoveSeatFromIccs() finished! " << std::endl;
+        } else if (fmt == RecFormat::ZH || fmt == RecFormat::CC) {
+            move.setSeats(board_->getMoveSeatFromZh(move.zh_));
+            std::cout << "getMoveSeatFromZh() finished! " << std::endl;
         }
 
 #ifndef NDEBUG
@@ -696,7 +701,7 @@ void Instance::setMoves(const RecFormat fmt)
         __set(*rootMove_->next_); // 驱动函数
 }
 
-const std::string getExtName(const RecFormat fmt)
+const std::string Instance::getExtName(const RecFormat fmt) const
 {
     switch (fmt) {
     case RecFormat::XQF:
@@ -716,7 +721,7 @@ const std::string getExtName(const RecFormat fmt)
     }
 }
 
-const RecFormat getRecFormat(const std::string& ext)
+const RecFormat Instance::getRecFormat(const std::string& ext) const
 {
     if (ext == ".xqf")
         return RecFormat::XQF;
@@ -734,7 +739,7 @@ const RecFormat getRecFormat(const std::string& ext)
         return RecFormat::CC;
 }
 
-const std::wstring getFEN(const std::wstring& pieceChars)
+const std::wstring Instance::getFEN(const std::wstring& pieceChars) const
 {
     //'下划线字符串对应数字字符'
     std::vector<std::pair<std::wstring, std::wstring>> line_nums{
@@ -753,14 +758,14 @@ const std::wstring getFEN(const std::wstring& pieceChars)
     return fen;
 }
 
-const std::wstring getPieceChars(const std::wstring& fen)
+const std::wstring Instance::getPieceChars(const std::wstring& fen) const
 {
     std::wstring pieceChars{};
     std::wregex sp{ LR"(/)" };
     for (std::wsregex_token_iterator wti{ fen.begin(), fen.end(), sp, -1 }; wti != std::wsregex_token_iterator{}; ++wti) {
         std::wstringstream line{};
         for (const auto& wch : std::wstring{ *wti })
-            line << (isdigit(wch) ? std::wstring(wch - 48, BoardSpace::nullChar) : std::wstring{ wch }); // ASCII: 0:48
+            line << (isdigit(wch) ? std::wstring(wch - 48, board_->getNullChar()) : std::wstring{ wch }); // ASCII: 0:48
         pieceChars.insert(0, line.str());
     }
     return pieceChars;
@@ -835,6 +840,74 @@ const std::wstring Instance::Move::toString() const
     wss << fseat_->toString() << L'>' << tseat_->toString() << L'-' << (eatPie_ ? eatPie_->name() : L' ')
         << iccs_ << L' ' << zh_ << L' ' << n_ << L' ' << o_ << L' ' << CC_Col_ << L' ' << remark_;
     return wss.str();
+}
+
+void transDir(const std::string& dirfrom, const RecFormat fmt)
+{
+    int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
+    std::string extensions{ ".xqf.pgn1.pgn2.pgn3.bin.json" };
+    std::string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + InstanceSpace::getExtName(fmt) };
+    std::function<void(std::string, std::string)> __trans = [&](const std::string& dirfrom, std::string dirto) {
+        long hFile = 0; //文件句柄
+        struct _finddata_t fileinfo; //文件信息
+        if (access(dirto.c_str(), 0) != 0)
+            mkdir(dirto.c_str());
+        if ((hFile = _findfirst((dirfrom + "/*").c_str(), &fileinfo)) != -1) {
+            do {
+                std::string fname{ fileinfo.name };
+                if (fileinfo.attrib & _A_SUBDIR) { //如果是目录,迭代之
+                    if (fname != "." && fname != "..") {
+                        dcount += 1;
+                        __trans(dirfrom + "/" + fname, dirto + "/" + fname);
+                    }
+                } else { //如果是文件,执行转换
+                    std::string filename{ dirfrom + "/" + fname };
+                    std::string fileto{ dirto + "/" + fname.substr(0, fname.rfind('.')) };
+                    std::string ext_old{ Tools::getExt(fname) };
+                    if (extensions.find(ext_old) != std::string::npos) {
+                        fcount += 1;
+
+                        std::cout << filename << std::endl;
+                        InstanceSpace::Instance ci{};
+                        ci.read(filename);
+
+                        //ci.write(fileto, fmt);
+                        //std::cout << fileto << std::endl;
+
+                        movcount += ci.getMovCount();
+                        remcount += ci.getRemCount();
+                        if (remlenmax < ci.getRemLenMax())
+                            remlenmax = ci.getRemLenMax();
+                    } else
+                        Tools::copyFile(filename.c_str(), (fileto + ext_old).c_str());
+                }
+            } while (_findnext(hFile, &fileinfo) == 0);
+            _findclose(hFile);
+        }
+    };
+
+    __trans(dirfrom, dirto);
+    std::cout << dirfrom + " =>" << InstanceSpace::getExtName(fmt) << ": 转换" << fcount << "个文件, "
+              << dcount << "个目录成功！\n   着法数量: "
+              << movcount << ", 注释数量: " << remcount << ", 最大注释长度: " << remlenmax << std::endl;
+}
+
+void testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
+{
+    std::vector<std::string> dirfroms{
+        "c:\\棋谱\\示例文件",
+        "c:\\棋谱\\象棋杀着大全",
+        "c:\\棋谱\\疑难文件",
+        "c:\\棋谱\\中国象棋棋谱大全"
+    };
+    std::vector<RecFormat> fmts{ RecFormat::XQF, RecFormat::ICCS, RecFormat::ZH, RecFormat::CC,
+        RecFormat::BIN, RecFormat::JSON };
+    // 调节三个循环变量的初值、终值，控制转换目录
+    for (int dir = fd; dir != td; ++dir)
+        for (int fIndex = ff; fIndex != ft; ++fIndex)
+            for (int tIndex = tf; tIndex != tt; ++tIndex)
+                if (tIndex != fIndex)
+                    transDir(dirfroms[dir] + InstanceSpace::getExtName(fmts[fIndex]), fmts[tIndex]);
 }
 
 const std::wstring Instance::test() const

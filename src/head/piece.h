@@ -21,10 +21,10 @@ class Piece {
     friend class BoardSpace::Board;
 
 public:
-    explicit Piece(const wchar_t ch, const wchar_t name, const PieceColor color)
+    explicit Piece(const wchar_t ch, const wchar_t name)
         : ch_{ ch }
         , name_{ name }
-        , color_{ color }
+        , color_{ islower(ch) ? PieceColor::BLACK : PieceColor::RED }
     {
     }
     virtual ~Piece() = default;

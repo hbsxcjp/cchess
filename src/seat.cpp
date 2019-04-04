@@ -26,4 +26,9 @@ const std::shared_ptr<PieceSpace::Piece> Seat::to(std::shared_ptr<Seat>& tseat,
     put(fillPiece);
     return eatPiece;
 }
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Seat::__moveSeats(const BoardSpace::Board& board) const
+{
+    piece()->__moveSeats(board, *this);
+}
 }

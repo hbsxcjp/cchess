@@ -35,7 +35,9 @@ namespace InstanceSpace {
 class Instance {
 public:
     Instance();
+
     void write(const std::string& fname, const RecFormat fmt = RecFormat::CC) const;
+
     const bool isStart() const;
     const bool isLast() const;
     const int getMovCount() const { return movCount; }
@@ -49,10 +51,10 @@ public:
     void read(const std::string& filename);
     void go();
     void back();
-    void forwardOther();
+    void goOther();
     void backFirst();
     void goLast();
-    void moveInc(const int inc);
+    void goInc(const int inc);
     void changeSide(const ChangeType ct);
 
 private:
@@ -60,8 +62,8 @@ private:
     void writePGN(const std::string& filename, const RecFormat fmt = RecFormat::CC) const;
     const std::wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH) const;
     const std::wstring toString_CC() const;
-    void writeBIN(const std::string& filenameconst) const;
-    void writeJSON(const std::string& filenameconst) const;
+    void writeBIN(const std::string& filename) const;
+    void writeJSON(const std::string& filename) const;
 
     void readXQF(const std::string& filename);
     void readPGN(const std::string& filename, const RecFormat fmt);
@@ -72,6 +74,11 @@ private:
     void setFEN(const std::wstring& pieceChars);
     void setBoard();
     void setMoves(const RecFormat fmt);
+
+    const std::string getExtName(const RecFormat fmt) const;
+    const RecFormat getRecFormat(const std::string& ext) const;
+    const std::wstring getFEN(const std::wstring& pieceChars) const;
+    const std::wstring getPieceChars(const std::wstring& fen) const;
 
     // 着法节点类
     class Move : public std::enable_shared_from_this<Move> {
@@ -116,10 +123,8 @@ private:
     int maxCol{ 0 }; //# 存储视图最大列数
 };
 
-extern const std::string getExtName(const RecFormat fmt);
-extern const RecFormat getRecFormat(const std::string& ext);
-const std::wstring getFEN(const std::wstring& pieceChars);
-const std::wstring getPieceChars(const std::wstring& fen);
+void transDir(const std::string& dirfrom, const RecFormat fmt);
+void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 }
 
 #endif

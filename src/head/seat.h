@@ -8,17 +8,30 @@ enum class PieceColor;
 
 namespace PieceSpace {
 class Piece;
+class King;
+class Advisor;
+class Bishop;
+class Knight;
+class Rook;
+class Cannon;
+class Pawn;
 }
 
 namespace SeatSpace {
 
 class Seat {
+    friend class PieceSpace::King;
+    friend class PieceSpace::Advisor;
+    friend class PieceSpace::Bishop;
+    friend class PieceSpace::Knight;
+    friend class PieceSpace::Rook;
+    friend class PieceSpace::Cannon;
+    friend class PieceSpace::Pawn;
 
 public:
-    explicit Seat(int row, int col, const std::shared_ptr<PieceSpace::Piece>& piece = nullptr)
+    explicit Seat(int row, int col)
         : row_{ row }
         , col_{ col }
-        , piece_{ piece }
     {
     }
 
@@ -34,9 +47,10 @@ public:
         const std::shared_ptr<PieceSpace::Piece>& fillPiece = nullptr);
 
 private:
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __moveSeats(const BoardSpace::Board& board) const;
     const int row_;
     const int col_;
-    std::shared_ptr<PieceSpace::Piece> piece_;
+    std::shared_ptr<PieceSpace::Piece> piece_{};
 };
 }
 

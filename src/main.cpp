@@ -1,5 +1,4 @@
 #include "board.h"
-#include "chessInstance.h"
 #include "instance.h"
 #include "piece.h"
 #include "seat.h"
@@ -19,10 +18,10 @@ int main(int argc, char const* argv[])
     auto time0 = steady_clock::now();
     //*
     if (argc == 7)
-        ChessInstance::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
+        InstanceSpace::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
             std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));
     else
-        ChessInstance::testTransDir(0, 2, 0, 1, 3, 4);
+        InstanceSpace::testTransDir(0, 2, 0, 1, 3, 4);
     //*/
 
     /*
