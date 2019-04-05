@@ -75,8 +75,6 @@ private:
     void setBoard();
     void setMoves(const RecFormat fmt);
 
-    const std::string getExtName(const RecFormat fmt) const;
-    const RecFormat getRecFormat(const std::string& ext) const;
     const std::wstring getFEN(const std::wstring& pieceChars) const;
     const std::wstring getPieceChars(const std::wstring& fen) const;
 
@@ -123,6 +121,8 @@ private:
     int maxCol{ 0 }; //# 存储视图最大列数
 };
 
+const std::string getExtName(const RecFormat fmt);
+const RecFormat getRecFormat(const std::string& ext);
 void transDir(const std::string& dirfrom, const RecFormat fmt);
 void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 }

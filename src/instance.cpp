@@ -5,6 +5,7 @@
 #include "seat.h"
 #include "tools.h"
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <direct.h>
 #include <fstream>
@@ -65,11 +66,11 @@ void Instance::read(const std::string& filename)
         readPGN(filename, fmt);
         break;
     }
-    //std::wcout << L"readFile finished!" << std::endl;
+    std::wcout << L"readFile finished!" << std::endl;
     setBoard();
-    //std::wcout << L"setBoard finished!" << std::endl;
+    std::wcout << L"setBoard finished!" << std::endl;
     setMoves(fmt);
-    //std::wcout << L"setMoves finished!" << std::endl;
+    std::wcout << L"setMoves finished!" << std::endl;
 }
 
 void Instance::write(const std::string& fname, const RecFormat fmt) const
@@ -224,6 +225,7 @@ void Instance::readXQF(const std::string& filename)
     unsigned char head_KeyXY{ (unsigned char)(headKeyXY[0]) }, head_KeyXYf{ (unsigned char)(headKeyXYf[0]) },
         head_KeyXYt{ (unsigned char)(headKeyXYt[0]) }, head_KeysSum{ (unsigned char)(headKeysSum[0]) };
     unsigned char* head_QiziXY{ (unsigned char*)headQiziXY };
+
     if (Signature[0] != 0x58 || Signature[1] != 0x51)
         std::wcout << Tools::s2ws(Signature) << L" 文件标记不对。Signature != (0x58, 0x51)\n";
     if ((head_KeysSum + head_KeyXY + head_KeyXYf + head_KeyXYt) % 256 != 0)
@@ -291,15 +293,11 @@ void Instance::readXQF(const std::string& filename)
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
         int fcolrow{ __subbyte(data[0], 0X18 + KeyXYf) }, tcolrow{ __subbyte(data[1], 0X20 + KeyXYt) };
-        move.setSeats(board_->getSeat(fcolrow % 10, fcolrow / 10), board_->getSeat(tcolrow % 10, tcolrow / 10));
-        //int frowcol{ fcolrow % 10 * 10 + fcolrow / 10 }, trowcol{ tcolrow % 10 * 10 + tcolrow / 10 }; // 行列转换
-        //move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
 
-        //std::wcout << frowcol << L' ' << trowcol << std::endl;
-        //const std::shared_ptr<Seat>&fseat{ board_->getSeat(frowcol % 10, frowcol / 10) }, &tseat{ board_->getSeat(trowcol % 10, trowcol / 10) };
-        //std::wcout << move.toString() << std::endl;
-        //move.setSeats(fseat, tseat);
-        //move.setSeats(__byteToSeat(data[0], 0X18 + KeyXYf), __byteToSeat(data[1], 0X20 + KeyXYt));
+        if (fcolrow <= 89 && tcolrow <= 89) // col<=8, row<=9
+            move.setSeats(board_->getSeat(fcolrow % 10, fcolrow / 10), board_->getSeat(tcolrow % 10, tcolrow / 10));
+        else // rootMove存在>=90情况
+            move.setSeats(board_->getSeat(0, 0), board_->getSeat(0, 0));
 
         char ChildTag = data[2];
         int RemarkSize = 0;
@@ -630,6 +628,8 @@ const std::wstring Instance::__moveInfo() const
 void Instance::setFEN(const std::wstring& pieceChars)
 {
     info_[L"FEN"] = getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
+    std::wstring rfen{ info_[L"FEN"] };
+    assert(getPieceChars(rfen.substr(0, rfen.find(L' '))) == pieceChars);
 }
 
 void Instance::setBoard()
@@ -649,36 +649,24 @@ void Instance::setMoves(const RecFormat fmt)
     };
 
     std::function<void(Move&)> __set = [&](Move& move) {
-        if (fmt == RecFormat::ICCS) {
+        if (fmt == RecFormat::ICCS)
             move.setSeats(board_->getMoveSeatFromIccs(move.iccs_));
-            std::cout << "getMoveSeatFromIccs() finished! " << std::endl;
-        } else if (fmt == RecFormat::ZH || fmt == RecFormat::CC) {
+        else if (fmt == RecFormat::ZH || fmt == RecFormat::CC)
             move.setSeats(board_->getMoveSeatFromZh(move.zh_));
-            std::cout << "getMoveSeatFromZh() finished! " << std::endl;
-        }
 
+//assert(move.fseat_->piece());
 #ifndef NDEBUG
         if (!move.fseat_->piece())
-            std::cout << "Error! " << __FILE__ << ": in function: " << __func__ << ", at line: " << __LINE__ << std::endl;
+            std::wcout << board_->toString() << move.toString() << std::endl;
 #endif
 
-        if (fmt != RecFormat::ZH && fmt != RecFormat::CC) {
-            //std::wcout << L"getZh() : " << move.fseat_->toString() << L' ' << move.tseat_->toString();
-            // << L'\n' << board_->toString() << std::endl;
+        if (fmt != RecFormat::ZH && fmt != RecFormat::CC)
             move.zh_ = board_->getZh(move.fseat_, move.tseat_);
-            //std::cout << "getZh() finished! " << std::endl;
-        }
-        if (fmt != RecFormat::ICCS) { //RecFormat::XQF RecFormat::BIN RecFormat::JSON
+        if (fmt != RecFormat::ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON
             move.iccs_ = board_->getIccs(move.fseat_, move.tseat_);
-            //std::cout << "getIccs() finished! " << std::endl;
-        }
 
-#ifndef NDEBUG
-        if (move.zh_.size() != 4)
-            std::cout << "Error! " << __FILE__ << ": in function: " << __func__ << ", at line: " << __LINE__ << std::endl;
-        if (move.iccs_.size() != 4)
-            std::cout << "Error! " << __FILE__ << ": in function: " << __func__ << ", at line: " << __LINE__ << std::endl;
-#endif
+        assert(move.zh_.size() == 4);
+        assert(move.iccs_.size() == 4);
 
         ++movCount;
         maxCol = std::max(maxCol, move.o_);
@@ -701,44 +689,6 @@ void Instance::setMoves(const RecFormat fmt)
         __set(*rootMove_->next_); // 驱动函数
 }
 
-const std::string Instance::getExtName(const RecFormat fmt) const
-{
-    switch (fmt) {
-    case RecFormat::XQF:
-        return ".xqf";
-    case RecFormat::BIN:
-        return ".bin";
-    case RecFormat::JSON:
-        return ".json";
-    case RecFormat::ICCS:
-        return ".pgn1";
-    case RecFormat::ZH:
-        return ".pgn2";
-    case RecFormat::CC:
-        return ".pgn3";
-    default:
-        return ".pgn3";
-    }
-}
-
-const RecFormat Instance::getRecFormat(const std::string& ext) const
-{
-    if (ext == ".xqf")
-        return RecFormat::XQF;
-    else if (ext == ".bin")
-        return RecFormat::BIN;
-    else if (ext == ".json")
-        return RecFormat::JSON;
-    else if (ext == ".pgn1")
-        return RecFormat::ICCS;
-    else if (ext == ".pgn2")
-        return RecFormat::ZH;
-    else if (ext == ".pgn3")
-        return RecFormat::CC;
-    else
-        return RecFormat::CC;
-}
-
 const std::wstring Instance::getFEN(const std::wstring& pieceChars) const
 {
     //'下划线字符串对应数字字符'
@@ -755,6 +705,8 @@ const std::wstring Instance::getFEN(const std::wstring& pieceChars) const
     for (auto& linenum : line_nums)
         while ((pos = fen.find(linenum.first)) != std::wstring::npos)
             fen.replace(pos, linenum.first.size(), linenum.second);
+
+    //assert(getPieceChars(fen) == pieceChars);
     return fen;
 }
 
@@ -768,6 +720,8 @@ const std::wstring Instance::getPieceChars(const std::wstring& fen) const
             line << (isdigit(wch) ? std::wstring(wch - 48, board_->getNullChar()) : std::wstring{ wch }); // ASCII: 0:48
         pieceChars.insert(0, line.str());
     }
+
+    assert(fen == getFEN(pieceChars));
     return pieceChars;
 }
 
@@ -842,11 +796,49 @@ const std::wstring Instance::Move::toString() const
     return wss.str();
 }
 
+const std::string getExtName(const RecFormat fmt)
+{
+    switch (fmt) {
+    case RecFormat::XQF:
+        return ".xqf";
+    case RecFormat::BIN:
+        return ".bin";
+    case RecFormat::JSON:
+        return ".json";
+    case RecFormat::ICCS:
+        return ".pgn1";
+    case RecFormat::ZH:
+        return ".pgn2";
+    case RecFormat::CC:
+        return ".pgn3";
+    default:
+        return ".pgn3";
+    }
+}
+
+const RecFormat getRecFormat(const std::string& ext)
+{
+    if (ext == ".xqf")
+        return RecFormat::XQF;
+    else if (ext == ".bin")
+        return RecFormat::BIN;
+    else if (ext == ".json")
+        return RecFormat::JSON;
+    else if (ext == ".pgn1")
+        return RecFormat::ICCS;
+    else if (ext == ".pgn2")
+        return RecFormat::ZH;
+    else if (ext == ".pgn3")
+        return RecFormat::CC;
+    else
+        return RecFormat::CC;
+}
+
 void transDir(const std::string& dirfrom, const RecFormat fmt)
 {
     int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
     std::string extensions{ ".xqf.pgn1.pgn2.pgn3.bin.json" };
-    std::string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + InstanceSpace::getExtName(fmt) };
+    std::string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + getExtName(fmt) };
     std::function<void(std::string, std::string)> __trans = [&](const std::string& dirfrom, std::string dirto) {
         long hFile = 0; //文件句柄
         struct _finddata_t fileinfo; //文件信息
@@ -867,11 +859,11 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
                     if (extensions.find(ext_old) != std::string::npos) {
                         fcount += 1;
 
-                        std::cout << filename << std::endl;
+                        //std::cout << filename << std::endl;
                         InstanceSpace::Instance ci{};
                         ci.read(filename);
 
-                        //ci.write(fileto, fmt);
+                        ci.write(fileto, fmt);
                         //std::cout << fileto << std::endl;
 
                         movcount += ci.getMovCount();
@@ -887,7 +879,7 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
     };
 
     __trans(dirfrom, dirto);
-    std::cout << dirfrom + " =>" << InstanceSpace::getExtName(fmt) << ": 转换" << fcount << "个文件, "
+    std::cout << dirfrom + " =>" << getExtName(fmt) << ": 转换" << fcount << "个文件, "
               << dcount << "个目录成功！\n   着法数量: "
               << movcount << ", 注释数量: " << remcount << ", 最大注释长度: " << remlenmax << std::endl;
 }
@@ -907,7 +899,7 @@ void testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
         for (int fIndex = ff; fIndex != ft; ++fIndex)
             for (int tIndex = tf; tIndex != tt; ++tIndex)
                 if (tIndex != fIndex)
-                    transDir(dirfroms[dir] + InstanceSpace::getExtName(fmts[fIndex]), fmts[tIndex]);
+                    transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
 }
 
 const std::wstring Instance::test() const
