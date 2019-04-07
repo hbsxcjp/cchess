@@ -450,7 +450,7 @@ Board::getMoveSeatFromZh(const std::wstring& zhStr) const
         tseat = getSeat(trow, toCol);
     }
 
-    //assert(zhStr == getZh(fseat, tseat));
+    assert(zhStr == getZh(fseat, tseat));
 
     return make_pair(fseat, tseat);
 }
@@ -484,8 +484,8 @@ const std::wstring Board::getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
 
     //std::wcout << L"wss:" << wss.str() << std::endl;
 
-    assert(fseat == getMoveSeatFromZh(wss.str()).first);
-    assert(tseat == getMoveSeatFromZh(wss.str()).second);
+    //assert(fseat == getMoveSeatFromZh(wss.str()).first);
+    //assert(tseat == getMoveSeatFromZh(wss.str()).second);
     /*
     if (mvSeats.first != fseat || mvSeats.second != tseat) {
         std::wcout << L"fseat:" << fseat->toString() << L" tseat:" << tseat->toString() << wss.str()
@@ -563,6 +563,7 @@ const std::wstring Board::__getSeatsStr(const std::vector<std::shared_ptr<SeatSp
     return wss.str();
 }
 
+const wchar_t Board::nullChar{ L'_' };
 const std::wstring Board::nameChars{ L"帅将仕士相象马车炮兵卒" };
 const std::wstring Board::movChars{ L"退平进" };
 const std::map<PieceColor, std::wstring> Board::numChars{

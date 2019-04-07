@@ -32,11 +32,52 @@ enum class RecFormat {
 
 namespace InstanceSpace {
 
+// 着法节点类
+class Move : public std::enable_shared_from_this<Move> {
+public:
+    const std::shared_ptr<Move>& setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat);
+    const std::shared_ptr<Move>& setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats);
+    void cutNext() { next_ = nullptr; }
+    void cutOther() { other_ && (other_ = other_->other_); }
+    const std::shared_ptr<Move>& addNext();
+    const std::shared_ptr<Move>& addOther();
+    const std::shared_ptr<Move>& done();
+    const std::shared_ptr<Move>& undo();
+    std::vector<std::shared_ptr<Move>> getPrevMoves();
+
+    const std::wstring toString() const;
+
+    //private:
+    std::shared_ptr<SeatSpace::Seat> fseat_{};
+    std::shared_ptr<SeatSpace::Seat> tseat_{};
+    std::shared_ptr<PieceSpace::Piece> eatPie_{};
+    std::shared_ptr<Move> next_{};
+    std::shared_ptr<Move> other_{};
+    std::weak_ptr<Move> prev_{};
+
+    int frowcol_{};
+    int trowcol_{};
+    std::wstring iccs_{}; // 着法数字字母描述
+    std::wstring zh_{}; // 着法中文描述
+    std::wstring remark_{}; // 注释
+    int n_{ 0 }; // 着法深度
+    int o_{ 0 }; // 变着广度
+    int CC_Col_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
+};
+
 class Instance {
 public:
     Instance();
 
-    void write(const std::string& fname, const RecFormat fmt = RecFormat::CC) const;
+    void read(const std::string& infilename);
+    void write(const std::string& outfilename) const;
+    void setFEN(const std::wstring& pieceChars);
+    const std::map<std::wstring, std::wstring>& getInfo() const { return info_; }
+    const std::shared_ptr<Move>& getRootMove() const { return rootMove_; }
+    void setInfo(const std::map<std::wstring, std::wstring>& info) { info_ = info; }
+    void setRootMove(const std::shared_ptr<Move>& rootMove) { rootMove_ = rootMove; }
+    void setBoard();
+    void setMoves(const RecFormat fmt);
 
     const bool isStart() const;
     const bool isLast() const;
@@ -45,10 +86,10 @@ public:
     const int getRemLenMax() const { return remLenMax; }
     const int getMaxRow() const { return maxRow; }
     const int getMaxCol() const { return maxCol; }
+    const std::wstring moveInfo() const;
     const std::wstring toString() const;
     const std::wstring test() const;
 
-    void read(const std::string& filename);
     void go();
     void back();
     void goOther();
@@ -58,7 +99,7 @@ public:
     void changeSide(const ChangeType ct);
 
 private:
-    const std::wstring __moveInfo() const;
+    /*
     void writePGN(const std::string& filename, const RecFormat fmt = RecFormat::CC) const;
     const std::wstring toString_ICCSZH(const RecFormat fmt = RecFormat::ZH) const;
     const std::wstring toString_CC() const;
@@ -71,42 +112,7 @@ private:
     void readJSON(const std::string& filename);
     void __readICCSZH(const std::wstring& moveStr, const RecFormat fmt);
     void __readCC(const std::wstring& fullMoveStr);
-    void setFEN(const std::wstring& pieceChars);
-    void setBoard();
-    void setMoves(const RecFormat fmt);
-
-    const std::wstring getFEN(const std::wstring& pieceChars) const;
-    const std::wstring getPieceChars(const std::wstring& fen) const;
-
-    // 着法节点类
-    class Move : public std::enable_shared_from_this<Move> {
-    public:
-        const std::shared_ptr<Move>& setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat);
-        const std::shared_ptr<Move>& setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats);
-        void cutNext() { next_ = nullptr; }
-        void cutOther() { other_ && (other_ = other_->other_); }
-        const std::shared_ptr<Move>& addNext();
-        const std::shared_ptr<Move>& addOther();
-        const std::shared_ptr<Move>& done();
-        const std::shared_ptr<Move>& undo();
-        std::vector<std::shared_ptr<Move>> getPrevMoves();
-
-        const std::wstring toString() const;
-
-        std::shared_ptr<SeatSpace::Seat> fseat_{};
-        std::shared_ptr<SeatSpace::Seat> tseat_{};
-        std::shared_ptr<PieceSpace::Piece> eatPie_{};
-        std::shared_ptr<Move> next_{};
-        std::shared_ptr<Move> other_{};
-        std::weak_ptr<Move> prev_{};
-
-        std::wstring remark_{}; // 注释
-        std::wstring iccs_{}; // 着法数字字母描述
-        std::wstring zh_{}; // 着法中文描述
-        int n_{ 0 }; // 着法深度
-        int o_{ 0 }; // 变着广度
-        int CC_Col_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
-    };
+    */
 
     std::map<std::wstring, std::wstring> info_;
     std::shared_ptr<BoardSpace::Board> board_;
@@ -121,8 +127,62 @@ private:
     int maxCol{ 0 }; //# 存储视图最大列数
 };
 
+class InstanceRecord {
+public:
+    virtual void write(const std::string& outfilename, const Instance& instance) const = 0;
+    virtual void read(const std::string& infilename, Instance& instance) = 0;
+
+protected:
+    const std::wstring __readInfo_getMoveStr(const std::string& infilename, Instance& instance);
+    void __readMove_ICCSZH(const std::wstring& moveStr, Instance& instance, const RecFormat fmt);
+    void __readMove_CC(const std::wstring& moveStr, Instance& instance);
+    const std::wstring __getPGNInfo(const Instance& instance) const;
+    const std::wstring __getPGNTxt_ICCSZH(const Instance& instance, const RecFormat fmt) const;
+    const std::wstring __getPGNTxt_CC(const Instance& instance) const;
+};
+
+class XQFInstanceRecord : public InstanceRecord {
+public:
+    virtual void write(const std::string& outfilename, const Instance& instance) const;
+    virtual void read(const std::string& infilename, Instance& instance);
+};
+
+class PGN_ICCSInstanceRecord : public InstanceRecord {
+public:
+    virtual void write(const std::string& outfilename, const Instance& instance) const;
+    virtual void read(const std::string& infilename, Instance& instance);
+};
+
+class PGN_ZHInstanceRecord : public InstanceRecord {
+public:
+    virtual void write(const std::string& outfilename, const Instance& instance) const;
+    virtual void read(const std::string& infilename, Instance& instance);
+};
+
+class PGN_CCInstanceRecord : public InstanceRecord {
+public:
+    virtual void write(const std::string& outfilename, const Instance& instance) const;
+    virtual void read(const std::string& infilename, Instance& instance);
+};
+
+class BINInstanceRecord : public InstanceRecord {
+public:
+    virtual void write(const std::string& outfilename, const Instance& instance) const;
+    virtual void read(const std::string& infilename, Instance& instance);
+};
+
+class JSONInstanceRecord : public InstanceRecord {
+public:
+    virtual void write(const std::string& outfilename, const Instance& instance) const;
+    virtual void read(const std::string& infilename, Instance& instance);
+};
+
+std::shared_ptr<InstanceRecord> getInstanceRecord(RecFormat fmt);
 const std::string getExtName(const RecFormat fmt);
 const RecFormat getRecFormat(const std::string& ext);
+const std::wstring getFEN(const std::wstring& pieceChars);
+const std::wstring getPieceChars(const std::wstring& fen);
+
 void transDir(const std::string& dirfrom, const RecFormat fmt);
 void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 }

@@ -43,9 +43,9 @@ class Board {
 public:
     Board();
 
-    const wchar_t getNullChar() const { return nullChar; }
+    static const wchar_t getNullChar() { return nullChar; }
     const std::shared_ptr<SeatSpace::Seat> getSeat(const int row, const int col) const { return seats_.at(row * ColNum + col); }
-    const std::shared_ptr<SeatSpace::Seat> getSeat(const int rowcol) const { return getSeat(rowcol | 0xF0, rowcol | 0x0F); }
+    const std::shared_ptr<SeatSpace::Seat> getSeat(const int rowcol) const { return getSeat((rowcol & 0xF0) >> 4, rowcol & 0x0F); }
     const std::shared_ptr<SeatSpace::Seat> getRotateSeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
     const std::shared_ptr<SeatSpace::Seat> getSymmetrySeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
 
@@ -145,7 +145,7 @@ private:
     const int ColMidLowIndex{ 3 };
     const int ColMidUpIndex{ 5 };
     const int ColUpIndex{ 8 };
-    const wchar_t nullChar{ L'_' };
+    static const wchar_t nullChar;
     static const std::wstring nameChars;
     static const std::wstring movChars;
     static const std::map<PieceColor, std::wstring> numChars;

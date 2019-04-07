@@ -27,7 +27,7 @@ public:
 
     const int row() const { return row_; }
     const int col() const { return col_; }
-    const int rowcolValue() const { return (row_ << 4) & col_; } // 高四位为行，低四位为列
+    const int rowcolValue() const { return row_ << 4 | col_; } // 高四位为行，低四位为列
     const std::shared_ptr<PieceSpace::Piece> piece() const { return piece_; }
     const bool isDiffColor(const std::shared_ptr<Seat>& fseat) const;
     const std::wstring toString() const;
