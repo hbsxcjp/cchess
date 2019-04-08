@@ -19,51 +19,22 @@ namespace BoardSpace {
 class Board;
 }
 
+namespace MoveSpace {
+class Move;
+}
+
 enum class PieceColor;
 enum class ChangeType;
 enum class RecFormat {
     XQF,
-    ICCS,
-    ZH,
-    CC,
+    PGN_ICCS,
+    PGN_ZH,
+    PGN_CC,
     BIN,
     JSON
 };
 
 namespace InstanceSpace {
-
-// 着法节点类
-class Move : public std::enable_shared_from_this<Move> {
-public:
-    const std::shared_ptr<Move>& setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat);
-    const std::shared_ptr<Move>& setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats);
-    void cutNext() { next_ = nullptr; }
-    void cutOther() { other_ && (other_ = other_->other_); }
-    const std::shared_ptr<Move>& addNext();
-    const std::shared_ptr<Move>& addOther();
-    const std::shared_ptr<Move>& done();
-    const std::shared_ptr<Move>& undo();
-    std::vector<std::shared_ptr<Move>> getPrevMoves();
-
-    const std::wstring toString() const;
-
-    //private:
-    std::shared_ptr<SeatSpace::Seat> fseat_{};
-    std::shared_ptr<SeatSpace::Seat> tseat_{};
-    std::shared_ptr<PieceSpace::Piece> eatPie_{};
-    std::shared_ptr<Move> next_{};
-    std::shared_ptr<Move> other_{};
-    std::weak_ptr<Move> prev_{};
-
-    int frowcol_{};
-    int trowcol_{};
-    std::wstring iccs_{}; // 着法数字字母描述
-    std::wstring zh_{}; // 着法中文描述
-    std::wstring remark_{}; // 注释
-    int n_{ 0 }; // 着法深度
-    int o_{ 0 }; // 变着广度
-    int CC_Col_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
-};
 
 class Instance {
 public:
@@ -73,10 +44,10 @@ public:
     void write(const std::string& outfilename) const;
     void setFEN(const std::wstring& pieceChars);
     const std::map<std::wstring, std::wstring>& getInfo() const { return info_; }
-    const std::shared_ptr<Move>& getRootMove() const { return rootMove_; }
+    const std::shared_ptr<MoveSpace::Move>& getRootMove() const { return rootMove_; }
     void setInfo(const std::map<std::wstring, std::wstring>& info) { info_ = info; }
-    void setRootMove(const std::shared_ptr<Move>& rootMove) { rootMove_ = rootMove; }
     void setBoard();
+    //void setRootMove(const std::shared_ptr<MoveSpace::Move>& rootMove) { rootMove_ = rootMove; }
     void setMoves(const RecFormat fmt);
 
     const bool isStart() const;
@@ -86,7 +57,7 @@ public:
     const int getRemLenMax() const { return remLenMax; }
     const int getMaxRow() const { return maxRow; }
     const int getMaxCol() const { return maxCol; }
-    const std::wstring moveInfo() const;
+    //const std::wstring moveInfo() const;
     const std::wstring toString() const;
     const std::wstring test() const;
 
@@ -116,8 +87,8 @@ private:
 
     std::map<std::wstring, std::wstring> info_;
     std::shared_ptr<BoardSpace::Board> board_;
-    std::shared_ptr<Move> rootMove_;
-    std::shared_ptr<Move> currentMove_; // board对应该着已执行的状态
+    std::shared_ptr<MoveSpace::Move> rootMove_;
+    std::shared_ptr<MoveSpace::Move> currentMove_; // board对应该着已执行的状态
     PieceColor firstColor_;
 
     int movCount{ 0 }; //着法数量
@@ -126,7 +97,7 @@ private:
     int maxRow{ 0 }; //# 存储最大着法深度
     int maxCol{ 0 }; //# 存储视图最大列数
 };
-
+/*
 class InstanceRecord {
 public:
     virtual void write(const std::string& outfilename, const Instance& instance) const = 0;
@@ -139,8 +110,10 @@ protected:
     const std::wstring __getPGNInfo(const Instance& instance) const;
     const std::wstring __getPGNTxt_ICCSZH(const Instance& instance, const RecFormat fmt) const;
     const std::wstring __getPGNTxt_CC(const Instance& instance) const;
+    */
 };
 
+/*
 class XQFInstanceRecord : public InstanceRecord {
 public:
     virtual void write(const std::string& outfilename, const Instance& instance) const;
@@ -176,13 +149,11 @@ public:
     virtual void write(const std::string& outfilename, const Instance& instance) const;
     virtual void read(const std::string& infilename, Instance& instance);
 };
+*/
+//std::shared_ptr<InstanceRecord> getInstanceRecord(RecFormat fmt);
 
-std::shared_ptr<InstanceRecord> getInstanceRecord(RecFormat fmt);
 const std::string getExtName(const RecFormat fmt);
 const RecFormat getRecFormat(const std::string& ext);
-const std::wstring getFEN(const std::wstring& pieceChars);
-const std::wstring getPieceChars(const std::wstring& fen);
-
 void transDir(const std::string& dirfrom, const RecFormat fmt);
 void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 }
