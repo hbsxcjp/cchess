@@ -27,6 +27,7 @@ enum class PieceColor;
 enum class ChangeType;
 enum class RecFormat {
     XQF,
+    PGN,
     PGN_ICCS,
     PGN_ZH,
     PGN_CC,
