@@ -1,35 +1,24 @@
 #include "move.h"
 #include "../json/json.h"
+#include "Info.h"
 #include "board.h"
+#include "instance.h"
 #include "piece.h"
 #include "seat.h"
 #include "tools.h"
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
 
 namespace MoveSpace {
-
-void Move::read(const std::string& infilename, RecFormat fmt)
-{
-    RecFormat fmt{ getRecFormat(Tools::getExt(infilename)) };
-    info_[L"Format"] = Tools::s2ws(getExtName(fmt));
-    getMoveRecord(fmt)->read(infilename);
-    std::wcout << L"readFile finished!" << std::endl;
-    setMoves(fmt);
-    std::wcout << L"setMoves finished!" << std::endl;
-}
-
-void Move::write(const std::string& outfilename, RecFormat fmt) const
-{
-    RecFormat fmt{ getRecFormat(Tools::getExt(outfilename)) };
-    getMoveRecord(fmt)->write(outfilename);
-}
 
 const std::shared_ptr<Move>& Move::setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat,
     const std::shared_ptr<SeatSpace::Seat>& tseat)
@@ -93,6 +82,330 @@ const std::wstring Move::toString() const
     wss << fseat_->toString() << L'>' << tseat_->toString() << L'-' << (eatPie_ ? eatPie_->name() : L' ')
         << iccs_ << L' ' << zh_ << L' ' << n_ << L' ' << o_ << L' ' << CC_Col_ << L' ' << remark_;
     return wss.str();
+}
+
+// RootMove
+const std::shared_ptr<RootMove> RootMove::read(std::ifstream& ifs, RecFormat fmt) const
+{
+    rootMove_ = getMoveRecord(fmt)->read(ifs);
+    //setMoves(fmt);
+}
+
+void RootMove::write(std::ofstream& ofs, RecFormat fmt) const
+{
+    getMoveRecord(fmt)->write(ofs, moveRecord_);
+}
+
+std::shared_ptr<MoveRecord>& RootMove::getMoveRecord(RecFormat fmt)
+{
+    if (moveRecord_->is(fmt))
+        return moveRecord_;
+    else {
+        switch (fmt) {
+        case RecFormat::XQF:
+            return moveRecord_ = std::make_shared<XQFMoveRecord>();
+        case RecFormat::BIN:
+            return moveRecord_ = std::make_shared<BINMoveRecord>();
+        case RecFormat::JSON:
+            return moveRecord_ = std::make_shared<JSONMoveRecord>();
+        case RecFormat::PGN_ICCS:
+            return moveRecord_ = std::make_shared<PGN_ICCSMoveRecord>();
+        case RecFormat::PGN_ZH:
+            return moveRecord_ = std::make_shared<PGN_ZHMoveRecord>();
+        case RecFormat::PGN_CC:
+            return moveRecord_ = std::make_shared<PGN_CCMoveRecord>();
+        default:
+            return moveRecord_ = std::make_shared<PGN_ZHMoveRecord>();
+        }
+    }
+}
+
+bool XQFMoveRecord::is(RecFormat fmt) const { return fmt == RecFormat::XQF; }
+
+std::shared_ptr<RootMove> XQFMoveRecord::read(std::ifstream& ifs) const
+{
+    unsigned char data[4]{};
+    std::function<void(Move&)> __read = [&](Move& move) {
+        auto __readbytes = [&](unsigned char* byteStr, int size) {
+            int pos = ifs.tellg();
+            ifs.read(byteStr, size);
+            if (InfoSpace::XQFInfoRecord::version > 10) // '字节串解密'
+                for (int i = 0; i != size; ++i)
+                    byteStr[i] -= InfoSpace::XQFInfoRecord::F32Keys[(pos + i) % 32];
+        };
+        auto __readremarksize = [&]() {
+            __readbytes(data, 4);
+            int size{ *(int*)(unsigned char*)data };
+            return size - InfoSpace::XQFInfoRecord::KeyRMKSize;
+        };
+
+        __readbytes(data, 4);
+        //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
+        unsigned char fcolrow{ data[0] - unsigned char(0X18 + InfoSpace::XQFInfoRecord::KeyXYf) },
+            tcolrow{ data[1] - unsigned char(0X20 + InfoSpace::XQFInfoRecord::KeyXYt) };
+
+        if (fcolrow <= 89 && tcolrow <= 89) { // col<=8, row<=9
+            move.frowcol_ = (fcolrow % 10) << 4 | (fcolrow / 10);
+            move.trowcol_ = (tcolrow % 10) << 4 | (tcolrow / 10);
+        }
+
+        unsigned char ChildTag = data[2];
+        int RemarkSize = 0;
+        if (version <= 0x0A) {
+            unsigned char b = 0;
+            if (ChildTag & 0xF0)
+                b = b | 0x80;
+            if (ChildTag & 0x0F)
+                b = b | 0x40;
+            ChildTag = b;
+            RemarkSize = __readremarksize();
+        } else {
+            ChildTag = ChildTag & 0xE0;
+            if (ChildTag & 0x20)
+                RemarkSize = __readremarksize();
+        }
+        if (RemarkSize > 0) { // # 如果有注解
+            unsigned char rem[RemarkSize + 1]{};
+            __readbytes(rem, RemarkSize);
+            move.remark_ = Tools::s2ws(rem);
+
+            //std::wcout << move.remark_ << std::endl;
+        }
+
+        if (ChildTag & 0x80) //# 有左子树
+            __read(*move.addNext());
+        if (ChildTag & 0x40) // # 有右子树
+            __read(*move.addOther());
+    };
+
+    std::shared_ptr<RootMove> rootMove{};
+    ifs.seekg(1024);
+    __read(*rootMove);
+    return rootMove;
+}
+
+void XQFMoveRecord::write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const {}
+
+std::shared_ptr<RootMove> PGNMoveRecord::read_ICCSZH(std::ifstream& ifs, RecFormat fmt) const
+{
+}
+
+void PGNMoveRecord::write_ICCSZH(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove, RecFormat fmt) const
+{
+}
+
+bool PGN_ICCSMoveRecord::is(RecFormat fmt) const { return fmt == RecFormat::PGN_ICCS; }
+
+std::shared_ptr<RootMove> PGN_ICCSMoveRecord::read(std::ifstream& ifs) const
+{
+    return read_ICCSZH(ifs, RecFormat::PGN_ICCS);
+}
+
+void PGN_ICCSMoveRecord::write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const
+{
+    write_ICCSZH(ofs, rootMove, RecFormat::PGN_ICCS);
+}
+
+bool PGN_ZHMoveRecord::is(RecFormat fmt) const { return fmt == RecFormat::PGN_ZH; }
+
+std::shared_ptr<RootMove> PGN_ZHMoveRecord::read(std::ifstream& ifs) const
+{
+    return read_ICCSZH(ifs, RecFormat::PGN_ZH);
+}
+
+void PGN_ZHMoveRecord::write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const
+{
+    write_ICCSZH(ofs, rootMove, RecFormat::PGN_ZH);
+}
+
+bool PGN_CCMoveRecord::is(RecFormat fmt) const { return fmt == RecFormat::PGN_CC; }
+
+std::shared_ptr<RootMove> PGN_CCMoveRecord::read(std::ifstream& ifs) const
+{
+    std::stringstream ss{};
+    std::string line{};
+    ifs >> std::noskipws;
+    while (ifs >> line) // 以空行为分割，接info read之后
+        ss << line;
+    std::wstring moveStr{ Tools::s2ws(ss.str()) };
+    auto pos = moveStr.find(L"\n(");
+    std::wstring remStr{ pos < moveStr.size() ? moveStr.substr(pos) : L"" };
+    std::wregex spfat{ LR"(\n)" }, mstrfat{ LR"(.{5})" },
+        movefat{ LR"(([^…　]{4}[…　]))" }, remfat{ LR"(\(\s*(\d+,\d+)\): \{([\s\S]*?)\})" };
+    int row{ 0 };
+    std::vector<std::vector<std::wstring>> movv{};
+    for (std::wsregex_token_iterator msp{ moveStr.begin(), moveStr.end(), spfat, -1 }, end{}; msp != end; ++msp)
+        if (row++ % 2 == 0) {
+            std::vector<std::wstring> linev{};
+            for (std::wsregex_token_iterator mp{ (*msp).first, (*msp).second, mstrfat, 0 }; mp != end; ++mp)
+                linev.push_back(*mp);
+            movv.push_back(linev);
+        }
+    std::map<std::wstring, std::wstring> remm{};
+    for (std::wsregex_iterator rp{ remStr.begin(), remStr.end(), remfat }; rp != std::wsregex_iterator{}; ++rp)
+        remm[(*rp)[1]] = (*rp)[2];
+
+    auto __setRem = [&](Move& move, int row, int col) {
+        move.remark_ = remm[std::to_wstring(row) + L',' + std::to_wstring(col)];
+    };
+    std::function<void(Move&, int, int, bool)> __read = [&](Move& move, int row, int col, bool isOther) {
+        std::wstring zh{ movv[row][col] };
+        if (regex_match(zh, movefat)) {
+            auto newMove = isOther ? move.addOther() : move.addNext();
+            newMove->zh_ = zh.substr(0, 4);
+            __setRem(*newMove, row, col);
+            if (zh.back() == L'…')
+                __read(*newMove, row, col + 1, true);
+            if (int(movv.size()) - 1 > row)
+                __read(*newMove, row + 1, col, false);
+        } else if (isOther) {
+            while (movv[row][col][0] == L'…')
+                ++col;
+            __read(move, row, col, true);
+        }
+    };
+
+    std::shared_ptr<RootMove> rootMove{};
+    __setRem(*rootMove, 0, 0);
+    if (!movv.empty())
+        __read(rootMove, 1, 0, false);
+    return rootMove;
+}
+
+void PGN_CCMoveRecord::write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const
+{
+    std::wstringstream remStrs{};
+    std::wstring lstr((instance.getMaxCol() + 1) * 5, L'　');
+    std::vector<std::wstring> lineStr((instance.getMaxRow() + 1) * 2, lstr);
+    std::function<void(const Move&)> __setChar = [&](const Move& move) {
+        int firstcol{ move.CC_Col_ * 5 }, row{ move.n_ * 2 };
+        lineStr.at(row).replace(firstcol, 4, move.zh_);
+        if (!move.remark_.empty())
+            remStrs << L"(" << move.n_ << L"," << move.CC_Col_ << L"): {" << move.remark_ << L"}\n";
+        if (move.next_) {
+            lineStr.at(row + 1).at(firstcol + 2) = L'↓';
+            __setChar(*move.next_);
+        }
+        if (move.other_) {
+            int fcol{ firstcol + 4 }, num{ move.other_->CC_Col_ * 5 - fcol };
+            lineStr.at(row).replace(fcol, num, std::wstring(num, L'…'));
+            __setChar(*move.other_);
+        }
+    };
+
+    __setChar(*rootMove);
+    std::wstringstream wss{};
+    lineStr.front().replace(0, 2, L"开始");
+    for (auto& line : lineStr)
+        wss << line << L'\n';
+    wss << remStrs.str(); // << instance.moveInfo();
+    ofs << wss.str();
+}
+
+bool BINMoveRecord::is(RecFormat fmt) const { return fmt == RecFormat::BIN; }
+
+std::shared_ptr<RootMove> BINMoveRecord::read(std::ifstream& ifs) const
+{
+    std::function<void(Move&)> __read = [&](Move& move) {
+        char frowcol{}, trowcol{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
+        ifs.get(frowcol).get(trowcol).get(tag);
+        move.frowcol_ = frowcol;
+        move.trowcol_ = trowcol;
+        //move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
+        hasNext = tag & 0x80;
+        hasOther = tag & 0x40;
+        hasRemark = tag & 0x08;
+        if (hasRemark) {
+            char len[sizeof(int)]{};
+            ifs.read(len, sizeof(int));
+            int length{ *(int*)len };
+
+            char rem[length + 1]{};
+            ifs.read(rem, length);
+            move.remark_ = Tools::s2ws(rem);
+        }
+        if (hasNext)
+            __read(*move.addNext());
+        if (hasOther)
+            __read(*move.addOther());
+    };
+
+    std::shared_ptr<RootMove> rootMove{};
+    __read(*rootMove);
+    return rootMove;
+}
+
+void BINMoveRecord::write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const
+{
+    std::function<void(const Move&)> __write = [&](const Move& move) {
+        ofs.put(static_cast<char>(move.fseat_->rowcolValue()))
+            .put(static_cast<char>(move.tseat_->rowcolValue()))
+            .put(static_cast<char>((move.next_ ? 0x80 : 0x00) | (move.other_ ? 0x40 : 0x00) | (len > 0 ? 0x08 : 0x00)));
+        std::string remark{ Tools::ws2s(move.remark_) };
+        if (!remark.empty()) {
+            int len = remark.size();
+            ofs.write((char*)&len, sizeof(int)).write(remark.c_str(), len);
+        }
+        if (move.next_)
+            __write(*move.next_);
+        if (move.other_)
+            __write(*move.other_);
+    };
+
+    __write(*rootMove);
+}
+
+bool JSONMoveRecord::is(RecFormat fmt) const { return fmt == RecFormat::JSON; }
+
+std::shared_ptr<RootMove> JSONMoveRecord::read(std::ifstream& ifs) const
+{
+    std::ifstream ifs(infilename);
+    Json::CharReaderBuilder builder;
+    Json::Value root;
+    JSONCPP_STRING errs;
+    if (!parseFromStream(builder, ifs, &root, &errs))
+        return;
+
+    std::function<void(Move&, Json::Value&)> __read = [&](Move& move, Json::Value& item) {
+        int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
+        move.frowcol_ = frowcol;
+        move.trowcol_ = trowcol;
+        //move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
+        if (item.isMember("r"))
+            move.remark_ = Tools::s2ws(item["r"].asString());
+        if (item.isMember("n")) //# 有左子树
+            __read(*move.addNext(), item["n"]);
+        if (item.isMember("o")) // # 有右子树
+            __read(*move.addOther(), item["o"]);
+    };
+
+    Json::Value rootItem{ root["moves"] };
+    std::shared_ptr<RootMove> rootMove{};
+    if (!rootItem.isNull())
+        __read(*rootMove, rootItem);
+    return rootMove;
+}
+
+void JSONMoveRecord::write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const
+{
+    std::function<Json::Value(const Move&)> __writeItem = [&](const Move& move) {
+        Json::Value item{};
+        item["f"] = move.fseat_->rowcolValue();
+        item["t"] = move.tseat_->rowcolValue();
+        if (!move.remark_.empty())
+            item["r"] = Tools::ws2s(move.remark_);
+        if (move.next_)
+            item["n"] = __writeItem(*move.next_);
+        if (move.other_)
+            item["o"] = __writeItem(*move.other_);
+        return std::move(item);
+    };
+
+    Json::Value root;
+    Json::StreamWriterBuilder builder;
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+    root["moves"] = __writeItem(*rootMove);
+    writer->write(root, &ofs);
 }
 
 /*
@@ -601,25 +914,4 @@ void JSONInstanceRecord::write(const std::string& outfilename, const Instance& i
     writer->write(root, &ofs);
 }
 */
-
-std::shared_ptr<MoveRecord> getMoveRecord(RecFormat fmt)
-{
-    switch (fmt) {
-    case RecFormat::XQF:
-        return std::make_shared<XQFMoveRecord>();
-    case RecFormat::ICCS:
-        return std::make_shared<PGN_ICCSMoveRecord>();
-    case RecFormat::ZH:
-        return std::make_shared<PGN_ZHMoveRecord>();
-    case RecFormat::CC:
-        return std::make_shared<PGN_CCMoveRecord>();
-    case RecFormat::BIN:
-        return std::make_shared<BINMoveRecord>();
-    case RecFormat::JSON:
-        return std::make_shared<JSONMoveRecord>();
-    default:
-        return std::make_shared<PGN_ZHMoveRecord>();
-    }
-}
-
 }

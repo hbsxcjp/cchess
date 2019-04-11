@@ -29,10 +29,6 @@ class Move : public std::enable_shared_from_this<Move> {
 public:
     Move() = default;
 
-    const std::shared_ptr<MoveSpace::Move> read(const std::string& infilename, RecFormat fmt);
-    void write(const std::string& outfilename, RecFormat fmt) const;
-    //void setMoves(const RecFormat fmt);
-
     const std::shared_ptr<Move>& setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat);
     const std::shared_ptr<Move>& setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats);
 
@@ -44,7 +40,6 @@ public:
     const std::shared_ptr<Move>& undo();
     std::vector<std::shared_ptr<Move>> getPrevMoves();
 
-    const std::wstring moveInfo() const;
     const std::wstring toString() const;
 
 private:
@@ -65,58 +60,89 @@ private:
     int CC_Col_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
 };
 
+class RootMove : public Move {
+public:
+    using Move::Move;
+    const std::shared_ptr<RootMove> read(std::ifstream& ifs, RecFormat fmt) const;
+    void write(std::ofstream& ofs, RecFormat fmt) const;
+    //void setMoves(RecFormat fmt);
+private:
+    std::shared_ptr<MoveRecord>& getMoveRecord(RecFormat fmt);
+
+    std::shared_ptr<MoveRecord> moveRecord_{};
+    const std::shared_ptr<RootMove> rootMove_{};
+}
+
 class MoveRecord {
 public:
     MoveRecord() = default;
     virtual ~MoveRecord() = default;
 
-    virtual void read(const std::string& infilename) = 0;
-    virtual void write(const std::string& outfilename) const = 0;
+    virtual bool is(RecFormat fmt) const = 0;
+    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const = 0;
+    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const = 0;
 
 protected:
-    const std::wstring __readInfo_getMoveStr(const std::string& infilename);
-    void __readMove_ICCSZH(const std::wstring& moveStr, const RecFormat fmt);
+    const std::wstring __readInfo_getMoveStr(std::ifstream& ifs);
+    void __readMove_ICCSZH(const std::wstring& moveStr, RecFormat fmt);
     void __readMove_CC(const std::wstring& moveStr);
     const std::wstring __getPGNInfo() const;
-    const std::wstring __getPGNTxt_ICCSZH(const RecFormat fmt) const;
+    const std::wstring __getPGNTxt_ICCSZH(RecFormat fmt) const;
     const std::wstring __getPGNTxt_CC() const;
 };
 
 class XQFMoveRecord : public MoveRecord {
 public:
-    virtual void read(const std::string& infilename);
-    virtual void write(const std::string& outfilename) const;
+    using MoveRecord::MoveRecord;
+    virtual bool is(RecFormat fmt) const;
+    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
+    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
 };
 
-class PGN_ICCSMoveRecord : public MoveRecord {
-public:
-    virtual void read(const std::string& infilename);
-    virtual void write(const std::string& outfilename) const;
+class PGNMoveRecord : public MoveRecord {
+protected:
+    using MoveRecord::MoveRecord;
+    std::shared_ptr<RootMove> read_ICCSZH(std::ifstream& ifs, RecFormat fmt) const;
+    void write_ICCSZH(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove, RecFormat fmt) const;
 };
 
-class PGN_ZHMoveRecord : public MoveRecord {
+class PGN_ICCSMoveRecord : public PGNMoveRecord {
 public:
-    virtual void read(const std::string& infilename);
-    virtual void write(const std::string& outfilename) const;
+    using MoveRecord::MoveRecord;
+    virtual bool is(RecFormat fmt) const;
+    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
+    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
+};
+
+class PGN_ZHMoveRecord : public PGNMoveRecord {
+public:
+    using MoveRecord::MoveRecord;
+    virtual bool is(RecFormat fmt) const;
+    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
+    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
 };
 
 class PGN_CCMoveRecord : public MoveRecord {
 public:
-    virtual void read(const std::string& infilename);
-    virtual void write(const std::string& outfilename) const;
+    using MoveRecord::MoveRecord;
+    virtual bool is(RecFormat fmt) const;
+    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
+    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
 };
 
 class BINMoveRecord : public MoveRecord {
 public:
-    virtual void read(const std::string& infilename);
-    virtual void write(const std::string& outfilename) const;
+    using MoveRecord::MoveRecord;
+    virtual bool is(RecFormat fmt) const;
+    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
+    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
 };
 
 class JSONMoveRecord : public MoveRecord {
 public:
-    virtual void read(const std::string& infilename);
-    virtual void write(const std::string& outfilename) const;
+    using MoveRecord::MoveRecord;
+    virtual bool is(RecFormat fmt) const;
+    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
+    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
 };
-
-std::shared_ptr<MoveRecord> getMoveRecord(RecFormat fmt);
 }

@@ -1,15 +1,10 @@
 #include "Info.h"
 #include "../json/json.h"
-#include "board.h"
 #include "instance.h"
-#include "move.h"
-#include "piece.h"
-#include "seat.h"
 #include "tools.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <direct.h>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -23,7 +18,8 @@ namespace InfoSpace {
 
 // Info
 Info::Info()
-    : info_{ { L"Author", L"" },
+    : infoRecord_{ std::make_shared<PGNInfoRecord>() }
+    , info_{ { L"Author", L"" },
         { L"Black", L"" },
         { L"BlackTeam", L"" },
         { L"Date", L"" },
@@ -43,19 +39,17 @@ Info::Info()
         { L"Title", L"" },
         { L"Variation", L"" },
         { L"Version", L"" } }
-    , infoRecord_{ std::make_shared<PGNInfoRecord>() }
 {
 }
 
-void Info::read(std::ifstream& ifs, RecFormat fmt)
+std::map<std::wstring, std::wstring> Info::read(std::ifstream& ifs, RecFormat fmt)
 {
-    info_ = getInfoRecord(fmt)->read(infilename);
-    //std::wcout << L"readFile finished!" << toString() << std::endl;
+    info_ = getInfoRecord(fmt)->read(ifs);
 }
 
 void Info::write(std::ofstream& ofs, RecFormat fmt) const
 {
-    getInfoRecord(fmt)->write(outfilename, info_);
+    getInfoRecord(fmt)->write(ofs, info_);
 }
 
 std::shared_ptr<InfoRecord>& Info::getInfoRecord(RecFormat fmt)
@@ -81,7 +75,7 @@ bool XQFInfoRecord::is(RecFormat fmt) const { return fmt == RecFormat::XQF; }
 std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
 {
     const int pieceNum{ 32 };
-    unsigned char Signature[3], version, headKeyMask, //文件标记'XQ'=$5158/版本/加密掩码/ProductId[4], 产品(厂商的产品号)
+    unsigned char Signature[3], Version_XQF, headKeyMask, //文件标记'XQ'=$5158/版本/加密掩码/ProductId[4], 产品(厂商的产品号)
         headKeyOrA, headKeyOrB, headKeyOrC, headKeyOrD,
         headKeysSum, headKeyXY, headKeyXYf, headKeyXYt, // 加密的钥匙和/棋子布局位置钥匙/棋谱起点钥匙/棋谱终点钥匙
         headQiziXY[pieceNum], // 32个棋子的原始位置
@@ -103,7 +97,7 @@ std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
     };
 
     getChars(Signature, 2);
-    ifs >> version >> headKeyMask >> ProductId // = 8 bytes
+    ifs >> Version_XQF >> headKeyMask >> ProductId // = 8 bytes
         >> headKeyOrA >> headKeyOrB >> headKeyOrC >> headKeyOrD
         >> headKeysSum >> headKeyXY >> headKeyXYf >> headKeyXYt; // = 16 bytes
     getChars(headQiziXY, pieceNum); // = 48 bytes
@@ -118,9 +112,10 @@ std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
 
     assert(Signature[0] == 0x58 || Signature[1] == 0x51);
     assert((headKeysSum + headKeyXY + headKeyXYf + headKeyXYt) % 256 == 0); // L" 检查密码校验和不对，不等于0。\n";
-    assert(version <= 18); // L" 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
+    assert(Version_XQF <= 18); // L" 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
 
     // 计算密钥值，存入类静态变量
+    version = Version_XQF;
     if (version > 10) { // 兼容1.0以前的版本 if(version <= 10) KeyXYf = KeyXYt = KeyRMKSize = 0;
         auto __calkey = [](unsigned char bKey, unsigned char cKey) {
             return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey; // % 256; // 保持为<256
@@ -172,7 +167,7 @@ std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
         { L"FEN", getFEN(pieceChars) } });
 }
 
-void XQFInfoRecord::write(std::ofstream& ofs, std::map<std::wstring, std::wstring>& info) const {} // 不做实现
+void XQFInfoRecord::write(std::ofstream& ofs, const std::map<std::wstring, std::wstring>& info) const {} // 不做实现
 
 bool PGNInfoRecord::is(RecFormat fmt) const
 {
@@ -194,94 +189,45 @@ std::map<std::wstring, std::wstring> PGNInfoRecord::read(std::ifstream& ifs) con
     return info;
 }
 
-void PGNInfoRecord::write(std::ofstream& ofs, std::map<std::wstring, std::wstring>& info) const
+void PGNInfoRecord::write(std::ofstream& ofs, const std::map<std::wstring, std::wstring>& info) const
 {
     std::wstringstream wss{};
-    auto& info = instance.getInfo();
-    for (auto& kv : info)
+    std::for_each(info.begin(), info.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
         wss << L'[' << kv.first << L" \"" << kv.second << L"\"]\n";
-    wss << L'\n';
+    });
+    wss << L'\n'; // 以空行为分割
     ofs << Tools::ws2s(wss.str());
 }
 
 bool BINInfoRecord::is(RecFormat fmt) const { return fmt == RecFormat::BIN; }
 
-void BINInfoRecord::read(std::ifstream& ifs) const
+std::map<std::wstring, std::wstring> BINInfoRecord::read(std::ifstream& ifs) const
 {
-    std::ifstream ifs(infilename, std::ios_base::binary);
-    char size{}, klen{}, vlen{};
+    std::size_t size{};
+    std::string key{}, value{};
     std::map<std::wstring, std::wstring> info{};
-    ifs.get(size);
-    for (int i = 0; i != size; ++i) {
-        ifs.get(klen);
-        char key[klen + 1]{};
-        ifs.read(key, klen);
-        ifs.get(vlen);
-        char value[vlen + 1]{};
-        ifs.read(value, vlen);
+    ifs >> std::noskipws >> size;
+    for (std::size_t i = 0; i < size; ++i) { // 以size为分割
+        std::getline(ifs, key);
+        std::getline(ifs, value);
         info[Tools::s2ws(key)] = Tools::s2ws(value);
     }
-    std::function<void(Move&)> __read = [&](Move& move) {
-        char frowcol{}, trowcol{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
-        ifs.get(frowcol).get(trowcol).get(tag);
-        move.frowcol_ = frowcol;
-        move.trowcol_ = trowcol;
-        //move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
-        hasNext = tag & 0x80;
-        hasOther = tag & 0x40;
-        hasRemark = tag & 0x08;
-        if (hasRemark) {
-            char len[sizeof(int)]{};
-            ifs.read(len, sizeof(int));
-            int length{ *(int*)len };
-
-            char rem[length + 1]{};
-            ifs.read(rem, length);
-            move.remark_ = Tools::s2ws(rem);
-        }
-        if (hasNext)
-            __read(*move.addNext());
-        if (hasOther)
-            __read(*move.addOther());
-    };
-
-    Move rootMove{};
-    __read(rootMove);
-    instance.setInfo(info);
-    instance.setRootMove(std::make_shared<Move>(rootMove));
+    return info;
 }
 
-void BINInfoRecord::write(std::ofstream& ofs, std::map<std::wstring, std::wstring>& info) const
+void BINInfoRecord::write(std::ofstream& ofs, const std::map<std::wstring, std::wstring>& info) const
 {
-    std::ofstream ofs(outfilename, std::ios_base::binary);
-    auto& info = instance.getInfo();
-    ofs.put(char(info.size()));
-    for (auto& kv : info) {
-        std::string key{ Tools::ws2s(kv.first) }, value{ Tools::ws2s(kv.second) };
-        char klen{ char(key.size()) }, vlen{ char(value.size()) };
-        ofs.put(klen).write(key.c_str(), klen).put(vlen).write(value.c_str(), vlen);
-    }
-    std::function<void(const Move&)> __write = [&](const Move& move) {
-        std::string remark{ Tools::ws2s(move.remark_) };
-        int len{ int(remark.size()) };
-        ofs.put(char(move.fseat_->rowcolValue())).put(char(move.tseat_->rowcolValue()));
-        ofs.put(char(move.next_ ? 0x80 : 0x00) | char(move.other_ ? 0x40 : 0x00) | char(len > 0 ? 0x08 : 0x00));
-        if (len > 0)
-            ofs.write((char*)&len, sizeof(int)).write(remark.c_str(), len);
-        if (move.next_)
-            __write(*move.next_);
-        if (move.other_)
-            __write(*move.other_);
-    };
-
-    __write(*instance.getRootMove());
+    std::wstringstream wss{};
+    std::for_each(info.begin(), info.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
+        wss << kv.first << L'\n' << kv.second << L'\n';
+    });
+    ofs << info.size() << Tools::ws2s(wss.str()) << "\n";
 }
 
 bool JSONInfoRecord::is(RecFormat fmt) const { return fmt == RecFormat::JSON; }
 
-void JSONInfoRecord::read(std::ifstream& ifs) const
+std::map<std::wstring, std::wstring> JSONInfoRecord::read(std::ifstream& ifs) const
 {
-    std::ifstream ifs(infilename);
     Json::CharReaderBuilder builder;
     Json::Value root;
     JSONCPP_STRING errs;
@@ -292,54 +238,19 @@ void JSONInfoRecord::read(std::ifstream& ifs) const
     std::map<std::wstring, std::wstring> info{};
     for (auto& key : infoItem.getMemberNames())
         info[Tools::s2ws(key)] = Tools::s2ws(infoItem[key].asString());
-    std::function<void(Move&, Json::Value&)> __read = [&](Move& move, Json::Value& item) {
-        int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
-        move.frowcol_ = frowcol;
-        move.trowcol_ = trowcol;
-        //move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
-        if (item.isMember("r"))
-            move.remark_ = Tools::s2ws(item["r"].asString());
-        if (item.isMember("n")) //# 有左子树
-            __read(*move.addNext(), item["n"]);
-        if (item.isMember("o")) // # 有右子树
-            __read(*move.addOther(), item["o"]);
-    };
-
-    Json::Value rootItem{ root["moves"] };
-    Move rootMove{};
-    if (!rootItem.isNull())
-        __read(rootMove, rootItem);
-    instance.setRootMove(std::make_shared<Move>(rootMove));
+    return info;
 }
 
-void JSONInfoRecord::write(std::ofstream& ofs, std::map<std::wstring, std::wstring>& info) const
+void JSONInfoRecord::write(std::ofstream& ofs, const std::map<std::wstring, std::wstring>& info) const
 {
-    std::ofstream ofs(outfilename);
-    Json::Value root;
+    Json::Value root{}, infoItem{};
     Json::StreamWriterBuilder builder;
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-
-    Json::Value infoItem;
-    auto& info = instance.getInfo();
-    for (auto& kv : info)
+    std::for_each(info.begin(), info.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
         infoItem[Tools::ws2s(kv.first)] = Tools::ws2s(kv.second);
+    });
     root["info"] = infoItem;
-
-    std::function<Json::Value(const Move&)> __writeItem = [&](const Move& move) {
-        Json::Value item{};
-        item["f"] = move.fseat_->rowcolValue();
-        item["t"] = move.tseat_->rowcolValue();
-        if (!move.remark_.empty())
-            item["r"] = Tools::ws2s(move.remark_);
-        if (move.next_)
-            item["n"] = __writeItem(*move.next_);
-        if (move.other_)
-            item["o"] = __writeItem(*move.other_);
-        return std::move(item);
-    };
-
-    root["moves"] = __writeItem(*instance.getRootMove());
-    writer->write(root, &ofs);
+    writer->write(root, &ofs); // 能否与move同步?
 }
 
 const std::wstring getFEN(const std::wstring& pieceChars)

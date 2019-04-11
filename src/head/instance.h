@@ -27,7 +27,6 @@ enum class PieceColor;
 enum class ChangeType;
 enum class RecFormat {
     XQF,
-    PGN,
     PGN_ICCS,
     PGN_ZH,
     PGN_CC,
@@ -58,7 +57,7 @@ public:
     const int getRemLenMax() const { return remLenMax; }
     const int getMaxRow() const { return maxRow; }
     const int getMaxCol() const { return maxCol; }
-    //const std::wstring moveInfo() const;
+    const std::wstring moveInfo() const;
     const std::wstring toString() const;
     const std::wstring test() const;
 
