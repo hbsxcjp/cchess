@@ -27,7 +27,7 @@ Instance::Instance()
     , info_{ std::make_shared<InfoSpace::Info>() }
     , board_{ std::make_shared<BoardSpace::Board>() }
     , rootMove_{ std::make_shared<MoveSpace::RootMove>() }
-    , currentMove_{ rootMove_ }
+    , currentMove_(rootMove_)
 {
 }
 
@@ -43,7 +43,7 @@ void Instance::read(const std::string& infilename)
     std::wcout << L"readFile finished!" << std::endl;
 }
 
-void Instance::write(const std::string& outfilename) const
+void Instance::write(const std::string& outfilename)
 {
     std::ofstream ofs(outfilename);
     format_ = getRecFormat(Tools::getExt(outfilename));
@@ -51,15 +51,15 @@ void Instance::write(const std::string& outfilename) const
     rootMove_->write(ofs, format_);
 }
 
-const bool Instance::isStart() const { return !currentMove_->prev_.lock(); }
+const bool Instance::isStart() const { return !currentMove_->prev(); }
 
-const bool Instance::isLast() const { return !currentMove_->next_; }
+const bool Instance::isLast() const { return !currentMove_->next(); }
 
 // 基本走法
 void Instance::go()
 {
     if (!isLast()) {
-        currentMove_ = currentMove_->next_->done();
+        currentMove_ = currentMove_->next()->done();
     }
 }
 
@@ -67,16 +67,16 @@ void Instance::back()
 {
     if (!isStart()) {
         currentMove_->undo();
-        currentMove_ = currentMove_->prev_.lock();
+        currentMove_ = currentMove_->prev();
     }
 }
 
 //'移动到当前节点的另一变着'
 void Instance::goOther()
 {
-    if (currentMove_->other_) {
+    if (currentMove_->other()) {
         currentMove_->undo();
-        currentMove_ = currentMove_->other_->done();
+        currentMove_ = currentMove_->other()->done();
     }
 }
 
@@ -110,17 +110,17 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     if (ct != ChangeType::EXCHANGE) {
         auto getChangeSeat = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotateSeat : &BoardSpace::Board::getSymmetrySeat);
         std::function<void(MoveSpace::Move&)> __setSeat = [&](MoveSpace::Move& move) {
-            move.setSeats(getChangeSeat(this->board_, move.fseat_), getChangeSeat(this->board_, move.tseat_));
-            if (move.next_)
-                __setSeat(*move.next_);
-            if (move.other_)
-                __setSeat(*move.other_);
+            move.setSeats(getChangeSeat(this->board_, move.fseat()), getChangeSeat(this->board_, move.tseat()));
+            if (move.next())
+                __setSeat(*move.next());
+            if (move.other())
+                __setSeat(*move.other());
         };
-        if (rootMove_->next_)
-            __setSeat(*rootMove_->next_); // 驱动调用递归函数
+        if (rootMove_->next())
+            __setSeat(*rootMove_->next()); // 驱动调用递归函数
     }
 
-    rootMove_->setMoves(format_, board_); //借用RecFormat::BIN
+    rootMove_->setMoves(format_, *board_); //借用RecFormat::BIN
     for (auto& move : curmove->getPrevMoves())
         move->done();
 }
@@ -141,18 +141,18 @@ const std::string getExtName(const RecFormat fmt)
         return ".bin";
     case RecFormat::JSON:
         return ".json";
-    case RecFormat::ICCS:
+    case RecFormat::PGN_ICCS:
         return ".pgn_iccs";
-    case RecFormat::ZH:
+    case RecFormat::PGN_ZH:
         return ".pgn_zh";
-    case RecFormat::CC:
+    case RecFormat::PGN_CC:
         return ".pgn_cc";
     default:
         return ".pgn3";
     }
 }
 
-const RecFormat getRecFormat(const std::string& ext)
+RecFormat getRecFormat(const std::string& ext)
 {
     if (ext == ".xqf")
         return RecFormat::XQF;
@@ -161,13 +161,13 @@ const RecFormat getRecFormat(const std::string& ext)
     else if (ext == ".json")
         return RecFormat::JSON;
     else if (ext == ".pgn_iccs")
-        return RecFormat::ICCS;
+        return RecFormat::PGN_ICCS;
     else if (ext == ".pgn_zh")
-        return RecFormat::ZH;
+        return RecFormat::PGN_ZH;
     else if (ext == ".pgn_cc")
-        return RecFormat::CC;
+        return RecFormat::PGN_CC;
     else
-        return RecFormat::CC;
+        return RecFormat::PGN_CC;
 }
 
 void Instance::transDir(const std::string& dirfrom, const RecFormat fmt)
@@ -241,9 +241,9 @@ const std::wstring Instance::test() const
     std::wstringstream wss{};
     for (const auto& fen : { L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR",
              L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" }) {
-        auto pieceChars = getPieceChars(fen);
+        auto pieceChars = InfoSpace::getPieceChars(fen);
         board_->putPieces(pieceChars);
-        wss << "fen:" << fen << "\nget:" << getFEN(pieceChars)
+        wss << "fen:" << fen << "\nget:" << InfoSpace::getFEN(pieceChars)
             << "\ngetChars:" << pieceChars << "\nboardGet:" << board_->getPieceChars() << L'\n';
 
         wss << L'\n' << board_->test() << L'\n';

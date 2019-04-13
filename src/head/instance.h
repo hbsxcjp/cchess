@@ -46,7 +46,7 @@ public:
     Instance();
 
     void read(const std::string& infilename);
-    void write(const std::string& outfilename) const;
+    void write(const std::string& outfilename);
 
     const bool isStart() const;
     const bool isLast() const;
@@ -70,7 +70,7 @@ private:
 };
 
 const std::string getExtName(const RecFormat fmt);
-const RecFormat getRecFormat(const std::string& ext);
+RecFormat getRecFormat(const std::string& ext);
 void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 }
 

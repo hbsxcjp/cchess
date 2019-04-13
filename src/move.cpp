@@ -1,6 +1,6 @@
 #include "move.h"
 #include "../json/json.h"
-#include "Info.h"
+#include "info.h"
 #include "board.h"
 #include "instance.h"
 #include "piece.h"
@@ -37,18 +37,18 @@ const std::shared_ptr<Move>& Move::setSeats(const std::pair<const std::shared_pt
 const std::shared_ptr<Move>& Move::addNext()
 {
     auto next = std::make_shared<Move>();
-    next->n_ = n_ + 1; // 步序号
-    next->o_ = o_; // 变着层数
-    next->prev_ = std::weak_ptr<Move>(shared_from_this());
+    next->setNextNo(nextNo_ + 1); // 步序号
+    next->setOtherNo(otherNo_); // 变着层数
+    next->setPrev(std::weak_ptr<Move>(shared_from_this()));
     return next_ = next;
 }
 
 const std::shared_ptr<Move>& Move::addOther()
 {
     auto other = std::make_shared<Move>();
-    other->n_ = n_; // 与premove的步数相同
-    other->o_ = o_ + 1; // 变着层数
-    other->prev_ = std::weak_ptr<Move>(shared_from_this());
+    other->setNextNo(nextNo_); // 与premove的步数相同
+    other->setOtherNo(otherNo_ + 1); // 变着层数
+    other->setPrev(std::weak_ptr<Move>(shared_from_this()));
     return other_ = other;
 }
 
@@ -56,7 +56,7 @@ std::vector<std::shared_ptr<Move>> Move::getPrevMoves()
 {
     std::shared_ptr<Move> this_move{ shared_from_this() }, prev_move{};
     std::vector<std::shared_ptr<Move>> moves{ this_move };
-    while ((prev_move = this_move->prev_.lock()) && prev_move->prev_.lock()) { // 排除rootMove
+    while ((prev_move = this_move->prev()) && prev_move->prev()) { // 排除rootMove
         moves.push_back(prev_move);
         this_move = prev_move;
     }
@@ -73,14 +73,14 @@ const std::shared_ptr<Move>& Move::done()
 const std::shared_ptr<Move>& Move::undo()
 {
     tseat_->to(fseat_, eatPie_);
-    return std::move(prev_.lock());
+    return std::move(prev());
 }
 
 const std::wstring Move::toString() const
 {
     std::wstringstream wss{};
-    wss << fseat_->toString() << L'>' << tseat_->toString() << L'-' << (eatPie_ ? eatPie_->name() : L' ')
-        << iccs_ << L' ' << zh_ << L' ' << n_ << L' ' << o_ << L' ' << CC_Col_ << L' ' << remark_;
+    wss << fseat()->toString() << L'>' << tseat()->toString() << L'-' << (eatPie() ? eatPie()->name() : L' ')
+        << iccs() << L' ' << zh() << L' ' << nextNo() << L' ' << otherNo() << L' ' << CC_ColNo() << L' ' << remark();
     return wss.str();
 }
 
@@ -115,22 +115,22 @@ void RootMove::write(std::ofstream& ofs, RecFormat fmt) const
 {
     switch (fmt) {
     case RecFormat::XQF:
-        writeXQF(ifs);
+        writeXQF(ofs);
         break;
     case RecFormat::PGN_ICCS:
-        writePGN_ICCSZH(ifs, RecFormat::PGN_ICCS);
+        writePGN_ICCSZH(ofs, RecFormat::PGN_ICCS);
         break;
     case RecFormat::PGN_ZH:
-        writePGN_ICCSZH(ifs, RecFormat::PGN_ZH);
+        writePGN_ICCSZH(ofs, RecFormat::PGN_ZH);
         break;
     case RecFormat::PGN_CC:
-        writePGN_CC(ifs);
+        writePGN_CC(ofs);
         break;
     case RecFormat::BIN:
-        writeBIN(ifs);
+        writeBIN(ofs);
         break;
     case RecFormat::JSON:
-        writeJSON(ifs);
+        writeJSON(ofs);
         break;
     default:
         break;
@@ -141,53 +141,53 @@ void RootMove::write(std::ofstream& ofs, RecFormat fmt) const
 void RootMove::setMoves(RecFormat fmt, const BoardSpace::Board& board)
 {
     std::function<void(Move&)> __setRemData = [&](const Move& move) {
-        if (!move.remark_.empty()) {
+        if (!move.remark().empty()) {
             ++remCount;
-            remLenMax = std::max(remLenMax, static_cast<int>(move.remark_.size()));
+            remLenMax = std::max(remLenMax, static_cast<int>(move.remark().size()));
         }
     };
 
     std::function<void(Move&)> __set = [&](Move& move) {
-        if (fmt == RecFormat::ICCS)
-            move.setSeats(board.getMoveSeatFromIccs(move.iccs_));
-        else if (fmt == RecFormat::ZH || fmt == RecFormat::CC)
-            move.setSeats(board.getMoveSeatFromZh(move.zh_));
+        if (fmt == RecFormat::PGN_ICCS)
+            move.setSeats(board.getMoveSeatFromIccs(move.iccs()));
+        else if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC)
+            move.setSeats(board.getMoveSeatFromZh(move.zh()));
         else {
-            move.setSeats(board.getSeat(move.frowcol_), board.getSeat(move.trowcol_));
+            move.setSeats(board.getSeat(move.frowcol()), board.getSeat(move.trowcol()));
         }
-//assert(move.fseat_->piece());
+//assert(move.fseat()->piece());
 #ifndef NDEBUG
-        if (!move.fseat_->piece())
+        if (!move.fseat()->piece())
             std::wcout << board.toString() << move.toString() << std::endl;
 #endif
 
-        if (fmt != RecFormat::ZH && fmt != RecFormat::CC)
-            move.zh_ = board.getZh(move.fseat_, move.tseat_);
-        if (fmt != RecFormat::ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON
-            move.iccs_ = board.getIccs(move.fseat_, move.tseat_);
+        if (fmt != RecFormat::PGN_ZH && fmt != RecFormat::PGN_CC)
+            move.setZh(board.getZh(move.fseat(), move.tseat()));
+        if (fmt != RecFormat::PGN_ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON
+            move.setIccs(board.getIccs(move.fseat(), move.tseat()));
 
-        assert(move.zh_.size() == 4);
-        assert(move.iccs_.size() == 4);
+        assert(move.zh().size() == 4);
+        assert(move.iccs().size() == 4);
 
         ++movCount;
-        maxCol = std::max(maxCol, move.o_);
-        maxRow = std::max(maxRow, move.n_);
-        move.CC_Col_ = maxCol; // # 本着在视图中的列数
+        maxCol = std::max(maxCol, move.otherNo());
+        maxRow = std::max(maxRow, move.nextNo());
+        move.setCC_ColNo(maxCol); // # 本着在视图中的列数
         __setRemData(move);
 
         move.done();
-        if (move.next_)
-            __set(*move.next_);
+        if (move.next())
+            __set(*move.next());
         move.undo();
-        if (move.other_) {
+        if (move.other()) {
             ++maxCol;
-            __set(*move.other_);
+            __set(*move.other());
         }
     };
 
     __setRemData(*this);
-    if (*this->next_)
-        __set(*this->next_); // 驱动函数
+    if (this->next())
+        __set(*this->next()); // 驱动函数
 }
 
 const std::wstring RootMove::moveInfo() const
@@ -198,36 +198,37 @@ const std::wstring RootMove::moveInfo() const
     return wss.str();
 }
 
+
 void RootMove::readXQF(std::ifstream& ifs)
 {
-    unsigned char data[4]{};
+    char data[4]{};
     std::function<void(Move&)> __read = [&](Move& move) {
-        auto __readbytes = [&](unsigned char* byteStr, int size) {
+        auto __readbytes = [&](char* byteStr, int size) {
             int pos = ifs.tellg();
             ifs.read(byteStr, size);
-            if (InfoSpace::version > 10) // '字节串解密'
+            if (InfoSpace::key.version > 10) // '字节串解密'
                 for (int i = 0; i != size; ++i)
-                    byteStr[i] -= static_cast<unsigned char>(InfoSpace::F32Keys[(pos + i) % 32]);
+                    byteStr[i] = static_cast<unsigned char>(byteStr[i]) - static_cast<unsigned char>(InfoSpace::key.F32Keys[(pos + i) % 32]);
         };
         auto __readremarksize = [&]() {
             __readbytes(data, 4);
             int size{ *(int*)(unsigned char*)data };
-            return size - InfoSpace::KeyRMKSize;
+            return size - InfoSpace::key.KeyRMKSize;
         };
 
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
-        unsigned char fcolrow{ data[0] - unsigned char(0X18 + InfoSpace::KeyXYf) },
-            tcolrow{ data[1] - unsigned char(0X20 + InfoSpace::KeyXYt) };
+        unsigned char fcolrow = static_cast<unsigned char>(data[0]) - static_cast<unsigned char>(0X18 + InfoSpace::key.KeyXYf),
+                      tcolrow = static_cast<unsigned char>(data[1]) - static_cast<unsigned char>(0X20 + InfoSpace::key.KeyXYt);
 
         if (fcolrow <= 89 && tcolrow <= 89) { // col<=8, row<=9
-            move.frowcol_ = (fcolrow % 10) << 4 | (fcolrow / 10);
-            move.trowcol_ = (tcolrow % 10) << 4 | (tcolrow / 10);
+            move.setFrowcol((fcolrow % 10) << 4 | (fcolrow / 10));
+            move.setTrowcol((tcolrow % 10) << 4 | (tcolrow / 10));
         }
 
         unsigned char ChildTag = data[2];
         int RemarkSize = 0;
-        if (version <= 0x0A) {
+        if (InfoSpace::key.version <= 0x0A) {
             unsigned char b = 0;
             if (ChildTag & 0xF0)
                 b = b | 0x80;
@@ -241,11 +242,11 @@ void RootMove::readXQF(std::ifstream& ifs)
                 RemarkSize = __readremarksize();
         }
         if (RemarkSize > 0) { // # 如果有注解
-            unsigned char rem[RemarkSize + 1]{};
+            char rem[RemarkSize + 1]{};
             __readbytes(rem, RemarkSize);
-            move.remark_ = Tools::s2ws(rem);
+            move.setRemark(Tools::s2ws(rem));
 
-            //std::wcout << move.remark_ << std::endl;
+            //std::wcout << move.remark() << std::endl;
         }
 
         if (ChildTag & 0x80) //# 有左子树
@@ -274,8 +275,8 @@ void RootMove::readPGN_ICCSZH(std::ifstream& ifs, RecFormat fmt)
 {
     const std::wstring moveStr{ getMoveStr(ifs) };
     std::wstring preStr{ LR"((?:\d+\.)?\s*\b([)" };
-    std::wstring mvStr{ fmt == RecFormat::ZH ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
-                                             : LR"(abcdefghi\d)" };
+    std::wstring mvStr{ fmt == RecFormat::PGN_ZH ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
+                                                 : LR"(abcdefghi\d)" };
     //# 走棋信息 (?:pattern)匹配pattern,但不获取匹配结果;  注解[\s\S]*?: 非贪婪
     std::wstring lastStr{ LR"(]{4}\b)(?:\s+\{([\s\S]*?)\})?)" };
     std::wregex moveReg{ preStr + mvStr + lastStr };
@@ -284,8 +285,8 @@ void RootMove::readPGN_ICCSZH(std::ifstream& ifs, RecFormat fmt)
         for (std::wsregex_iterator p(mvstr.begin(), mvstr.end(), moveReg);
              p != std::wsregex_iterator{}; ++p) {
             auto newMove = isOther ? move->addOther() : move->addNext();
-            fmt == RecFormat::ZH ? (newMove->zh_ = (*p)[1]) : (newMove->iccs_ = (*p)[1]);
-            newMove->remark_ = (*p)[2];
+            fmt == RecFormat::PGN_ZH ? (newMove->setZh((*p)[1])) : (newMove->setIccs((*p)[1]));
+            newMove->setRemark((*p)[2]);
             isOther = false; // # 仅第一步可为other，后续全为next
             move = newMove;
         }
@@ -298,7 +299,7 @@ void RootMove::readPGN_ICCSZH(std::ifstream& ifs, RecFormat fmt)
     std::wsregex_token_iterator wtleft{ moveStr.begin(), moveStr.end(), spleft, -1 }, end{};
     std::wsmatch wsm;
     if (regex_search((*wtleft).first, (*wtleft).second, wsm, rempat))
-        rootMove->remark_ = wsm.str(1);
+        this->setRemark(wsm.str(1));
     bool isOther{ false }; // 首次非变着
     for (; wtleft != end; ++wtleft) {
         //std::wcout << *wtleft << L"\n---------------------------------------------\n" << std::endl;
@@ -319,28 +320,28 @@ void RootMove::writePGN_ICCSZH(std::ofstream& ofs, RecFormat fmt) const
 {
     std::wstringstream wss{};
     std::function<void(const Move&)> __remark = [&](const Move& move) {
-        if (!move.remark_.empty())
-            wss << (L"\n{" + move.remark_ + L"}\n");
+        if (!move.remark().empty())
+            wss << (L"\n{" + move.remark() + L"}\n");
     };
 
     std::function<void(const Move&, bool)> __moveStr = [&](const Move& move, bool isOther) {
-        std::wstring boutNum{ std::to_wstring((move.n_ + 1) / 2) };
-        bool isEven{ move.n_ % 2 == 0 };
+        std::wstring boutNum{ std::to_wstring((move.nextNo() + 1) / 2) };
+        bool isEven{ move.nextNo() % 2 == 0 };
         wss << (isOther ? L"(" + boutNum + L". " + (isEven ? L"... " : L"") : (isEven ? L" " : boutNum + L". "))
-            << (fmt == RecFormat::ZH ? move.zh_ : move.iccs_) << L' ';
+            << (fmt == RecFormat::PGN_ZH ? move.zh() : move.iccs()) << L' ';
         __remark(move);
-        if (move.other_) {
-            __moveStr(*move.other_, true);
+        if (move.other()) {
+            __moveStr(*move.other(), true);
             wss << L") ";
         }
-        if (move.next_)
-            __moveStr(*move.next_, false);
+        if (move.next())
+            __moveStr(*move.next(), false);
     };
 
     __remark(*this);
-    if (this->next_)
-        __moveStr(*this->next_, false);
-    ofs << wss.str();
+    if (this->next())
+        __moveStr(*this->next(), false);
+    ofs << Tools::ws2s(wss.str());
 }
 
 void RootMove::readPGN_CC(std::ifstream& ifs)
@@ -364,13 +365,13 @@ void RootMove::readPGN_CC(std::ifstream& ifs)
         remm[(*rp)[1]] = (*rp)[2];
 
     auto __setRem = [&](Move& move, int row, int col) {
-        move.remark_ = remm[std::to_wstring(row) + L',' + std::to_wstring(col)];
+        move.setRemark(remm[std::to_wstring(row) + L',' + std::to_wstring(col)]);
     };
     std::function<void(Move&, int, int, bool)> __read = [&](Move& move, int row, int col, bool isOther) {
         std::wstring zh{ movv[row][col] };
         if (regex_match(zh, movefat)) {
             auto newMove = isOther ? move.addOther() : move.addNext();
-            newMove->zh_ = zh.substr(0, 4);
+            newMove->setZh(zh.substr(0, 4));
             __setRem(*newMove, row, col);
             if (zh.back() == L'…')
                 __read(*newMove, row, col + 1, true);
@@ -391,21 +392,21 @@ void RootMove::readPGN_CC(std::ifstream& ifs)
 void RootMove::writePGN_CC(std::ofstream& ofs) const
 {
     std::wstringstream remStrs{};
-    std::wstring lstr((instance.getMaxCol() + 1) * 5, L'　');
-    std::vector<std::wstring> lineStr((instance.getMaxRow() + 1) * 2, lstr);
+    std::wstring lstr((getMaxCol() + 1) * 5, L'　');
+    std::vector<std::wstring> lineStr((getMaxRow() + 1) * 2, lstr);
     std::function<void(const Move&)> __setChar = [&](const Move& move) {
-        int firstcol{ move.CC_Col_ * 5 }, row{ move.n_ * 2 };
-        lineStr.at(row).replace(firstcol, 4, move.zh_);
-        if (!move.remark_.empty())
-            remStrs << L"(" << move.n_ << L"," << move.CC_Col_ << L"): {" << move.remark_ << L"}\n";
-        if (move.next_) {
+        int firstcol{ move.CC_ColNo() * 5 }, row{ move.nextNo() * 2 };
+        lineStr.at(row).replace(firstcol, 4, move.zh());
+        if (!move.remark().empty())
+            remStrs << L"(" << move.nextNo() << L"," << move.CC_ColNo() << L"): {" << move.remark() << L"}\n";
+        if (move.next()) {
             lineStr.at(row + 1).at(firstcol + 2) = L'↓';
-            __setChar(*move.next_);
+            __setChar(*move.next());
         }
-        if (move.other_) {
-            int fcol{ firstcol + 4 }, num{ move.other_->CC_Col_ * 5 - fcol };
+        if (move.other()) {
+            int fcol{ firstcol + 4 }, num{ move.other()->CC_ColNo() * 5 - fcol };
             lineStr.at(row).replace(fcol, num, std::wstring(num, L'…'));
-            __setChar(*move.other_);
+            __setChar(*move.other());
         }
     };
 
@@ -414,8 +415,8 @@ void RootMove::writePGN_CC(std::ofstream& ofs) const
     lineStr.front().replace(0, 2, L"开始");
     for (auto& line : lineStr)
         wss << line << L'\n';
-    wss << remStrs.str(); // << instance.moveInfo();
-    ofs << wss.str();
+    wss << remStrs.str(); // << moveInfo();
+    ofs << Tools::ws2s(wss.str());
 }
 
 void RootMove::readBIN(std::ifstream& ifs)
@@ -423,8 +424,8 @@ void RootMove::readBIN(std::ifstream& ifs)
     std::function<void(Move&)> __read = [&](Move& move) {
         char frowcol{}, trowcol{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
         ifs.get(frowcol).get(trowcol).get(tag);
-        move.frowcol_ = frowcol;
-        move.trowcol_ = trowcol;
+        move.setFrowcol(frowcol);
+        move.setTrowcol(trowcol);
         //move.setSeats(board.getSeat(frowcol), board.getSeat(trowcol));
         hasNext = tag & 0x80;
         hasOther = tag & 0x40;
@@ -436,7 +437,7 @@ void RootMove::readBIN(std::ifstream& ifs)
 
             char rem[length + 1]{};
             ifs.read(rem, length);
-            move.remark_ = Tools::s2ws(rem);
+            move.setRemark(Tools::s2ws(rem));
         }
         if (hasNext)
             __read(*move.addNext());
@@ -450,18 +451,18 @@ void RootMove::readBIN(std::ifstream& ifs)
 void RootMove::writeBIN(std::ofstream& ofs) const
 {
     std::function<void(const Move&)> __write = [&](const Move& move) {
-        ofs.put(static_cast<char>(move.fseat_->rowcolValue()))
-            .put(static_cast<char>(move.tseat_->rowcolValue()))
-            .put(static_cast<char>((move.next_ ? 0x80 : 0x00) | (move.other_ ? 0x40 : 0x00) | (len > 0 ? 0x08 : 0x00)));
-        std::string remark{ Tools::ws2s(move.remark_) };
+        std::string remark{ Tools::ws2s(move.remark()) };
+        ofs.put(static_cast<char>(move.fseat()->rowcolValue()))
+            .put(static_cast<char>(move.tseat()->rowcolValue()))
+            .put(static_cast<char>((move.next() ? 0x80 : 0x00) | (move.other() ? 0x40 : 0x00) | (remark.empty() ? 0x00 : 0x08)));
         if (!remark.empty()) {
             int len = remark.size();
             ofs.write((char*)&len, sizeof(int)).write(remark.c_str(), len);
         }
-        if (move.next_)
-            __write(*move.next_);
-        if (move.other_)
-            __write(*move.other_);
+        if (move.next())
+            __write(*move.next());
+        if (move.other())
+            __write(*move.other());
     };
 
     __write(*this);
@@ -469,7 +470,6 @@ void RootMove::writeBIN(std::ofstream& ofs) const
 
 void RootMove::readJSON(std::ifstream& ifs)
 {
-    std::ifstream ifs(infilename);
     Json::CharReaderBuilder builder;
     Json::Value root;
     JSONCPP_STRING errs;
@@ -478,11 +478,11 @@ void RootMove::readJSON(std::ifstream& ifs)
 
     std::function<void(Move&, Json::Value&)> __read = [&](Move& move, Json::Value& item) {
         int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
-        move.frowcol_ = frowcol;
-        move.trowcol_ = trowcol;
+        move.setFrowcol(frowcol);
+        move.setTrowcol(trowcol);
         //move.setSeats(board.getSeat(frowcol), board.getSeat(trowcol));
         if (item.isMember("r"))
-            move.remark_ = Tools::s2ws(item["r"].asString());
+            move.setRemark(Tools::s2ws(item["r"].asString()));
         if (item.isMember("n")) //# 有左子树
             __read(*move.addNext(), item["n"]);
         if (item.isMember("o")) // # 有右子树
@@ -498,14 +498,14 @@ void RootMove::writeJSON(std::ofstream& ofs) const
 {
     std::function<Json::Value(const Move&)> __writeItem = [&](const Move& move) {
         Json::Value item{};
-        item["f"] = move.fseat_->rowcolValue();
-        item["t"] = move.tseat_->rowcolValue();
-        if (!move.remark_.empty())
-            item["r"] = Tools::ws2s(move.remark_);
-        if (move.next_)
-            item["n"] = __writeItem(*move.next_);
-        if (move.other_)
-            item["o"] = __writeItem(*move.other_);
+        item["f"] = move.fseat()->rowcolValue();
+        item["t"] = move.tseat()->rowcolValue();
+        if (!move.remark().empty())
+            item["r"] = Tools::ws2s(move.remark());
+        if (move.next())
+            item["n"] = __writeItem(*move.next());
+        if (move.other())
+            item["o"] = __writeItem(*move.other());
         return std::move(item);
     };
 
@@ -677,8 +677,8 @@ void XQFInstanceRecord::read(const std::string& infilename, Instance& instance)
 
     Move rootMove{};
     __read(rootMove);
-    instance.setInfo(info);
-    instance.setRootMove(std::make_shared<Move>(rootMove));
+    setInfo(info);
+    setRootMove(std::make_shared<Move>(rootMove));
 }
 
 void XQFInstanceRecord::write(const std::string& outfilename, const Instance& instance) const
@@ -687,12 +687,12 @@ void XQFInstanceRecord::write(const std::string& outfilename, const Instance& in
 
 void PGN_ICCSInstanceRecord::read(const std::string& infilename, Instance& instance)
 {
-    __readMove_ICCSZH(__readInfo_getMoveStr(infilename, instance), instance, RecFormat::ICCS);
+    __readMove_ICCSZH(__readInfo_getMoveStr(infilename, instance), instance, RecFormat::PGN_ICCS);
 }
 
 void PGN_ZHInstanceRecord::read(const std::string& infilename, Instance& instance)
 {
-    __readMove_ICCSZH(__readInfo_getMoveStr(infilename, instance), instance, RecFormat::ZH);
+    __readMove_ICCSZH(__readInfo_getMoveStr(infilename, instance), instance, RecFormat::PGN_ZH);
 }
 
 void PGN_CCInstanceRecord::read(const std::string& infilename, Instance& instance)
@@ -709,14 +709,14 @@ const std::wstring InstanceRecord::__readInfo_getMoveStr(const std::string& infi
     std::map<std::wstring, std::wstring> info{};
     for (std::wsregex_iterator p(pgnTxt.begin(), pgnTxt.end(), pat); p != std::wsregex_iterator{}; ++p)
         info[(*p)[1]] = (*p)[2];
-    instance.setInfo(info);
+    setInfo(info);
     return moveStr;
 }
 
 void InstanceRecord::__readMove_ICCSZH(const std::wstring& moveStr, Instance& instance, const RecFormat fmt)
 {
     std::wstring preStr{ LR"((?:\d+\.)?\s*\b([)" };
-    std::wstring mvStr{ fmt == RecFormat::ZH ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
+    std::wstring mvStr{ fmt == RecFormat::PGN_ZH ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
                                              : LR"(abcdefghi\d)" };
     //# 走棋信息 (?:pattern)匹配pattern,但不获取匹配结果;  注解[\s\S]*?: 非贪婪
     std::wstring lastStr{ LR"(]{4}\b)(?:\s+\{([\s\S]*?)\})?)" };
@@ -726,7 +726,7 @@ void InstanceRecord::__readMove_ICCSZH(const std::wstring& moveStr, Instance& in
         for (std::wsregex_iterator p(mvstr.begin(), mvstr.end(), moveReg);
              p != std::wsregex_iterator{}; ++p) {
             auto newMove = isOther ? move->addOther() : move->addNext();
-            fmt == RecFormat::ZH ? (newMove->zh_ = (*p)[1]) : (newMove->iccs_ = (*p)[1]);
+            fmt == RecFormat::PGN_ZH ? (newMove->zh_ = (*p)[1]) : (newMove->iccs_ = (*p)[1]);
             newMove->remark_ = (*p)[2];
             isOther = false; // # 仅第一步可为other，后续全为next
             move = newMove;
@@ -755,7 +755,7 @@ void InstanceRecord::__readMove_ICCSZH(const std::wstring& moveStr, Instance& in
         othMoves.push_back(move);
         isOther = true;
     }
-    instance.setRootMove(rootMove);
+    setRootMove(rootMove);
 }
 
 void InstanceRecord::__readMove_CC(const std::wstring& moveStr, Instance& instance)
@@ -801,7 +801,7 @@ void InstanceRecord::__readMove_CC(const std::wstring& moveStr, Instance& instan
     __setRem(rootMove, 0, 0);
     if (!movv.empty())
         __read(rootMove, 1, 0, false);
-    instance.setRootMove(std::make_shared<Move>(rootMove));
+    setRootMove(std::make_shared<Move>(rootMove));
 }
 
 void BINInstanceRecord::read(const std::string& infilename, Instance& instance)
@@ -845,8 +845,8 @@ void BINInstanceRecord::read(const std::string& infilename, Instance& instance)
 
     Move rootMove{};
     __read(rootMove);
-    instance.setInfo(info);
-    instance.setRootMove(std::make_shared<Move>(rootMove));
+    setInfo(info);
+    setRootMove(std::make_shared<Move>(rootMove));
 }
 
 void JSONInstanceRecord::read(const std::string& infilename, Instance& instance)
@@ -879,17 +879,17 @@ void JSONInstanceRecord::read(const std::string& infilename, Instance& instance)
     Move rootMove{};
     if (!rootItem.isNull())
         __read(rootMove, rootItem);
-    instance.setRootMove(std::make_shared<Move>(rootMove));
+    setRootMove(std::make_shared<Move>(rootMove));
 }
 
 void PGN_ICCSInstanceRecord::write(const std::string& outfilename, const Instance& instance) const
 {
-    Tools::writeTxt(outfilename, __getPGNInfo(instance) + __getPGNTxt_ICCSZH(instance, RecFormat::ICCS));
+    Tools::writeTxt(outfilename, __getPGNInfo(instance) + __getPGNTxt_ICCSZH(instance, RecFormat::PGN_ICCS));
 }
 
 void PGN_ZHInstanceRecord::write(const std::string& outfilename, const Instance& instance) const
 {
-    Tools::writeTxt(outfilename, __getPGNInfo(instance) + __getPGNTxt_ICCSZH(instance, RecFormat::ZH));
+    Tools::writeTxt(outfilename, __getPGNInfo(instance) + __getPGNTxt_ICCSZH(instance, RecFormat::PGN_ZH));
 }
 
 void PGN_CCInstanceRecord::write(const std::string& outfilename, const Instance& instance) const
@@ -900,7 +900,7 @@ void PGN_CCInstanceRecord::write(const std::string& outfilename, const Instance&
 const std::wstring InstanceRecord::__getPGNInfo(const Instance& instance) const
 {
     std::wstringstream wss{};
-    auto& info = instance.getInfo();
+    auto& info = getInfo();
     for (auto& kv : info)
         wss << L'[' << kv.first << L" \"" << kv.second << L"\"]\n";
     return wss.str() + L"》";
@@ -915,10 +915,10 @@ const std::wstring InstanceRecord::__getPGNTxt_ICCSZH(const Instance& instance, 
     };
 
     std::function<void(const Move&, bool)> __moveStr = [&](const Move& move, bool isOther) {
-        std::wstring boutNum{ std::to_wstring((move.n_ + 1) / 2) };
-        bool isEven{ move.n_ % 2 == 0 };
+        std::wstring boutNum{ std::to_wstring((move.nextNo_ + 1) / 2) };
+        bool isEven{ move.nextNo_ % 2 == 0 };
         wss << (isOther ? L"(" + boutNum + L". " + (isEven ? L"... " : L"") : (isEven ? L" " : boutNum + L". "))
-            << (fmt == RecFormat::ZH ? move.zh_ : move.iccs_) << L' ';
+            << (fmt == RecFormat::PGN_ZH ? move.zh_ : move.iccs_) << L' ';
         __remark(move);
         if (move.other_) {
             __moveStr(*move.other_, true);
@@ -928,7 +928,7 @@ const std::wstring InstanceRecord::__getPGNTxt_ICCSZH(const Instance& instance, 
             __moveStr(*move.next_, false);
     };
 
-    auto& rootMove = instance.getRootMove();
+    auto& rootMove = getRootMove();
     __remark(*rootMove);
     if (rootMove->next_)
         __moveStr(*rootMove->next_, false);
@@ -938,13 +938,13 @@ const std::wstring InstanceRecord::__getPGNTxt_ICCSZH(const Instance& instance, 
 const std::wstring InstanceRecord::__getPGNTxt_CC(const Instance& instance) const
 {
     std::wstringstream remStrs{};
-    std::wstring lstr((instance.getMaxCol() + 1) * 5, L'　');
-    std::vector<std::wstring> lineStr((instance.getMaxRow() + 1) * 2, lstr);
+    std::wstring lstr((getMaxCol() + 1) * 5, L'　');
+    std::vector<std::wstring> lineStr((getMaxRow() + 1) * 2, lstr);
     std::function<void(const Move&)> __setChar = [&](const Move& move) {
-        int firstcol{ move.CC_Col_ * 5 }, row{ move.n_ * 2 };
+        int firstcol{ move.CC_Col_ * 5 }, row{ move.nextNo_ * 2 };
         lineStr.at(row).replace(firstcol, 4, move.zh_);
         if (!move.remark_.empty())
-            remStrs << L"(" << move.n_ << L"," << move.CC_Col_ << L"): {" << move.remark_ << L"}\n";
+            remStrs << L"(" << move.nextNo_ << L"," << move.CC_Col_ << L"): {" << move.remark_ << L"}\n";
         if (move.next_) {
             lineStr.at(row + 1).at(firstcol + 2) = L'↓';
             __setChar(*move.next_);
@@ -956,20 +956,20 @@ const std::wstring InstanceRecord::__getPGNTxt_CC(const Instance& instance) cons
         }
     };
 
-    auto& rootMove = instance.getRootMove();
+    auto& rootMove = getRootMove();
     __setChar(*rootMove);
     std::wstringstream wss{};
     lineStr.front().replace(0, 2, L"开始");
     for (auto& line : lineStr)
         wss << line << L'\n';
-    wss << remStrs.str() << instance.moveInfo();
+    wss << remStrs.str() << moveInfo();
     return wss.str();
 }
 
 void BINInstanceRecord::write(const std::string& outfilename, const Instance& instance) const
 {
     std::ofstream ofs(outfilename, std::ios_base::binary);
-    auto& info = instance.getInfo();
+    auto& info = getInfo();
     ofs.put(char(info.size()));
     for (auto& kv : info) {
         std::string key{ Tools::ws2s(kv.first) }, value{ Tools::ws2s(kv.second) };
@@ -989,7 +989,7 @@ void BINInstanceRecord::write(const std::string& outfilename, const Instance& in
             __write(*move.other_);
     };
 
-    __write(*instance.getRootMove());
+    __write(*getRootMove());
 }
 
 void JSONInstanceRecord::write(const std::string& outfilename, const Instance& instance) const
@@ -1000,7 +1000,7 @@ void JSONInstanceRecord::write(const std::string& outfilename, const Instance& i
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
 
     Json::Value infoItem;
-    auto& info = instance.getInfo();
+    auto& info = getInfo();
     for (auto& kv : info)
         infoItem[Tools::ws2s(kv.first)] = Tools::ws2s(kv.second);
     root["info"] = infoItem;
@@ -1018,7 +1018,7 @@ void JSONInstanceRecord::write(const std::string& outfilename, const Instance& i
         return std::move(item);
     };
 
-    root["moves"] = __writeItem(*instance.getRootMove());
+    root["moves"] = __writeItem(*getRootMove());
     writer->write(root, &ofs);
 }
 */

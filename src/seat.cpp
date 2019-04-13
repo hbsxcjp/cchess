@@ -6,6 +6,12 @@
 
 namespace SeatSpace {
 
+Seat::Seat(int row, int col)
+    : row_{ row }
+    , col_{ col }
+{
+}
+
 const bool Seat::isDiffColor(const std::shared_ptr<Seat>& fseat) const
 {
     return !piece_ || piece_->color() != fseat->piece()->color();

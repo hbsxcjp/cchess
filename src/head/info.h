@@ -9,9 +9,15 @@ enum class RecFormat;
 
 namespace InfoSpace {
 
+struct Key {
+    unsigned char KeyXYf{}, KeyXYt{};
+    int version{}, KeyRMKSize{}, F32Keys[32]{};
+};
+static Key key{};
+
 class Info {
 public:
-    Info() = default;
+    Info();
 
     void read(std::ifstream& ifs, RecFormat fmt);
     void write(std::ofstream& ofs, RecFormat fmt) const;
@@ -34,7 +40,6 @@ private:
 
 const std::wstring getFEN(const std::wstring& pieceChars);
 const std::wstring getPieceChars(const std::wstring& fen);
-
-static unsigned char KeyXYf{}, KeyXYt{};
-static int version{}, KeyRMKSize{}, F32Keys[32]{};
 }
+
+#endif

@@ -7,10 +7,17 @@
 
 namespace PieceSpace {
 
+Piece::Piece(const wchar_t ch, const wchar_t name)
+    : ch_{ ch }
+    , name_{ name }
+    , color_{ islower(ch) ? PieceColor::BLACK : PieceColor::RED }
+{
+}
+
 const std::wstring Piece::toString() const
 {
     std::wstringstream wss{};
-    wss << static_cast<int>(color_) << ch_ << name_; //<< std::boolalpha 
+    wss << static_cast<int>(color_) << ch_ << name_; //<< std::boolalpha
     return wss.str();
 }
 

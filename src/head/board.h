@@ -43,10 +43,10 @@ class Board {
 public:
     Board();
 
-    const std::shared_ptr<SeatSpace::Seat> getSeat(const int row, const int col) const { return seats_.at(row * ColNum + col); }
-    const std::shared_ptr<SeatSpace::Seat> getSeat(const int rowcol) const { return getSeat((rowcol & 0xF0) >> 4, rowcol & 0x0F); }
-    const std::shared_ptr<SeatSpace::Seat> getRotateSeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
-    const std::shared_ptr<SeatSpace::Seat> getSymmetrySeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
+    const std::shared_ptr<SeatSpace::Seat>& getSeat(const int row, const int col) const { return seats_.at(row * ColNum + col); }
+    const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const { return getSeat((rowcol & 0xF0) >> 4, rowcol & 0x0F); }
+    const std::shared_ptr<SeatSpace::Seat>& getRotateSeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
+    const std::shared_ptr<SeatSpace::Seat>& getSymmetrySeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
 
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
     getMoveSeatFromIccs(const std::wstring& ICCS) const;
@@ -73,7 +73,7 @@ private:
     const std::vector<std::shared_ptr<PieceSpace::Piece>> creatPieces() const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> creatSeats() const;
 
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> getAllSeats() const { return seats_; }
+    const std::vector<std::shared_ptr<SeatSpace::Seat>>& getAllSeats() const { return seats_; }
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getKingSeats(const PieceColor color) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getAdvisorSeats(const PieceColor color) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getBishopSeats(const PieceColor color) const;

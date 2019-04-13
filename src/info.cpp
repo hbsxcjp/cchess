@@ -1,5 +1,6 @@
 #include "Info.h"
 #include "../json/json.h"
+#include "Board.h"
 #include "instance.h"
 #include "tools.h"
 #include <algorithm>
@@ -87,9 +88,9 @@ void Info::setFEN(const std::wstring& pieceChars)
 
 const std::wstring Info::getPieceChars() const
 {
-    std::wstring rfen{ infoMap_[L"FEN"] };
+    std::wstring rfen{ infoMap_.at(L"FEN") };
     std::wstring fen{ rfen.substr(0, rfen.find(L' ')) };
-    return getPieceChars(fen);
+    return InfoSpace::getPieceChars(fen);
 }
 
 void Info::readXQF(std::ifstream& ifs)
@@ -97,13 +98,13 @@ void Info::readXQF(std::ifstream& ifs)
     const int pieceNum{ 32 };
     char Signature[3], Version_XQF, headKeyMask, //文件标记'XQ'=$5158/版本/加密掩码/ProductId[4], 产品(厂商的产品号)
         headKeyOrA, headKeyOrB, headKeyOrC, headKeyOrD,
-        headKeysSum, headKeyXY, headKeyXYf, headKeyXYt; // 加密的钥匙和/棋子布局位置钥匙/棋谱起点钥匙/棋谱终点钥匙
-    unsigned char headQiziXY[pieceNum]; // 32个棋子的原始位置
+        headKeysSum, headKeyXY, headKeyXYf, headKeyXYt, // 加密的钥匙和/棋子布局位置钥匙/棋谱起点钥匙/棋谱终点钥匙
+        headQiziXY[pieceNum], // 32个棋子的原始位置
         // 用单字节坐标表示, 将字节变为十进制, 十位数为X(0-8)个位数为Y(0-9),
         // 棋盘的左下角为原点(0, 0). 32个棋子的位置从1到32依次为:
         // 红: 车马相士帅士相马车炮炮兵兵兵兵兵 (位置从右到左, 从下到上)
         // 黑: 车马象士将士象马车炮炮卒卒卒卒卒 (位置从右到左, 从下到上)PlayStepNo[2],
-    char headWhoPlay, headPlayResult, // PlayNodes[4], PTreePos[4], Reserved1[4],
+        headWhoPlay, headPlayResult, // PlayNodes[4], PTreePos[4], Reserved1[4],
         // 该谁下 0-红先, 1-黑先/最终结果 0-未知, 1-红胜 2-黑胜, 3-和棋
         headCodeA_H[16], TitleA[65], TitleB[65], //对局类型(开,中,残等)
         Event[65], Date[17], Site[17], Red[17], Black[17],
@@ -135,22 +136,24 @@ void Info::readXQF(std::ifstream& ifs)
     assert(Version_XQF <= 18); // L" 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
 
     // 计算密钥值，存入类静态变量
-    version = Version_XQF;
-    if (version > 10) { // 兼容1.0以前的版本 if(version <= 10) KeyXYf = KeyXYt = KeyRMKSize = 0;
+    key.version = Version_XQF;
+    if (key.version > 10) { // 兼容1.0以前的版本 if(key.version <= 10) KeyXYf = KeyXYt = KeyRMKSize = 0;
         auto __calkey = [](char bKey, char cKey) {
             return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey; // % 256; // 保持为<256
         };
         char KeyXY = __calkey(headKeyXY, headKeyXY);
-        KeyXYf = __calkey(headKeyXYf, KeyXY);
-        KeyXYt = __calkey(headKeyXYt, KeyXYf);
-        KeyRMKSize = ((headKeysSum * 256 + headKeyXY) % 32000) + 767; // % 65536
-        if (version >= 12) { // 棋子位置循环移动
+        key.KeyXYf = __calkey(headKeyXYf, KeyXY);
+        key.KeyXYt = __calkey(headKeyXYt, key.KeyXYf);
+        key.KeyRMKSize = ((headKeysSum * 256 + headKeyXY) % 32000) + 767; // % 65536
+        if (key.version >= 12) { // 棋子位置循环移动
             std::vector<char> Qixy(std::begin(headQiziXY), std::end(headQiziXY)); // 数组不能拷贝
             for (int i = 0; i != pieceNum; ++i)
                 headQiziXY[(i + KeyXY + 1) % pieceNum] = Qixy[i];
         }
-        for (int i = 0; i != pieceNum; ++i) // 棋子位置解密
-            headQiziXY[i] -= static_cast<unsigned char>(KeyXY); // 保持为8位无符号整数，<256
+        for (int i = 0; i != pieceNum; ++i) { // 棋子位置解密
+            unsigned char xy = static_cast<unsigned char>(headQiziXY[i]) - static_cast<unsigned char>(KeyXY); // 保持为8位无符号整数，<256
+            headQiziXY[i] = xy;
+        }
     }
     unsigned char KeyBytes[]{
         static_cast<unsigned char>((headKeysSum & headKeyMask) | headKeyOrA),
@@ -160,7 +163,7 @@ void Info::readXQF(std::ifstream& ifs)
     };
     const std::string copyright{ "[(C) Copyright Mr. Dong Shiwei.]" };
     for (int i = 0; i != pieceNum; ++i)
-        F32Keys[i] = copyright[i] & KeyBytes[i % 4]; // ord(c)
+        key.F32Keys[i] = copyright[i] & KeyBytes[i % 4]; // ord(c)
 
     // 取得棋子字符串
     std::wstring pieceChars(90, BoardSpace::Board::nullChar);
@@ -171,8 +174,8 @@ void Info::readXQF(std::ifstream& ifs)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
 
-    return (std::map<std::wstring, std::wstring>{
-        { L"Version_xqf", std::to_wstring(version) },
+    infoMap_ = std::map<std::wstring, std::wstring>{
+        { L"Version_xqf", std::to_wstring(key.version) },
         { L"Result", (std::map<unsigned char, std::wstring>{ { 0, L"未知" }, { 1, L"红胜" }, { 2, L"黑胜" }, { 3, L"和棋" } })[headPlayResult] },
         { L"PlayType", (std::map<unsigned char, std::wstring>{ { 0, L"全局" }, { 1, L"开局" }, { 2, L"中局" }, { 3, L"残局" } })[headCodeA_H[0]] },
         { L"TitleA", Tools::s2ws(TitleA) },
@@ -184,8 +187,10 @@ void Info::readXQF(std::ifstream& ifs)
         { L"Opening", Tools::s2ws(Opening) },
         { L"RMKWriter", Tools::s2ws(RMKWriter) },
         { L"Author", Tools::s2ws(Author) },
-        { L"FEN", getFEN(pieceChars) } });
+        { L"FEN", getFEN(pieceChars) }
+    };
 }
+
 
 void Info::writeXQF(std::ofstream& ofs) const {} // 不做实现
 
