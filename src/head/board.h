@@ -67,7 +67,7 @@ public:
     const std::wstring getPieceChars() const;
     void putPieces(const std::wstring& pieceChars);
     void changeSide(const ChangeType ct);
-    static const wchar_t getNullChar() { return nullChar; }
+    static const wchar_t nullChar{ L'_' };
 
 private:
     const std::vector<std::shared_ptr<PieceSpace::Piece>> creatPieces() const;
@@ -145,7 +145,6 @@ private:
     const int ColMidLowIndex{ 3 };
     const int ColMidUpIndex{ 5 };
     const int ColUpIndex{ 8 };
-    static const wchar_t nullChar;
     static const std::wstring nameChars;
     static const std::wstring movChars;
     static const std::map<PieceColor, std::wstring> numChars;

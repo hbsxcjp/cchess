@@ -63,86 +63,34 @@ private:
 class RootMove : public Move {
 public:
     using Move::Move;
-    const std::shared_ptr<RootMove> read(std::ifstream& ifs, RecFormat fmt) const;
+    void read(std::ifstream& ifs, RecFormat fmt, const BoardSpace::Board& board);
     void write(std::ofstream& ofs, RecFormat fmt) const;
-    //void setMoves(RecFormat fmt);
+    void setMoves(RecFormat fmt, const BoardSpace::Board& board);
+    const std::wstring moveInfo() const;
+    
+    const int getMovCount() const { return movCount; }
+    const int getRemCount() const { return remCount; }
+    const int getRemLenMax() const { return remLenMax; }
+    const int getMaxRow() const { return maxRow; }
+    const int getMaxCol() const { return maxCol; }
+
 private:
-    std::shared_ptr<MoveRecord>& getMoveRecord(RecFormat fmt);
+    void readXQF(std::ifstream& ifs);
+    void writeXQF(std::ofstream& ofs) const;
+    const std::wstring getMoveStr(std::ifstream& ifs) const;
+    void readPGN_ICCSZH(std::ifstream& ifs, RecFormat fmt);
+    void writePGN_ICCSZH(std::ofstream& ofs, RecFormat fmt) const;
+    void readPGN_CC(std::ifstream& ifs);
+    void writePGN_CC(std::ofstream& ofs) const;
+    void readBIN(std::ifstream& ifs);
+    void writeBIN(std::ofstream& ofs) const;
+    void readJSON(std::ifstream& ifs);
+    void writeJSON(std::ofstream& ofs) const;
 
-    std::shared_ptr<MoveRecord> moveRecord_{};
-    const std::shared_ptr<RootMove> rootMove_{};
-}
-
-class MoveRecord {
-public:
-    MoveRecord() = default;
-    virtual ~MoveRecord() = default;
-
-    virtual bool is(RecFormat fmt) const = 0;
-    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const = 0;
-    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const = 0;
-
-protected:
-    const std::wstring __readInfo_getMoveStr(std::ifstream& ifs);
-    void __readMove_ICCSZH(const std::wstring& moveStr, RecFormat fmt);
-    void __readMove_CC(const std::wstring& moveStr);
-    const std::wstring __getPGNInfo() const;
-    const std::wstring __getPGNTxt_ICCSZH(RecFormat fmt) const;
-    const std::wstring __getPGNTxt_CC() const;
-};
-
-class XQFMoveRecord : public MoveRecord {
-public:
-    using MoveRecord::MoveRecord;
-    virtual bool is(RecFormat fmt) const;
-    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
-    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
-};
-
-class PGNMoveRecord : public MoveRecord {
-protected:
-    using MoveRecord::MoveRecord;
-    std::shared_ptr<RootMove> read_ICCSZH(std::ifstream& ifs, RecFormat fmt) const;
-    void write_ICCSZH(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove, RecFormat fmt) const;
-};
-
-class PGN_ICCSMoveRecord : public PGNMoveRecord {
-public:
-    using MoveRecord::MoveRecord;
-    virtual bool is(RecFormat fmt) const;
-    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
-    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
-};
-
-class PGN_ZHMoveRecord : public PGNMoveRecord {
-public:
-    using MoveRecord::MoveRecord;
-    virtual bool is(RecFormat fmt) const;
-    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
-    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
-};
-
-class PGN_CCMoveRecord : public MoveRecord {
-public:
-    using MoveRecord::MoveRecord;
-    virtual bool is(RecFormat fmt) const;
-    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
-    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
-};
-
-class BINMoveRecord : public MoveRecord {
-public:
-    using MoveRecord::MoveRecord;
-    virtual bool is(RecFormat fmt) const;
-    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
-    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
-};
-
-class JSONMoveRecord : public MoveRecord {
-public:
-    using MoveRecord::MoveRecord;
-    virtual bool is(RecFormat fmt) const;
-    virtual std::shared_ptr<RootMove> read(std::ifstream& ifs) const;
-    virtual void write(std::ofstream& ofs, const std::shared_ptr<RootMove>& rootMove) const;
+    int movCount{ 0 }; //着法数量
+    int remCount{ 0 }; //注解数量
+    int remLenMax{ 0 }; //注解最大长度
+    int maxRow{ 0 }; //# 存储最大着法深度
+    int maxCol{ 0 }; //# 存储视图最大列数
 };
 }

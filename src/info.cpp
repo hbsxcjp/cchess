@@ -18,8 +18,7 @@ namespace InfoSpace {
 
 // Info
 Info::Info()
-    : infoRecord_{ std::make_shared<PGNInfoRecord>() }
-    , info_{ { L"Author", L"" },
+    : infoMap_{ { L"Author", L"" },
         { L"Black", L"" },
         { L"BlackTeam", L"" },
         { L"Date", L"" },
@@ -42,48 +41,69 @@ Info::Info()
 {
 }
 
-std::map<std::wstring, std::wstring> Info::read(std::ifstream& ifs, RecFormat fmt)
+void Info::read(std::ifstream& ifs, RecFormat fmt)
 {
-    info_ = getInfoRecord(fmt)->read(ifs);
+    switch (fmt) {
+    case RecFormat::XQF:
+        readXQF(ifs);
+        break;
+    case RecFormat::BIN:
+        readBIN(ifs);
+        break;
+    case RecFormat::JSON:
+        readJSON(ifs);
+        break;
+    default:
+        readPGN(ifs);
+        break;
+    }
+    infoMap_[L"Format"] = Tools::s2ws(InstanceSpace::getExtName(fmt));
 }
 
 void Info::write(std::ofstream& ofs, RecFormat fmt) const
 {
-    getInfoRecord(fmt)->write(ofs, info_);
-}
-
-std::shared_ptr<InfoRecord>& Info::getInfoRecord(RecFormat fmt)
-{
-    if (infoRecord_->is(fmt))
-        return infoRecord_;
-    else {
-        switch (fmt) {
-        case RecFormat::XQF:
-            return infoRecord_ = std::make_shared<XQFInfoRecord>();
-        case RecFormat::BIN:
-            return infoRecord_ = std::make_shared<BINInfoRecord>();
-        case RecFormat::JSON:
-            return infoRecord_ = std::make_shared<JSONInfoRecord>();
-        default:
-            return infoRecord_ = std::make_shared<PGNInfoRecord>();
-        }
+    switch (fmt) {
+    case RecFormat::XQF:
+        writeXQF(ofs);
+        break;
+    case RecFormat::BIN:
+        writeBIN(ofs);
+        break;
+    case RecFormat::JSON:
+        writeJSON(ofs);
+        break;
+    default:
+        writePGN(ofs);
+        break;
     }
 }
 
-bool XQFInfoRecord::is(RecFormat fmt) const { return fmt == RecFormat::XQF; }
+void Info::setFEN(const std::wstring& pieceChars)
+{
+    //infoMap_[L"FEN"] = getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
+    //std::wstring rfen{ infoMap_[L"FEN"] };
+    //assert(getPieceChars(rfen.substr(0, rfen.find(L' '))) == pieceChars);
+}
 
-std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
+const std::wstring Info::getPieceChars() const
+{
+    std::wstring rfen{ infoMap_[L"FEN"] };
+    std::wstring fen{ rfen.substr(0, rfen.find(L' ')) };
+    return getPieceChars(fen);
+}
+
+void Info::readXQF(std::ifstream& ifs)
 {
     const int pieceNum{ 32 };
-    unsigned char Signature[3], Version_XQF, headKeyMask, //文件标记'XQ'=$5158/版本/加密掩码/ProductId[4], 产品(厂商的产品号)
+    char Signature[3], Version_XQF, headKeyMask, //文件标记'XQ'=$5158/版本/加密掩码/ProductId[4], 产品(厂商的产品号)
         headKeyOrA, headKeyOrB, headKeyOrC, headKeyOrD,
-        headKeysSum, headKeyXY, headKeyXYf, headKeyXYt, // 加密的钥匙和/棋子布局位置钥匙/棋谱起点钥匙/棋谱终点钥匙
-        headQiziXY[pieceNum], // 32个棋子的原始位置
+        headKeysSum, headKeyXY, headKeyXYf, headKeyXYt; // 加密的钥匙和/棋子布局位置钥匙/棋谱起点钥匙/棋谱终点钥匙
+    unsigned char headQiziXY[pieceNum]; // 32个棋子的原始位置
         // 用单字节坐标表示, 将字节变为十进制, 十位数为X(0-8)个位数为Y(0-9),
         // 棋盘的左下角为原点(0, 0). 32个棋子的位置从1到32依次为:
         // 红: 车马相士帅士相马车炮炮兵兵兵兵兵 (位置从右到左, 从下到上)
         // 黑: 车马象士将士象马车炮炮卒卒卒卒卒 (位置从右到左, 从下到上)PlayStepNo[2],
-        headWhoPlay, headPlayResult, // PlayNodes[4], PTreePos[4], Reserved1[4],
+    char headWhoPlay, headPlayResult, // PlayNodes[4], PTreePos[4], Reserved1[4],
         // 该谁下 0-红先, 1-黑先/最终结果 0-未知, 1-红胜 2-黑胜, 3-和棋
         headCodeA_H[16], TitleA[65], TitleB[65], //对局类型(开,中,残等)
         Event[65], Date[17], Site[17], Red[17], Black[17],
@@ -91,7 +111,7 @@ std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
         RMKWriter[17], Author[17]; // 棋谱评论员/文件的作者
     int16_t PlayStepNo;
     int32_t ProductId, PlayNodes, PTreePos, Reserved1;
-    auto getChars = [&](unsigned char target[], int lenght) {
+    auto getChars = [&](char target[], int lenght) {
         for (int i = 0; i < lenght; ++i)
             ifs >> target[i];
     };
@@ -102,7 +122,7 @@ std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
         >> headKeysSum >> headKeyXY >> headKeyXYf >> headKeyXYt; // = 16 bytes
     getChars(headQiziXY, pieceNum); // = 48 bytes
     ifs >> PlayStepNo >> headWhoPlay >> headPlayResult >> PlayNodes >> PTreePos >> Reserved1; // = 64 bytes
-    for (std::pair<unsigned char*, int>& tarlen : (std::vector<std::pair<unsigned char*, int>>{
+    for (std::pair<char*, int>& tarlen : (std::vector<std::pair<char*, int>>{
              { headCodeA_H, 16 }, { TitleA, 64 }, { TitleB, 64 }, { Event, 64 },
              { Date, 16 }, { Site, 16 }, { Red, 16 }, { Black, 16 },
              { Opening, 64 }, { Redtime, 16 }, { Blktime, 16 }, { Reservedh, 32 },
@@ -117,33 +137,33 @@ std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
     // 计算密钥值，存入类静态变量
     version = Version_XQF;
     if (version > 10) { // 兼容1.0以前的版本 if(version <= 10) KeyXYf = KeyXYt = KeyRMKSize = 0;
-        auto __calkey = [](unsigned char bKey, unsigned char cKey) {
+        auto __calkey = [](char bKey, char cKey) {
             return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey; // % 256; // 保持为<256
         };
-        unsigned char KeyXY = __calkey(headKeyXY, headKeyXY);
+        char KeyXY = __calkey(headKeyXY, headKeyXY);
         KeyXYf = __calkey(headKeyXYf, KeyXY);
         KeyXYt = __calkey(headKeyXYt, KeyXYf);
         KeyRMKSize = ((headKeysSum * 256 + headKeyXY) % 32000) + 767; // % 65536
         if (version >= 12) { // 棋子位置循环移动
-            std::vector<unsigned char> Qixy(std::begin(headQiziXY), std::end(headQiziXY)); // 数组不能拷贝
+            std::vector<char> Qixy(std::begin(headQiziXY), std::end(headQiziXY)); // 数组不能拷贝
             for (int i = 0; i != pieceNum; ++i)
                 headQiziXY[(i + KeyXY + 1) % pieceNum] = Qixy[i];
         }
         for (int i = 0; i != pieceNum; ++i) // 棋子位置解密
-            headQiziXY[i] -= KeyXY; // 保持为8位无符号整数，<256
+            headQiziXY[i] -= static_cast<unsigned char>(KeyXY); // 保持为8位无符号整数，<256
     }
     unsigned char KeyBytes[]{
-        (headKeysSum & headKeyMask) | headKeyOrA,
-        (headKeyXY & headKeyMask) | headKeyOrB,
-        (headKeyXYf & headKeyMask) | headKeyOrC,
-        (headKeyXYt & headKeyMask) | headKeyOrD
+        static_cast<unsigned char>((headKeysSum & headKeyMask) | headKeyOrA),
+        static_cast<unsigned char>((headKeyXY & headKeyMask) | headKeyOrB),
+        static_cast<unsigned char>((headKeyXYf & headKeyMask) | headKeyOrC),
+        static_cast<unsigned char>((headKeyXYt & headKeyMask) | headKeyOrD)
     };
     const std::string copyright{ "[(C) Copyright Mr. Dong Shiwei.]" };
     for (int i = 0; i != pieceNum; ++i)
         F32Keys[i] = copyright[i] & KeyBytes[i % 4]; // ord(c)
 
     // 取得棋子字符串
-    std::wstring pieceChars(90, BoardSpace::Board::getNullChar());
+    std::wstring pieceChars(90, BoardSpace::Board::nullChar);
     std::wstring pieChars = L"RNBAKABNRCCPPPPPrnbakabnrccppppp"; // QiziXY设定的棋子顺序
     for (int i = 0; i != pieceNum; ++i) {
         int xy = headQiziXY[i];
@@ -167,14 +187,9 @@ std::map<std::wstring, std::wstring> XQFInfoRecord::read(std::ifstream& ifs)
         { L"FEN", getFEN(pieceChars) } });
 }
 
-void XQFInfoRecord::write(std::ofstream& ofs, const std::map<std::wstring, std::wstring>& info) const {} // 不做实现
+void Info::writeXQF(std::ofstream& ofs) const {} // 不做实现
 
-bool PGNInfoRecord::is(RecFormat fmt) const
-{
-    return fmt == RecFormat::PGN_ICCS || fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC;
-}
-
-std::map<std::wstring, std::wstring> PGNInfoRecord::read(std::ifstream& ifs) const
+void Info::readPGN(std::ifstream& ifs)
 {
     std::stringstream ss{};
     std::string line{};
@@ -183,50 +198,42 @@ std::map<std::wstring, std::wstring> PGNInfoRecord::read(std::ifstream& ifs) con
         ss << line << '\n';
     std::wstring infoStr{ Tools::s2ws(ss.str()) };
     std::wregex pat{ LR"(\[(\w+)\s+\"(.*)\"\])" };
-    std::map<std::wstring, std::wstring> info{};
     for (std::wsregex_iterator p(infoStr.begin(), infoStr.end(), pat); p != std::wsregex_iterator{}; ++p)
-        info[(*p)[1]] = (*p)[2];
-    return info;
+        infoMap_[(*p)[1]] = (*p)[2];
 }
 
-void PGNInfoRecord::write(std::ofstream& ofs, const std::map<std::wstring, std::wstring>& info) const
+void Info::writePGN(std::ofstream& ofs) const
 {
     std::wstringstream wss{};
-    std::for_each(info.begin(), info.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
+    std::for_each(infoMap_.begin(), infoMap_.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
         wss << L'[' << kv.first << L" \"" << kv.second << L"\"]\n";
     });
     wss << L'\n'; // 以空行为分割
     ofs << Tools::ws2s(wss.str());
 }
 
-bool BINInfoRecord::is(RecFormat fmt) const { return fmt == RecFormat::BIN; }
-
-std::map<std::wstring, std::wstring> BINInfoRecord::read(std::ifstream& ifs) const
+void Info::readBIN(std::ifstream& ifs)
 {
     std::size_t size{};
     std::string key{}, value{};
-    std::map<std::wstring, std::wstring> info{};
     ifs >> std::noskipws >> size;
     for (std::size_t i = 0; i < size; ++i) { // 以size为分割
         std::getline(ifs, key);
         std::getline(ifs, value);
-        info[Tools::s2ws(key)] = Tools::s2ws(value);
+        infoMap_[Tools::s2ws(key)] = Tools::s2ws(value);
     }
-    return info;
 }
 
-void BINInfoRecord::write(std::ofstream& ofs, const std::map<std::wstring, std::wstring>& info) const
+void Info::writeBIN(std::ofstream& ofs) const
 {
     std::wstringstream wss{};
-    std::for_each(info.begin(), info.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
+    std::for_each(infoMap_.begin(), infoMap_.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
         wss << kv.first << L'\n' << kv.second << L'\n';
     });
-    ofs << info.size() << Tools::ws2s(wss.str()) << "\n";
+    ofs << infoMap_.size() << Tools::ws2s(wss.str()) << "\n";
 }
 
-bool JSONInfoRecord::is(RecFormat fmt) const { return fmt == RecFormat::JSON; }
-
-std::map<std::wstring, std::wstring> JSONInfoRecord::read(std::ifstream& ifs) const
+void Info::readJSON(std::ifstream& ifs)
 {
     Json::CharReaderBuilder builder;
     Json::Value root;
@@ -234,22 +241,20 @@ std::map<std::wstring, std::wstring> JSONInfoRecord::read(std::ifstream& ifs) co
     if (!parseFromStream(builder, ifs, &root, &errs))
         return;
 
-    Json::Value infoItem{ root["info"] };
-    std::map<std::wstring, std::wstring> info{};
+    Json::Value infoItem{ root["infoMap_"] };
     for (auto& key : infoItem.getMemberNames())
-        info[Tools::s2ws(key)] = Tools::s2ws(infoItem[key].asString());
-    return info;
+        infoMap_[Tools::s2ws(key)] = Tools::s2ws(infoItem[key].asString());
 }
 
-void JSONInfoRecord::write(std::ofstream& ofs, const std::map<std::wstring, std::wstring>& info) const
+void Info::writeJSON(std::ofstream& ofs) const
 {
     Json::Value root{}, infoItem{};
     Json::StreamWriterBuilder builder;
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-    std::for_each(info.begin(), info.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
+    std::for_each(infoMap_.begin(), infoMap_.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
         infoItem[Tools::ws2s(kv.first)] = Tools::ws2s(kv.second);
     });
-    root["info"] = infoItem;
+    root["infoMap_"] = infoItem;
     writer->write(root, &ofs); // 能否与move同步?
 }
 
@@ -296,7 +301,7 @@ const std::wstring getPieceChars(const std::wstring& fen)
          fenLineIter != std::wsregex_token_iterator{}; ++fenLineIter) {
         std::wstringstream wss{};
         for (auto wch : std::wstring{ *fenLineIter })
-            wss << (isdigit(wch) ? std::wstring(wch - 48, BoardSpace::Board::getNullChar()) : std::wstring{ wch }); // ASCII: 0:48
+            wss << (isdigit(wch) ? std::wstring(wch - 48, BoardSpace::Board::nullChar) : std::wstring{ wch }); // ASCII: 0:48
         pieceChars.insert(0, wss.str());
     }
 

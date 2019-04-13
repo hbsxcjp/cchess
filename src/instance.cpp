@@ -1,7 +1,8 @@
 #include "Instance.h"
 #include "../json/json.h"
-#include "move.h"
+#include "Info.h"
 #include "board.h"
+#include "move.h"
 #include "piece.h"
 #include "seat.h"
 #include "tools.h"
@@ -22,121 +23,33 @@ namespace InstanceSpace {
 
 // Instance
 Instance::Instance()
-    : info_{ { L"Author", L"" },
-        { L"Black", L"" },
-        { L"BlackTeam", L"" },
-        { L"Date", L"" },
-        { L"ECCO", L"" },
-        { L"Event", L"" },
-        { L"FEN", L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR r - - 0 1" },
-        { L"Format", L"ZH" },
-        { L"Game", L"Chinese Chess" },
-        { L"Opening", L"" },
-        { L"PlayType", L"" },
-        { L"RMKWriter", L"" },
-        { L"Red", L"" },
-        { L"RedTeam", L"" },
-        { L"Result", L"" },
-        { L"Round", L"" },
-        { L"Site", L"" },
-        { L"Title", L"" },
-        { L"Variation", L"" },
-        { L"Version", L"" } }
+    : format_{ RecFormat::XQF }
+    , info_{ std::make_shared<InfoSpace::Info>() }
     , board_{ std::make_shared<BoardSpace::Board>() }
-    , rootMove_{ std::make_shared<Move>() }
+    , rootMove_{ std::make_shared<MoveSpace::RootMove>() }
     , currentMove_{ rootMove_ }
-    , firstColor_{ PieceColor::RED }
 {
 }
 
 void Instance::read(const std::string& infilename)
 {
-    RecFormat fmt{ getRecFormat(Tools::getExt(infilename)) };
-    info_[L"Format"] = Tools::s2ws(getExtName(fmt));
-    //getInstanceRecord(fmt)->read(infilename, *this);
-    std::wcout << L"readFile finished!" << std::endl;
-    setBoard();
+    std::ifstream ifs(infilename);
+    format_ = getRecFormat(Tools::getExt(infilename));
+    info_->read(ifs, format_);
+    board_->putPieces(info_->getPieceChars());
     std::wcout << L"setBoard finished!" << std::endl;
-    setMoves(fmt);
-    std::wcout << L"setMoves finished!" << std::endl;
+    rootMove_->read(ifs, format_, *board_);
+    currentMove_ = rootMove_;
+    std::wcout << L"readFile finished!" << std::endl;
 }
 
 void Instance::write(const std::string& outfilename) const
 {
-    RecFormat fmt{ getRecFormat(Tools::getExt(outfilename)) };
-    //getInstanceRecord(fmt)->write(outfilename, *this);
+    std::ofstream ofs(outfilename);
+    format_ = getRecFormat(Tools::getExt(outfilename));
+    info_->write(ofs, format_);
+    rootMove_->write(ofs, format_);
 }
-
-void Instance::setFEN(const std::wstring& pieceChars)
-{
-    info_[L"FEN"] = getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
-    std::wstring rfen{ info_[L"FEN"] };
-    assert(getPieceChars(rfen.substr(0, rfen.find(L' '))) == pieceChars);
-}
-
-void Instance::setBoard()
-{
-    std::wstring rfen{ info_[L"FEN"] };
-    board_->putPieces(getPieceChars(rfen.substr(0, rfen.find(L' '))));
-}
-
-// （rootMove）调用, 设置树节点的seat or zh'  // C++primer P512
-void Instance::setMoves(const RecFormat fmt)
-{
-    std::function<void(Move&)> __setRemData = [&](const Move& move) {
-        if (!move.remark_.empty()) {
-            ++remCount;
-            remLenMax = std::max(remLenMax, static_cast<int>(move.remark_.size()));
-        }
-    };
-
-    std::function<void(Move&)> __set = [&](Move& move) {
-        if (fmt == RecFormat::ICCS)
-            move.setSeats(board_->getMoveSeatFromIccs(move.iccs_));
-        else if (fmt == RecFormat::ZH || fmt == RecFormat::CC)
-            move.setSeats(board_->getMoveSeatFromZh(move.zh_));
-        else {
-            move.setSeats(board_->getSeat(move.frowcol_), board_->getSeat(move.trowcol_));
-        }
-//assert(move.fseat_->piece());
-#ifndef NDEBUG
-        if (!move.fseat_->piece())
-            std::wcout << board_->toString() << move.toString() << std::endl;
-#endif
-
-        if (fmt != RecFormat::ZH && fmt != RecFormat::CC)
-            move.zh_ = board_->getZh(move.fseat_, move.tseat_);
-        if (fmt != RecFormat::ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON
-            move.iccs_ = board_->getIccs(move.fseat_, move.tseat_);
-
-        assert(move.zh_.size() == 4);
-        assert(move.iccs_.size() == 4);
-
-        ++movCount;
-        maxCol = std::max(maxCol, move.o_);
-        maxRow = std::max(maxRow, move.n_);
-        move.CC_Col_ = maxCol; // # 本着在视图中的列数
-        __setRemData(move);
-
-        move.done();
-        if (move.next_)
-            __set(*move.next_);
-        move.undo();
-        if (move.other_) {
-            ++maxCol;
-            __set(*move.other_);
-        }
-    };
-
-    __setRemData(*rootMove_);
-    if (rootMove_->next_)
-        __set(*rootMove_->next_); // 驱动函数
-}
-
-//const PieceColor Instance::currentColor() const
-//{
-//    return currentMove_->n_ % 2 == 0 ? firstColor_ : PieceSpace::getOthColor(firstColor_);
-//}
 
 const bool Instance::isStart() const { return !currentMove_->prev_.lock(); }
 
@@ -164,10 +77,6 @@ void Instance::goOther()
     if (currentMove_->other_) {
         currentMove_->undo();
         currentMove_ = currentMove_->other_->done();
-        //auto toMove = currentMove_->other_;
-        //board_->back(*currentMove_);
-        //board_->go(*toMove);
-        //currentMove_ = toMove;
     }
 }
 
@@ -196,13 +105,11 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     auto curmove = currentMove_;
     backFirst();
     board_->changeSide(ct);
-    setFEN(board_->getPieceChars());
+    info_->setFEN(board_->getPieceChars());
 
-    if (ct == ChangeType::EXCHANGE)
-        firstColor_ = firstColor_ == PieceColor::RED ? PieceColor::BLACK : PieceColor::RED;
-    else {
+    if (ct != ChangeType::EXCHANGE) {
         auto getChangeSeat = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotateSeat : &BoardSpace::Board::getSymmetrySeat);
-        std::function<void(Move&)> __setSeat = [&](Move& move) {
+        std::function<void(MoveSpace::Move&)> __setSeat = [&](MoveSpace::Move& move) {
             move.setSeats(getChangeSeat(this->board_, move.fseat_), getChangeSeat(this->board_, move.tseat_));
             if (move.next_)
                 __setSeat(*move.next_);
@@ -213,18 +120,9 @@ void Instance::changeSide(const ChangeType ct) // 未测试
             __setSeat(*rootMove_->next_); // 驱动调用递归函数
     }
 
-    if (ct != ChangeType::ROTATE)
-        setMoves(RecFormat::BIN); //借用RecFormat::BIN
+    rootMove_->setMoves(format_, board_); //借用RecFormat::BIN
     for (auto& move : curmove->getPrevMoves())
         move->done();
-}
-
-const std::wstring Instance::moveInfo() const
-{
-    std::wstringstream wss{};
-    wss << L"【着法深度：" << maxRow << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
-        << L", 注解数量：" << remCount << L", 注解最长：" << remLenMax << L"】\n";
-    return wss.str();
 }
 
 const std::wstring Instance::toString() const
@@ -244,11 +142,11 @@ const std::string getExtName(const RecFormat fmt)
     case RecFormat::JSON:
         return ".json";
     case RecFormat::ICCS:
-        return ".pgn1";
+        return ".pgn_iccs";
     case RecFormat::ZH:
-        return ".pgn2";
+        return ".pgn_zh";
     case RecFormat::CC:
-        return ".pgn3";
+        return ".pgn_cc";
     default:
         return ".pgn3";
     }
@@ -262,20 +160,20 @@ const RecFormat getRecFormat(const std::string& ext)
         return RecFormat::BIN;
     else if (ext == ".json")
         return RecFormat::JSON;
-    else if (ext == ".pgn1")
+    else if (ext == ".pgn_iccs")
         return RecFormat::ICCS;
-    else if (ext == ".pgn2")
+    else if (ext == ".pgn_zh")
         return RecFormat::ZH;
-    else if (ext == ".pgn3")
+    else if (ext == ".pgn_cc")
         return RecFormat::CC;
     else
         return RecFormat::CC;
 }
 
-void transDir(const std::string& dirfrom, const RecFormat fmt)
+void Instance::transDir(const std::string& dirfrom, const RecFormat fmt)
 {
     int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
-    std::string extensions{ ".xqf.pgn1.pgn2.pgn3.bin.json" };
+    std::string extensions{ ".xqf.pgn_iccs.pgn_zh.pgn_cc.bin.json" };
     std::string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + getExtName(fmt) };
     std::function<void(std::string, std::string)> __trans = [&](const std::string& dirfrom, std::string dirto) {
         long hFile = 0; //文件句柄
@@ -298,15 +196,13 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
                         fcount += 1;
 
                         //std::cout << infilename << std::endl;
-                        Instance ci{};
-                        ci.read(infilename);
-                        ci.write(fileto + getExtName(fmt));
+                        this->read(infilename);
+                        this->write(fileto + getExtName(fmt));
                         //std::cout << fileto << std::endl;
 
-                        movcount += ci.getMovCount();
-                        remcount += ci.getRemCount();
-                        if (remlenmax < ci.getRemLenMax())
-                            remlenmax = ci.getRemLenMax();
+                        movcount += rootMove_->getMovCount();
+                        remcount += rootMove_->getRemCount();
+                        remlenmax = std::max(remlenmax, rootMove_->getRemLenMax());
                     } else
                         Tools::copyFile(infilename.c_str(), (fileto + ext_old).c_str());
                 }
@@ -329,14 +225,15 @@ void testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
         "c:\\棋谱\\疑难文件",
         "c:\\棋谱\\中国象棋棋谱大全"
     };
-    std::vector<RecFormat> fmts{ RecFormat::XQF, RecFormat::ICCS, RecFormat::ZH, RecFormat::CC,
+    std::vector<RecFormat> fmts{ RecFormat::XQF, RecFormat::PGN_ICCS, RecFormat::PGN_ZH, RecFormat::PGN_CC,
         RecFormat::BIN, RecFormat::JSON };
+    Instance ci{};
     // 调节三个循环变量的初值、终值，控制转换目录
     for (int dir = fd; dir != td; ++dir)
         for (int fIndex = ff; fIndex != ft; ++fIndex)
             for (int tIndex = tf; tIndex != tt; ++tIndex)
                 if (tIndex != fIndex)
-                    transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
+                    ci.transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
 }
 
 const std::wstring Instance::test() const
@@ -351,8 +248,6 @@ const std::wstring Instance::test() const
 
         wss << L'\n' << board_->test() << L'\n';
     }
-    //wss << toString_ICCSZH() << L'\n' << toString_ICCSZH(RecFormat::ICCS)
-    //    << L'\n' << moveInfo() << toString();
     return wss.str();
 }
 }

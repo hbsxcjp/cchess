@@ -28,7 +28,7 @@ const std::wstring Board::getPieceChars() const
     std::wstringstream wss{};
     std::shared_ptr<PieceSpace::Piece> pie{};
     for_each(seats_.begin(), seats_.end(),
-        [&](const std::shared_ptr<SeatSpace::Seat>& seat) { wss << ((pie = seat->piece()) ? pie->ch() : getNullChar()); });
+        [&](const std::shared_ptr<SeatSpace::Seat>& seat) { wss << ((pie = seat->piece()) ? pie->ch() : nullChar); });
     return wss.str();
 }
 
@@ -211,7 +211,7 @@ void Board::putPieces(const std::wstring& pieceChars)
     int chIndex{ -1 };
     std::vector<bool> used(pieces_.size(), false);
     std::for_each(seats_.begin(), seats_.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
-        if ((ch = pieceChars[++chIndex]) != getNullChar()) {
+        if ((ch = pieceChars[++chIndex]) != nullChar) {
             for (int index = used.size() - 1; index >= 0; --index) {
                 if (!used[index] && pieces_[index]->ch() == ch) {
                     seat->put(pieces_[index]);
@@ -563,7 +563,7 @@ const std::wstring Board::__getSeatsStr(const std::vector<std::shared_ptr<SeatSp
     return wss.str();
 }
 
-const wchar_t Board::nullChar{ L'_' };
+const wchar_t Board::nullChar;
 const std::wstring Board::nameChars{ L"帅将仕士相象马车炮兵卒" };
 const std::wstring Board::movChars{ L"退平进" };
 const std::map<PieceColor, std::wstring> Board::numChars{
