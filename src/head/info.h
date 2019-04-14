@@ -10,9 +10,9 @@ enum class RecFormat;
 namespace InfoSpace {
 
 struct Key {
-    int KeyXYf{}, KeyXYt{}, version{}, KeyRMKSize{}, F32Keys[32]{};
+    unsigned char KeyXYf{}, KeyXYt{};
+    int version{}, KeyRMKSize{}, F32Keys[32]{};
 };
-static Key key{};
 
 class Info {
 public:
@@ -22,6 +22,7 @@ public:
     void write(std::ostream& os, RecFormat fmt) const;
     void setFEN(const std::wstring& pieceChars);
     const std::wstring getPieceChars() const;
+    const Key& getKey() { return key_; }
     const std::wstring toString() const;
 
 private:
@@ -35,6 +36,7 @@ private:
     void writeJSON(std::ostream& os) const;
 
     std::map<std::wstring, std::wstring> infoMap_;
+    Key key_;
 };
 
 const std::wstring getFEN(const std::wstring& pieceChars);

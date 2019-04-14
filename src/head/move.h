@@ -14,6 +14,10 @@ namespace SeatSpace {
 class Seat;
 }
 
+namespace InfoSpace {
+struct Key;
+}
+
 namespace BoardSpace {
 class Board;
 }
@@ -87,7 +91,7 @@ private:
 class RootMove : public Move {
 public:
     using Move::Move;
-    void read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board);
+    void read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board, const InfoSpace::Key& key);
     void write(std::ostream& os, RecFormat fmt) const;
     void setMoves(RecFormat fmt, const BoardSpace::Board& board);
     const std::wstring moveInfo() const;
@@ -99,7 +103,7 @@ public:
     const int getMaxCol() const { return maxCol; }
 
 private:
-    void readXQF(std::istream& is);
+    void readXQF(std::istream& is, const InfoSpace::Key& key);
     void writeXQF(std::ostream& os) const;
     const std::wstring getMoveStr(std::istream& is) const;
     void readPGN_ICCSZH(std::istream& is, RecFormat fmt);

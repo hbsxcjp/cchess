@@ -39,7 +39,7 @@ void Instance::read(const std::string& infilename)
     std::wcout << L"info read finished!\n" << info_->toString() << info_->getPieceChars() << std::endl;
     board_->putPieces(info_->getPieceChars());
     std::wcout << L"setBoard finished!\n" << board_->toString() << std::endl;
-    rootMove_->read(ifs, format_, *board_);
+    rootMove_->read(ifs, format_, *board_, info_->getKey());
     std::wcout << L"readFile finished!" << std::endl;
     currentMove_ = rootMove_;
 }

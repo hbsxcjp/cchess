@@ -79,16 +79,17 @@ const std::shared_ptr<Move>& Move::undo()
 const std::wstring Move::toString() const
 {
     std::wstringstream wss{};
-    wss << fseat()->toString() << L'>' << tseat()->toString() << L'-' << (eatPie() ? eatPie()->name() : L' ')
-        << iccs() << L' ' << zh() << L' ' << nextNo() << L' ' << otherNo() << L' ' << CC_ColNo() << L' ' << remark();
+    if (fseat())
+        wss << fseat()->toString() << L'>' << tseat()->toString() << L'-' << (eatPie() ? eatPie()->name() : L' ')
+            << iccs() << L' ' << zh() << L' ' << nextNo() << L' ' << otherNo() << L' ' << CC_ColNo() << L' ' << remark();
     return wss.str();
 }
 
-void RootMove::read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board)
+void RootMove::read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board, const InfoSpace::Key& key)
 {
     switch (fmt) {
     case RecFormat::XQF:
-        readXQF(is);
+        readXQF(is, key);
         break;
     case RecFormat::PGN_ICCS:
         readPGN_ICCSZH(is, RecFormat::PGN_ICCS);
@@ -200,105 +201,39 @@ const std::wstring RootMove::moveInfo() const
     return wss.str();
 }
 
-void RootMove::readXQF(std::istream& is)
-{ /*
-    char data[4]{};
+void RootMove::readXQF(std::istream& is, const InfoSpace::Key& key)
+{
+    unsigned char KeyXYf{ key.KeyXYf }, KeyXYt{ key.KeyXYt };
+    int version{ key.version }, KeyRMKSize{ key.KeyRMKSize };
     std::function<void(Move&)> __read = [&](Move& move) {
+        auto __sub = [](const int a, const int b) { return (256 + a - b) % 256; }; // 保持为<256
         auto __readbytes = [&](char* byteStr, int size) {
             int pos = is.tellg();
             is.read(byteStr, size);
-            if (InfoSpace::key.version > 10) // '字节串解密'
+            if (version > 10) // '字节解密'
                 for (int i = 0; i != size; ++i)
-                    byteStr[i] = (512 + byteStr[i] - InfoSpace::key.F32Keys[(pos + i) % 32]) % 256;
-        };
-        auto __readremarksize = [&]() {
-            __readbytes(data, 4);
-            int size{ *(int*)(unsigned char*)data };
-            return size - InfoSpace::key.KeyRMKSize;
-        };
-
-        __readbytes(data, 4);
-        //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
-        int fcolrow = (512 + data[0] - (0X18 + InfoSpace::key.KeyXYf)) % 256,
-            tcolrow = (512 + data[1] - (0X20 + InfoSpace::key.KeyXYt)) % 256;
-
-        if (fcolrow <= 89 && tcolrow <= 89) { // col<=8, row<=9
-            move.setFrowcol((fcolrow % 10) * 10 + fcolrow / 10);
-            move.setTrowcol((tcolrow % 10) * 10 + tcolrow / 10);
-        }
-        std::wcout << move.toString() << std::endl;
-
-        unsigned char ChildTag = data[2];
-        int RemarkSize = 0;
-        if (InfoSpace::key.version <= 0x0A) {
-            unsigned char b = 0;
-            if (ChildTag & 0xF0)
-                b = b | 0x80;
-            if (ChildTag & 0x0F)
-                b = b | 0x40;
-            ChildTag = b;
-            RemarkSize = __readremarksize();
-        } else {
-            ChildTag = ChildTag & 0xE0;
-            if (ChildTag & 0x20)
-                RemarkSize = __readremarksize();
-        }
-        if (RemarkSize > 0) { // # 如果有注解
-            char rem[RemarkSize + 1]{};
-            __readbytes(rem, RemarkSize);
-            move.setRemark(Tools::s2ws(rem));
-
-            std::wcout << move.remark() << std::endl;
-        }
-
-        std::wcout << "Read move line :" << __LINE__ << std::endl;
-        if (ChildTag & 0x80) //# 有左子树
-            __read(*move.addNext());
-        if (ChildTag & 0x40) // # 有右子树
-            __read(*move.addOther());
-    };
-//*/
-//*
-    char data[4]{};
-    auto __subbyte = [](int a, int b) { return (256 + a - b) % 256; };
-    std::function<void(Move&)> __read = [&](Move& move) {
-        //auto __byteToSeat = [&](int a, int b) {
-        //    int xy = __subbyte(a, b);
-        //    return getSeat(xy % 10, xy / 10);
-        //};
-        auto __readbytes = [&](char* byteStr, int size) {
-            int pos = is.tellg();
-            is.read(byteStr, size);
-            if (InfoSpace::key.version > 10) // '字节串解密'
-                for (int i = 0; i != size; ++i)
-                    byteStr[i] = __subbyte((unsigned char)(byteStr[i]), InfoSpace::key.F32Keys[(pos + i) % 32]);
+                    byteStr[i] = __sub((unsigned char)(byteStr[i]), key.F32Keys[(pos + i) % 32]);
         };
         auto __readremarksize = [&]() {
             char byteSize[4]{}; // 一定要初始化:{}
             __readbytes(byteSize, 4);
             int size{ *(int*)(unsigned char*)byteSize };
-            return size - InfoSpace::key.KeyRMKSize;
+            return size - KeyRMKSize;
         };
 
+        char data[4]{};
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
-        int fcolrow{ __subbyte(data[0], 0X18 + InfoSpace::key.KeyXYf) },
-            tcolrow{ __subbyte(data[1], 0X20 + InfoSpace::key.KeyXYt) };
-
-        if (fcolrow <= 89 && tcolrow <= 89) // col<=8, row<=9
-        {
+        int fcolrow{ __sub(data[0], 0X18 + KeyXYf) }, tcolrow{ __sub(data[1], 0X20 + KeyXYt) };
+        if (fcolrow <= 89 && tcolrow <= 89) { // col<=8, row<=9
             move.setFrowcol((fcolrow % 10) * 10 + fcolrow / 10);
             move.setTrowcol((tcolrow % 10) * 10 + tcolrow / 10);
-            //move.frowcol_ = (fcolrow % 10) << 4 | fcolrow / 10;
-            //move.trowcol_ = (tcolrow % 10) << 4 | tcolrow / 10;
         }
-        //move.setSeats(board_->getSeat(fcolrow % 10, fcolrow / 10), board_->getSeat(tcolrow % 10, tcolrow / 10));
-        //else // rootMove存在>=90情况
-        //move.setSeats(board_->getSeat(0, 0), board_->getSeat(0, 0));
+        //std::wcout << move.toString() << std::endl;
 
         char ChildTag = data[2];
         int RemarkSize = 0;
-        if (InfoSpace::key.version <= 0x0A) {
+        if (version <= 0x0A) {
             char b = 0;
             if (ChildTag & 0xF0)
                 b = b | 0x80;
@@ -324,9 +259,10 @@ void RootMove::readXQF(std::istream& is)
             __read(*move.addNext());
         if (ChildTag & 0x40) // # 有右子树
             __read(*move.addOther());
-    };//*/
+    };
 
-    std::wcout << "Start read move!" << std::endl;
+    std::wcout << "Start read move!  " << version << " " << KeyXYf << " "
+               << KeyXYt << " " << KeyRMKSize << " " << key.F32Keys[0] << std::endl;
     //is.seekg(1024);
     __read(*this);
     std::wcout << "Read move finished!" << std::endl;
