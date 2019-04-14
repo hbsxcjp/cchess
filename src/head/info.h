@@ -10,8 +10,7 @@ enum class RecFormat;
 namespace InfoSpace {
 
 struct Key {
-    unsigned char KeyXYf{}, KeyXYt{};
-    int version{}, KeyRMKSize{}, F32Keys[32]{};
+    int KeyXYf{}, KeyXYt{}, version{}, KeyRMKSize{}, F32Keys[32]{};
 };
 static Key key{};
 
@@ -19,21 +18,21 @@ class Info {
 public:
     Info();
 
-    void read(std::ifstream& ifs, RecFormat fmt);
-    void write(std::ofstream& ofs, RecFormat fmt) const;
+    void read(std::istream& is, RecFormat fmt);
+    void write(std::ostream& os, RecFormat fmt) const;
     void setFEN(const std::wstring& pieceChars);
     const std::wstring getPieceChars() const;
     const std::wstring toString() const;
 
 private:
-    void readXQF(std::ifstream& ifs);
-    void writeXQF(std::ofstream& ofs) const;
-    void readPGN(std::ifstream& ifs);
-    void writePGN(std::ofstream& ofs) const;
-    void readBIN(std::ifstream& ifs);
-    void writeBIN(std::ofstream& ofs) const;
-    void readJSON(std::ifstream& ifs);
-    void writeJSON(std::ofstream& ofs) const;
+    void readXQF(std::istream& is);
+    void writeXQF(std::ostream& os) const;
+    void readPGN(std::istream& is);
+    void writePGN(std::ostream& os) const;
+    void readBIN(std::istream& is);
+    void writeBIN(std::ostream& os) const;
+    void readJSON(std::istream& is);
+    void writeJSON(std::ostream& os) const;
 
     std::map<std::wstring, std::wstring> infoMap_;
 };

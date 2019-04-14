@@ -31,8 +31,9 @@ int main(int argc, char const* argv[])
     //*/
     //*
     InstanceSpace::Instance instance{};
-    instance.read("01.xqf"); //
     Tools::writeTxt("a.txt", instance.test());
+    instance.read("01.xqf"); //
+    //instance.write("01.pgn_cc"); //
     //*/
 
     auto time_d = steady_clock::now() - time0;

@@ -1,7 +1,7 @@
 #include "move.h"
 #include "../json/json.h"
-#include "info.h"
 #include "board.h"
+#include "info.h"
 #include "instance.h"
 #include "piece.h"
 #include "seat.h"
@@ -84,26 +84,26 @@ const std::wstring Move::toString() const
     return wss.str();
 }
 
-void RootMove::read(std::ifstream& ifs, RecFormat fmt, const BoardSpace::Board& board)
+void RootMove::read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board)
 {
     switch (fmt) {
     case RecFormat::XQF:
-        readXQF(ifs);
+        readXQF(is);
         break;
     case RecFormat::PGN_ICCS:
-        readPGN_ICCSZH(ifs, RecFormat::PGN_ICCS);
+        readPGN_ICCSZH(is, RecFormat::PGN_ICCS);
         break;
     case RecFormat::PGN_ZH:
-        readPGN_ICCSZH(ifs, RecFormat::PGN_ZH);
+        readPGN_ICCSZH(is, RecFormat::PGN_ZH);
         break;
     case RecFormat::PGN_CC:
-        readPGN_CC(ifs);
+        readPGN_CC(is);
         break;
     case RecFormat::BIN:
-        readBIN(ifs);
+        readBIN(is);
         break;
     case RecFormat::JSON:
-        readJSON(ifs);
+        readJSON(is);
         break;
     default:
         break;
@@ -111,26 +111,26 @@ void RootMove::read(std::ifstream& ifs, RecFormat fmt, const BoardSpace::Board& 
     setMoves(fmt, board);
 }
 
-void RootMove::write(std::ofstream& ofs, RecFormat fmt) const
+void RootMove::write(std::ostream& os, RecFormat fmt) const
 {
     switch (fmt) {
     case RecFormat::XQF:
-        writeXQF(ofs);
+        writeXQF(os);
         break;
     case RecFormat::PGN_ICCS:
-        writePGN_ICCSZH(ofs, RecFormat::PGN_ICCS);
+        writePGN_ICCSZH(os, RecFormat::PGN_ICCS);
         break;
     case RecFormat::PGN_ZH:
-        writePGN_ICCSZH(ofs, RecFormat::PGN_ZH);
+        writePGN_ICCSZH(os, RecFormat::PGN_ZH);
         break;
     case RecFormat::PGN_CC:
-        writePGN_CC(ofs);
+        writePGN_CC(os);
         break;
     case RecFormat::BIN:
-        writeBIN(ofs);
+        writeBIN(os);
         break;
     case RecFormat::JSON:
-        writeJSON(ofs);
+        writeJSON(os);
         break;
     default:
         break;
@@ -152,13 +152,14 @@ void RootMove::setMoves(RecFormat fmt, const BoardSpace::Board& board)
             move.setSeats(board.getMoveSeatFromIccs(move.iccs()));
         else if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC)
             move.setSeats(board.getMoveSeatFromZh(move.zh()));
-        else {
-            move.setSeats(board.getSeat(move.frowcol()), board.getSeat(move.trowcol()));
-        }
+        else
+            move.setSeats(board.getSeat(move.frowcol() / 10, move.frowcol() % 10),
+                board.getSeat(move.trowcol() / 10, move.trowcol() % 10));
+
 //assert(move.fseat()->piece());
 #ifndef NDEBUG
         if (!move.fseat()->piece())
-            std::wcout << board.toString() << move.toString() << std::endl;
+            std::wcout << __FILE__ << __LINE__ << board.toString() << move.toString() << std::endl;
 #endif
 
         if (fmt != RecFormat::PGN_ZH && fmt != RecFormat::PGN_CC)
@@ -185,6 +186,7 @@ void RootMove::setMoves(RecFormat fmt, const BoardSpace::Board& board)
         }
     };
 
+    std::wcout << "Start setMoves!" << std::endl;
     __setRemData(*this);
     if (this->next())
         __set(*this->next()); // 驱动函数
@@ -198,17 +200,16 @@ const std::wstring RootMove::moveInfo() const
     return wss.str();
 }
 
-
-void RootMove::readXQF(std::ifstream& ifs)
-{
+void RootMove::readXQF(std::istream& is)
+{ /*
     char data[4]{};
     std::function<void(Move&)> __read = [&](Move& move) {
         auto __readbytes = [&](char* byteStr, int size) {
-            int pos = ifs.tellg();
-            ifs.read(byteStr, size);
+            int pos = is.tellg();
+            is.read(byteStr, size);
             if (InfoSpace::key.version > 10) // '字节串解密'
                 for (int i = 0; i != size; ++i)
-                    byteStr[i] = static_cast<unsigned char>(byteStr[i]) - static_cast<unsigned char>(InfoSpace::key.F32Keys[(pos + i) % 32]);
+                    byteStr[i] = (512 + byteStr[i] - InfoSpace::key.F32Keys[(pos + i) % 32]) % 256;
         };
         auto __readremarksize = [&]() {
             __readbytes(data, 4);
@@ -218,13 +219,14 @@ void RootMove::readXQF(std::ifstream& ifs)
 
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
-        unsigned char fcolrow = static_cast<unsigned char>(data[0]) - static_cast<unsigned char>(0X18 + InfoSpace::key.KeyXYf),
-                      tcolrow = static_cast<unsigned char>(data[1]) - static_cast<unsigned char>(0X20 + InfoSpace::key.KeyXYt);
+        int fcolrow = (512 + data[0] - (0X18 + InfoSpace::key.KeyXYf)) % 256,
+            tcolrow = (512 + data[1] - (0X20 + InfoSpace::key.KeyXYt)) % 256;
 
         if (fcolrow <= 89 && tcolrow <= 89) { // col<=8, row<=9
-            move.setFrowcol((fcolrow % 10) << 4 | (fcolrow / 10));
-            move.setTrowcol((tcolrow % 10) << 4 | (tcolrow / 10));
+            move.setFrowcol((fcolrow % 10) * 10 + fcolrow / 10);
+            move.setTrowcol((tcolrow % 10) * 10 + tcolrow / 10);
         }
+        std::wcout << move.toString() << std::endl;
 
         unsigned char ChildTag = data[2];
         int RemarkSize = 0;
@@ -246,34 +248,105 @@ void RootMove::readXQF(std::ifstream& ifs)
             __readbytes(rem, RemarkSize);
             move.setRemark(Tools::s2ws(rem));
 
-            //std::wcout << move.remark() << std::endl;
+            std::wcout << move.remark() << std::endl;
         }
 
+        std::wcout << "Read move line :" << __LINE__ << std::endl;
         if (ChildTag & 0x80) //# 有左子树
             __read(*move.addNext());
         if (ChildTag & 0x40) // # 有右子树
             __read(*move.addOther());
     };
+//*/
+//*
+    char data[4]{};
+    auto __subbyte = [](int a, int b) { return (256 + a - b) % 256; };
+    std::function<void(Move&)> __read = [&](Move& move) {
+        //auto __byteToSeat = [&](int a, int b) {
+        //    int xy = __subbyte(a, b);
+        //    return getSeat(xy % 10, xy / 10);
+        //};
+        auto __readbytes = [&](char* byteStr, int size) {
+            int pos = is.tellg();
+            is.read(byteStr, size);
+            if (InfoSpace::key.version > 10) // '字节串解密'
+                for (int i = 0; i != size; ++i)
+                    byteStr[i] = __subbyte((unsigned char)(byteStr[i]), InfoSpace::key.F32Keys[(pos + i) % 32]);
+        };
+        auto __readremarksize = [&]() {
+            char byteSize[4]{}; // 一定要初始化:{}
+            __readbytes(byteSize, 4);
+            int size{ *(int*)(unsigned char*)byteSize };
+            return size - InfoSpace::key.KeyRMKSize;
+        };
 
-    ifs.seekg(1024);
+        __readbytes(data, 4);
+        //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
+        int fcolrow{ __subbyte(data[0], 0X18 + InfoSpace::key.KeyXYf) },
+            tcolrow{ __subbyte(data[1], 0X20 + InfoSpace::key.KeyXYt) };
+
+        if (fcolrow <= 89 && tcolrow <= 89) // col<=8, row<=9
+        {
+            move.setFrowcol((fcolrow % 10) * 10 + fcolrow / 10);
+            move.setTrowcol((tcolrow % 10) * 10 + tcolrow / 10);
+            //move.frowcol_ = (fcolrow % 10) << 4 | fcolrow / 10;
+            //move.trowcol_ = (tcolrow % 10) << 4 | tcolrow / 10;
+        }
+        //move.setSeats(board_->getSeat(fcolrow % 10, fcolrow / 10), board_->getSeat(tcolrow % 10, tcolrow / 10));
+        //else // rootMove存在>=90情况
+        //move.setSeats(board_->getSeat(0, 0), board_->getSeat(0, 0));
+
+        char ChildTag = data[2];
+        int RemarkSize = 0;
+        if (InfoSpace::key.version <= 0x0A) {
+            char b = 0;
+            if (ChildTag & 0xF0)
+                b = b | 0x80;
+            if (ChildTag & 0x0F)
+                b = b | 0x40;
+            ChildTag = b;
+            RemarkSize = __readremarksize();
+        } else {
+            ChildTag = ChildTag & 0xE0;
+            if (ChildTag & 0x20)
+                RemarkSize = __readremarksize();
+        }
+        if (RemarkSize > 0) { // # 如果有注解
+            char rem[RemarkSize + 1]{};
+            __readbytes(rem, RemarkSize);
+            move.setRemark(Tools::s2ws(rem));
+
+            std::wcout << move.remark() << std::endl;
+        }
+
+        std::wcout << "Read move line :" << __LINE__ << std::endl;
+        if (ChildTag & 0x80) //# 有左子树
+            __read(*move.addNext());
+        if (ChildTag & 0x40) // # 有右子树
+            __read(*move.addOther());
+    };//*/
+
+    std::wcout << "Start read move!" << std::endl;
+    //is.seekg(1024);
     __read(*this);
+    std::wcout << "Read move finished!" << std::endl;
 }
 
-void RootMove::writeXQF(std::ofstream& ofs) const {}
+void RootMove::writeXQF(std::ostream& os) const {}
 
-const std::wstring RootMove::getMoveStr(std::ifstream& ifs) const
+const std::wstring RootMove::getMoveStr(std::istream& is) const
 {
     std::stringstream ss{};
     std::string line{};
-    ifs >> std::noskipws;
-    while (ifs >> line) // 以空行为分割，接info read之后
+    is >> std::noskipws;
+    while (is >> line) // 以空行为分割，接info read之后
         ss << line;
     return Tools::s2ws(ss.str());
 }
 
-void RootMove::readPGN_ICCSZH(std::ifstream& ifs, RecFormat fmt)
+void RootMove::readPGN_ICCSZH(std::istream& is, RecFormat fmt)
 {
-    const std::wstring moveStr{ getMoveStr(ifs) };
+    const std::wstring moveStr{ getMoveStr(is) };
     std::wstring preStr{ LR"((?:\d+\.)?\s*\b([)" };
     std::wstring mvStr{ fmt == RecFormat::PGN_ZH ? LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
                                                  : LR"(abcdefghi\d)" };
@@ -316,7 +389,7 @@ void RootMove::readPGN_ICCSZH(std::ifstream& ifs, RecFormat fmt)
     }
 }
 
-void RootMove::writePGN_ICCSZH(std::ofstream& ofs, RecFormat fmt) const
+void RootMove::writePGN_ICCSZH(std::ostream& os, RecFormat fmt) const
 {
     std::wstringstream wss{};
     std::function<void(const Move&)> __remark = [&](const Move& move) {
@@ -341,12 +414,12 @@ void RootMove::writePGN_ICCSZH(std::ofstream& ofs, RecFormat fmt) const
     __remark(*this);
     if (this->next())
         __moveStr(*this->next(), false);
-    ofs << Tools::ws2s(wss.str());
+    os << Tools::ws2s(wss.str());
 }
 
-void RootMove::readPGN_CC(std::ifstream& ifs)
+void RootMove::readPGN_CC(std::istream& is)
 {
-    const std::wstring moveStr{ getMoveStr(ifs) };
+    const std::wstring moveStr{ getMoveStr(is) };
     auto pos = moveStr.find(L"\n(");
     std::wstring remStr{ pos < moveStr.size() ? moveStr.substr(pos) : L"" };
     std::wregex spfat{ LR"(\n)" }, mstrfat{ LR"(.{5})" },
@@ -389,7 +462,7 @@ void RootMove::readPGN_CC(std::ifstream& ifs)
         __read(*this, 1, 0, false);
 }
 
-void RootMove::writePGN_CC(std::ofstream& ofs) const
+void RootMove::writePGN_CC(std::ostream& os) const
 {
     std::wstringstream remStrs{};
     std::wstring lstr((getMaxCol() + 1) * 5, L'　');
@@ -416,14 +489,14 @@ void RootMove::writePGN_CC(std::ofstream& ofs) const
     for (auto& line : lineStr)
         wss << line << L'\n';
     wss << remStrs.str(); // << moveInfo();
-    ofs << Tools::ws2s(wss.str());
+    os << Tools::ws2s(wss.str());
 }
 
-void RootMove::readBIN(std::ifstream& ifs)
+void RootMove::readBIN(std::istream& is)
 {
     std::function<void(Move&)> __read = [&](Move& move) {
         char frowcol{}, trowcol{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
-        ifs.get(frowcol).get(trowcol).get(tag);
+        is.get(frowcol).get(trowcol).get(tag);
         move.setFrowcol(frowcol);
         move.setTrowcol(trowcol);
         //move.setSeats(board.getSeat(frowcol), board.getSeat(trowcol));
@@ -432,11 +505,11 @@ void RootMove::readBIN(std::ifstream& ifs)
         hasRemark = tag & 0x08;
         if (hasRemark) {
             char len[sizeof(int)]{};
-            ifs.read(len, sizeof(int));
+            is.read(len, sizeof(int));
             int length{ *(int*)len };
 
             char rem[length + 1]{};
-            ifs.read(rem, length);
+            is.read(rem, length);
             move.setRemark(Tools::s2ws(rem));
         }
         if (hasNext)
@@ -448,16 +521,16 @@ void RootMove::readBIN(std::ifstream& ifs)
     __read(*this);
 }
 
-void RootMove::writeBIN(std::ofstream& ofs) const
+void RootMove::writeBIN(std::ostream& os) const
 {
     std::function<void(const Move&)> __write = [&](const Move& move) {
         std::string remark{ Tools::ws2s(move.remark()) };
-        ofs.put(static_cast<char>(move.fseat()->rowcolValue()))
+        os.put(static_cast<char>(move.fseat()->rowcolValue()))
             .put(static_cast<char>(move.tseat()->rowcolValue()))
             .put(static_cast<char>((move.next() ? 0x80 : 0x00) | (move.other() ? 0x40 : 0x00) | (remark.empty() ? 0x00 : 0x08)));
         if (!remark.empty()) {
             int len = remark.size();
-            ofs.write((char*)&len, sizeof(int)).write(remark.c_str(), len);
+            os.write((char*)&len, sizeof(int)).write(remark.c_str(), len);
         }
         if (move.next())
             __write(*move.next());
@@ -468,12 +541,12 @@ void RootMove::writeBIN(std::ofstream& ofs) const
     __write(*this);
 }
 
-void RootMove::readJSON(std::ifstream& ifs)
+void RootMove::readJSON(std::istream& is)
 {
     Json::CharReaderBuilder builder;
     Json::Value root;
     JSONCPP_STRING errs;
-    if (!parseFromStream(builder, ifs, &root, &errs))
+    if (!parseFromStream(builder, is, &root, &errs))
         return;
 
     std::function<void(Move&, Json::Value&)> __read = [&](Move& move, Json::Value& item) {
@@ -494,7 +567,7 @@ void RootMove::readJSON(std::ifstream& ifs)
         __read(*this, rootItem);
 }
 
-void RootMove::writeJSON(std::ofstream& ofs) const
+void RootMove::writeJSON(std::ostream& os) const
 {
     std::function<Json::Value(const Move&)> __writeItem = [&](const Move& move) {
         Json::Value item{};
@@ -513,13 +586,13 @@ void RootMove::writeJSON(std::ofstream& ofs) const
     Json::StreamWriterBuilder builder;
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
     root["moves"] = __writeItem(*this);
-    writer->write(root, &ofs);
+    writer->write(root, &os);
 }
 
 /*
 void XQFInstanceRecord::read(const std::string& infilename, Instance& instance)
 {
-    std::ifstream ifs(infilename, std::ios_base::binary);
+    std::istream is(infilename, std::ios_base::binary);
     auto __subbyte = [](const int a, const int b) { return (256 + a - b) % 256; };
     std::function<unsigned char(unsigned char, unsigned char)> __calkey = [](unsigned char bKey, unsigned char cKey) {
         return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey % 256; // 保持为<256
@@ -540,15 +613,15 @@ void XQFInstanceRecord::read(const std::string& infilename, Instance& instance)
         Opening[65], Redtime[17], Blktime[17], Reservedh[33],
         RMKWriter[17], Author[17]; // 棋谱评论员/文件的作者
 
-    ifs.read(Signature, 2).read(Version_xqf, 1).read(headKeyMask, 1).read(ProductId, 4); // = 8 bytes
-    ifs.read(headKeyOrA, 1).read(headKeyOrB, 1).read(headKeyOrC, 1).read(headKeyOrD, 1).read(headKeysSum, 1).read(headKeyXY, 1).read(headKeyXYf, 1).read(headKeyXYt, 1); // = 16 bytes
-    ifs.read(headQiziXY, 32); // = 48 bytes
-    ifs.read(PlayStepNo, 2).read(headWhoPlay, 1).read(headPlayResult, 1).read(PlayNodes, 4).read(PTreePos, 4).read(Reserved1, 4); // = 64 bytes
-    ifs.read(headCodeA_H, 16).read(TitleA, 64).read(TitleB, 64); // 80 + 128 = 208 bytes
-    ifs.read(Event, 64).read(Date, 16).read(Site, 16).read(Red, 16).read(Black, 16); // = 336 bytes
-    ifs.read(Opening, 64).read(Redtime, 16).read(Blktime, 16).read(Reservedh, 32); // = 464 bytes
-    ifs.read(RMKWriter, 16).read(Author, 16); // = 496 bytes
-    ifs.ignore(528); // = 1024 bytes
+    is.read(Signature, 2).read(Version_xqf, 1).read(headKeyMask, 1).read(ProductId, 4); // = 8 bytes
+    is.read(headKeyOrA, 1).read(headKeyOrB, 1).read(headKeyOrC, 1).read(headKeyOrD, 1).read(headKeysSum, 1).read(headKeyXY, 1).read(headKeyXYf, 1).read(headKeyXYt, 1); // = 16 bytes
+    is.read(headQiziXY, 32); // = 48 bytes
+    is.read(PlayStepNo, 2).read(headWhoPlay, 1).read(headPlayResult, 1).read(PlayNodes, 4).read(PTreePos, 4).read(Reserved1, 4); // = 64 bytes
+    is.read(headCodeA_H, 16).read(TitleA, 64).read(TitleB, 64); // 80 + 128 = 208 bytes
+    is.read(Event, 64).read(Date, 16).read(Site, 16).read(Red, 16).read(Black, 16); // = 336 bytes
+    is.read(Opening, 64).read(Redtime, 16).read(Blktime, 16).read(Reservedh, 32); // = 464 bytes
+    is.read(RMKWriter, 16).read(Author, 16); // = 496 bytes
+    is.ignore(528); // = 1024 bytes
 
     int version{ Version_xqf[0] };
     std::map<std::wstring, std::wstring> info{};
@@ -619,8 +692,8 @@ void XQFInstanceRecord::read(const std::string& infilename, Instance& instance)
         //    return getSeat(xy % 10, xy / 10);
         //};
         auto __readbytes = [&](char* byteStr, const int size) {
-            int pos = ifs.tellg();
-            ifs.read(byteStr, size);
+            int pos = is.tellg();
+            is.read(byteStr, size);
             if (version > 10) // '字节串解密'
                 for (int i = 0; i != size; ++i)
                     byteStr[i] = __subbyte((unsigned char)(byteStr[i]), F32Keys[(pos + i) % 32]);
@@ -806,22 +879,22 @@ void InstanceRecord::__readMove_CC(const std::wstring& moveStr, Instance& instan
 
 void BINInstanceRecord::read(const std::string& infilename, Instance& instance)
 {
-    std::ifstream ifs(infilename, std::ios_base::binary);
+    std::istream is(infilename, std::ios_base::binary);
     char size{}, klen{}, vlen{};
     std::map<std::wstring, std::wstring> info{};
-    ifs.get(size);
+    is.get(size);
     for (int i = 0; i != size; ++i) {
-        ifs.get(klen);
+        is.get(klen);
         char key[klen + 1]{};
-        ifs.read(key, klen);
-        ifs.get(vlen);
+        is.read(key, klen);
+        is.get(vlen);
         char value[vlen + 1]{};
-        ifs.read(value, vlen);
+        is.read(value, vlen);
         info[Tools::s2ws(key)] = Tools::s2ws(value);
     }
     std::function<void(Move&)> __read = [&](Move& move) {
         char frowcol{}, trowcol{}, hasNext{}, hasOther{}, hasRemark{}, tag{};
-        ifs.get(frowcol).get(trowcol).get(tag);
+        is.get(frowcol).get(trowcol).get(tag);
         move.frowcol_ = frowcol;
         move.trowcol_ = trowcol;
         //move.setSeats(board_->getSeat(frowcol), board_->getSeat(trowcol));
@@ -830,11 +903,11 @@ void BINInstanceRecord::read(const std::string& infilename, Instance& instance)
         hasRemark = tag & 0x08;
         if (hasRemark) {
             char len[sizeof(int)]{};
-            ifs.read(len, sizeof(int));
+            is.read(len, sizeof(int));
             int length{ *(int*)len };
 
             char rem[length + 1]{};
-            ifs.read(rem, length);
+            is.read(rem, length);
             move.remark_ = Tools::s2ws(rem);
         }
         if (hasNext)
@@ -851,11 +924,11 @@ void BINInstanceRecord::read(const std::string& infilename, Instance& instance)
 
 void JSONInstanceRecord::read(const std::string& infilename, Instance& instance)
 {
-    std::ifstream ifs(infilename);
+    std::istream is(infilename);
     Json::CharReaderBuilder builder;
     Json::Value root;
     JSONCPP_STRING errs;
-    if (!parseFromStream(builder, ifs, &root, &errs))
+    if (!parseFromStream(builder, is, &root, &errs))
         return;
 
     Json::Value infoItem{ root["info"] };
@@ -968,21 +1041,21 @@ const std::wstring InstanceRecord::__getPGNTxt_CC(const Instance& instance) cons
 
 void BINInstanceRecord::write(const std::string& outfilename, const Instance& instance) const
 {
-    std::ofstream ofs(outfilename, std::ios_base::binary);
+    std::ostream os(outfilename, std::ios_base::binary);
     auto& info = getInfo();
-    ofs.put(char(info.size()));
+    os.put(char(info.size()));
     for (auto& kv : info) {
         std::string key{ Tools::ws2s(kv.first) }, value{ Tools::ws2s(kv.second) };
         char klen{ char(key.size()) }, vlen{ char(value.size()) };
-        ofs.put(klen).write(key.c_str(), klen).put(vlen).write(value.c_str(), vlen);
+        os.put(klen).write(key.c_str(), klen).put(vlen).write(value.c_str(), vlen);
     }
     std::function<void(const Move&)> __write = [&](const Move& move) {
         std::string remark{ Tools::ws2s(move.remark_) };
         int len{ int(remark.size()) };
-        ofs.put(char(move.fseat_->rowcolValue())).put(char(move.tseat_->rowcolValue()));
-        ofs.put(char(move.next_ ? 0x80 : 0x00) | char(move.other_ ? 0x40 : 0x00) | char(len > 0 ? 0x08 : 0x00));
+        os.put(char(move.fseat_->rowcolValue())).put(char(move.tseat_->rowcolValue()));
+        os.put(char(move.next_ ? 0x80 : 0x00) | char(move.other_ ? 0x40 : 0x00) | char(len > 0 ? 0x08 : 0x00));
         if (len > 0)
-            ofs.write((char*)&len, sizeof(int)).write(remark.c_str(), len);
+            os.write((char*)&len, sizeof(int)).write(remark.c_str(), len);
         if (move.next_)
             __write(*move.next_);
         if (move.other_)
@@ -994,7 +1067,7 @@ void BINInstanceRecord::write(const std::string& outfilename, const Instance& in
 
 void JSONInstanceRecord::write(const std::string& outfilename, const Instance& instance) const
 {
-    std::ofstream ofs(outfilename);
+    std::ostream os(outfilename);
     Json::Value root;
     Json::StreamWriterBuilder builder;
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
@@ -1019,7 +1092,7 @@ void JSONInstanceRecord::write(const std::string& outfilename, const Instance& i
     };
 
     root["moves"] = __writeItem(*getRootMove());
-    writer->write(root, &ofs);
+    writer->write(root, &os);
 }
 */
 }

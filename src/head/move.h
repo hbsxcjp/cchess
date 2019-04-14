@@ -87,8 +87,8 @@ private:
 class RootMove : public Move {
 public:
     using Move::Move;
-    void read(std::ifstream& ifs, RecFormat fmt, const BoardSpace::Board& board);
-    void write(std::ofstream& ofs, RecFormat fmt) const;
+    void read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board);
+    void write(std::ostream& os, RecFormat fmt) const;
     void setMoves(RecFormat fmt, const BoardSpace::Board& board);
     const std::wstring moveInfo() const;
 
@@ -99,17 +99,17 @@ public:
     const int getMaxCol() const { return maxCol; }
 
 private:
-    void readXQF(std::ifstream& ifs);
-    void writeXQF(std::ofstream& ofs) const;
-    const std::wstring getMoveStr(std::ifstream& ifs) const;
-    void readPGN_ICCSZH(std::ifstream& ifs, RecFormat fmt);
-    void writePGN_ICCSZH(std::ofstream& ofs, RecFormat fmt) const;
-    void readPGN_CC(std::ifstream& ifs);
-    void writePGN_CC(std::ofstream& ofs) const;
-    void readBIN(std::ifstream& ifs);
-    void writeBIN(std::ofstream& ofs) const;
-    void readJSON(std::ifstream& ifs);
-    void writeJSON(std::ofstream& ofs) const;
+    void readXQF(std::istream& is);
+    void writeXQF(std::ostream& os) const;
+    const std::wstring getMoveStr(std::istream& is) const;
+    void readPGN_ICCSZH(std::istream& is, RecFormat fmt);
+    void writePGN_ICCSZH(std::ostream& os, RecFormat fmt) const;
+    void readPGN_CC(std::istream& is);
+    void writePGN_CC(std::ostream& os) const;
+    void readBIN(std::istream& is);
+    void writeBIN(std::ostream& os) const;
+    void readJSON(std::istream& is);
+    void writeJSON(std::ostream& os) const;
 
     int movCount{ 0 }; //着法数量
     int remCount{ 0 }; //注解数量
