@@ -364,6 +364,8 @@ void RootMove::readXQF(std::istream& is, const InfoSpace::Key& key)
     unsigned char KeyXYf{ key.KeyXYf }, KeyXYt{ key.KeyXYt };
     int version{ key.Version_XQF }, KeyRMKSize{ key.KeyRMKSize };
     char data[4]{};
+    //auto __sub = [](const int a, const int b) { return (256 + a - b) % 256; };
+
     std::function<unsigned char(unsigned char, unsigned char)> __sub = [](unsigned char a, unsigned char b) {
         return a - b;
     }; // 保持为<256
@@ -378,10 +380,10 @@ void RootMove::readXQF(std::istream& is, const InfoSpace::Key& key)
     auto __readremarksize = [&]() {
         //char byteSize[4]{}; // 一定要初始化:{}
         __readbytes(data, 4);
-        return *(int*)data - KeyRMKSize;
+        assert(*(int*)data - key.KeyRMKSize > 0);
+        return *(int*)data - key.KeyRMKSize;
     };
     std::function<void(Move&)> __read = [&](Move& move) {
-        std::wcout << "Read move line :" << __LINE__ << std::endl;
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
         int fcolrow{ __sub(data[0], 0X18 + KeyXYf) }, tcolrow{ __sub(data[1], 0X20 + KeyXYt) };
@@ -405,6 +407,7 @@ void RootMove::readXQF(std::istream& is, const InfoSpace::Key& key)
             ChildTag = ChildTag & 0xE0;
             if (ChildTag & 0x20)
                 RemarkSize = __readremarksize();
+            std::cout << "Read move line :" << __LINE__ << " " << RemarkSize << std::endl;
         }
         if (RemarkSize > 0) { // # 如果有注解
             char rem[RemarkSize + 1]{};
@@ -420,14 +423,16 @@ void RootMove::readXQF(std::istream& is, const InfoSpace::Key& key)
             __read(*move.addOther());
     };
 
-    //is.seekg(1024);
+    is.seekg(1024);
     int p = is.tellg();
     std::wcout << "Start read move! -" << p << "- " << version << " " << KeyXYf << " "
                << KeyXYt << " " << KeyRMKSize << " " << std::endl;
     for (int i = 0; i != 32; ++i)
-        std::cout << key.F32Keys[i] << " ";
+        std::cout << int(key.F32Keys[i]) << " ";
     std::cout << std::endl;
+
     __read(*this);
+
     std::wcout << "Read move finished!" << std::endl;
 }
 

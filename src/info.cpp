@@ -118,7 +118,7 @@ void Info::readXQF(std::istream& is)
         headCodeA_H[16]{}, TitleA[65]{}, TitleB[65]{}, //对局类型(开,中,残等)
         Event[65]{}, Date[17]{}, Site[17]{}, Red[17]{}, Black[17]{},
         Opening[65]{}, Redtime[17]{}, Blktime[17]{}, Reservedh[33]{},
-        RMKWriter[17]{}, Author[17]{}, Other[528]{}; // 棋谱评论员/文件的作者
+        RMKWriter[17]{}, Author[17]{};//, Other[528]{}; // 棋谱评论员/文件的作者
 
     is.read(Signature, 2).get(Version_XQF).get(headKeyMask).read(ProductId, 4); // = 8 bytes
     is.get(headKeyOrA).get(headKeyOrB).get(headKeyOrC).get(headKeyOrD);
@@ -132,23 +132,16 @@ void Info::readXQF(std::istream& is)
     is.read(RMKWriter, 16).read(Author, 16); // = 496 bytes
     //int p = is.tellg();
     //std::wcout << "is pos 0: -" << p << "- " << std::endl;
-    is.read(Other, 528); // = 1024 bytes
+    //is.read(Other, 528); // = 1024 bytes
     //is.ignore(528); // = 1024 bytes
     //std::wcout << "is pos 1: -" << (p = is.tellg()) << "- " << std::endl;
-
-    unsigned char KeyXY{}; //,
-        //   head_KeyXY{ static_cast<unsigned char>(headKeyXY) },
-        //   head_KeyXYf{ static_cast<unsigned char>(headKeyXYf) },
-        //   head_KeyXYt{ static_cast<unsigned char>(headKeyXYt) },
-        //   head_KeysSum{ static_cast<unsigned char>(headKeysSum) };
-    unsigned char head_QiziXY[pieceNum]{};
 
     assert(Signature[0] == 0x58 || Signature[1] == 0x51);
     assert((headKeysSum + headKeyXY + headKeyXYf + headKeyXYt) % 256 == 0); // L" 检查密码校验和不对，不等于0。\n";
     assert(Version_XQF <= 18); // L" 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
 
     key_.Version_XQF = Version_XQF;
-    //auto __sub = [](const int a, const int b) { return (256 + a - b) % 256; }; // 保持为<256
+    unsigned char KeyXY{}, head_QiziXY[pieceNum]{};
     if (Version_XQF > 10) { // version <= 10 兼容1.0以前的版本
         std::function<unsigned char(unsigned char, unsigned char)> __calkey = [](unsigned char bKey, unsigned char cKey) {
             return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey; // % 256; // 保持为<256
