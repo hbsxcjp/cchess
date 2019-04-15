@@ -4,14 +4,15 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 enum class RecFormat;
 
 namespace InfoSpace {
 
 struct Key {
-    unsigned char KeyXYf{}, KeyXYt{};
-    int version{}, KeyRMKSize{}, F32Keys[32]{};
+    unsigned char Version_XQF{}, KeyXYf{}, KeyXYt{}, F32Keys[32]{};
+    int KeyRMKSize{};
 };
 
 class Info {

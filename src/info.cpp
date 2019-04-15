@@ -118,7 +118,7 @@ void Info::readXQF(std::istream& is)
         headCodeA_H[16]{}, TitleA[65]{}, TitleB[65]{}, //对局类型(开,中,残等)
         Event[65]{}, Date[17]{}, Site[17]{}, Red[17]{}, Black[17]{},
         Opening[65]{}, Redtime[17]{}, Blktime[17]{}, Reservedh[33]{},
-        RMKWriter[17]{}, Author[17]{}; // 棋谱评论员/文件的作者
+        RMKWriter[17]{}, Author[17]{}, Other[528]{}; // 棋谱评论员/文件的作者
 
     is.read(Signature, 2).get(Version_XQF).get(headKeyMask).read(ProductId, 4); // = 8 bytes
     is.get(headKeyOrA).get(headKeyOrB).get(headKeyOrC).get(headKeyOrD);
@@ -129,47 +129,48 @@ void Info::readXQF(std::istream& is)
     is.read(headCodeA_H, 16).read(TitleA, 64).read(TitleB, 64);
     is.read(Event, 64).read(Date, 16).read(Site, 16).read(Red, 16).read(Black, 16);
     is.read(Opening, 64).read(Redtime, 16).read(Blktime, 16).read(Reservedh, 32);
-    is.read(RMKWriter, 16).read(Author, 16);
-    is.ignore(528); // = 1024 bytes
+    is.read(RMKWriter, 16).read(Author, 16); // = 496 bytes
+    //int p = is.tellg();
+    //std::wcout << "is pos 0: -" << p << "- " << std::endl;
+    is.read(Other, 528); // = 1024 bytes
+    //is.ignore(528); // = 1024 bytes
+    //std::wcout << "is pos 1: -" << (p = is.tellg()) << "- " << std::endl;
 
-    unsigned char KeyXY{},
-        head_KeyXY{ static_cast<unsigned char>(headKeyXY) },
-        head_KeyXYf{ static_cast<unsigned char>(headKeyXYf) },
-        head_KeyXYt{ static_cast<unsigned char>(headKeyXYt) },
-        head_KeysSum{ static_cast<unsigned char>(headKeysSum) };
-    unsigned char* head_QiziXY{ (unsigned char*)headQiziXY };
+    unsigned char KeyXY{}; //,
+        //   head_KeyXY{ static_cast<unsigned char>(headKeyXY) },
+        //   head_KeyXYf{ static_cast<unsigned char>(headKeyXYf) },
+        //   head_KeyXYt{ static_cast<unsigned char>(headKeyXYt) },
+        //   head_KeysSum{ static_cast<unsigned char>(headKeysSum) };
+    unsigned char head_QiziXY[pieceNum]{};
 
     assert(Signature[0] == 0x58 || Signature[1] == 0x51);
-    assert((head_KeysSum + head_KeyXY + head_KeyXYf + head_KeyXYt) % 256 == 0); // L" 检查密码校验和不对，不等于0。\n";
+    assert((headKeysSum + headKeyXY + headKeyXYf + headKeyXYt) % 256 == 0); // L" 检查密码校验和不对，不等于0。\n";
     assert(Version_XQF <= 18); // L" 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
 
-    key_.version = Version_XQF;
-    auto __sub = [](const int a, const int b) { return (256 + a - b) % 256; }; // 保持为<256
-    if (key_.version <= 10) { // 兼容1.0以前的版本
-        KeyXY = key_.KeyXYf = key_.KeyXYt = 0;
-        key_.KeyRMKSize = 0;
-    } else {
+    key_.Version_XQF = Version_XQF;
+    //auto __sub = [](const int a, const int b) { return (256 + a - b) % 256; }; // 保持为<256
+    if (Version_XQF > 10) { // version <= 10 兼容1.0以前的版本
         std::function<unsigned char(unsigned char, unsigned char)> __calkey = [](unsigned char bKey, unsigned char cKey) {
-            return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey % 256; // 保持为<256
+            return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey; // % 256; // 保持为<256
         };
-        KeyXY = __calkey(head_KeyXY, head_KeyXY);
-        key_.KeyXYf = __calkey(head_KeyXYf, KeyXY);
-        key_.KeyXYt = __calkey(head_KeyXYt, key_.KeyXYf);
-        key_.KeyRMKSize = ((head_KeysSum * 256 + head_KeyXY) % 32000) + 767; // % 65536
-        if (key_.version >= 12) { // 棋子位置循环移动
+        KeyXY = __calkey(headKeyXY, headKeyXY);
+        key_.KeyXYf = __calkey(headKeyXYf, KeyXY);
+        key_.KeyXYt = __calkey(headKeyXYt, key_.KeyXYf);
+        key_.KeyRMKSize = ((static_cast<unsigned char>(headKeysSum) * 256 + static_cast<unsigned char>(headKeyXY)) % 32000) + 767; // % 65536
+        if (Version_XQF >= 12) { // 棋子位置循环移动
             std::vector<unsigned char> Qixy(std::begin(headQiziXY), std::end(headQiziXY)); // 数组不能拷贝
             for (int i = 0; i != pieceNum; ++i)
                 head_QiziXY[(i + KeyXY + 1) % pieceNum] = Qixy[i];
         }
         for (int i = 0; i != pieceNum; ++i)
-            head_QiziXY[i] = __sub(head_QiziXY[i], KeyXY); // 保持为8位无符号整数，<256
+            head_QiziXY[i] -= KeyXY; // 保持为8位无符号整数，<256
     }
-
-    char KeyBytes[4];
-    KeyBytes[0] = (headKeysSum & headKeyMask) | headKeyOrA;
-    KeyBytes[1] = (headKeyXY & headKeyMask) | headKeyOrB;
-    KeyBytes[2] = (headKeyXYf & headKeyMask) | headKeyOrC;
-    KeyBytes[3] = (headKeyXYt & headKeyMask) | headKeyOrD;
+    int KeyBytes[4]{
+        (headKeysSum & headKeyMask) | headKeyOrA,
+        (headKeyXY & headKeyMask) | headKeyOrB,
+        (headKeyXYf & headKeyMask) | headKeyOrC,
+        (headKeyXYt & headKeyMask) | headKeyOrD
+    };
     const std::string copyright{ "[(C) Copyright Mr. Dong Shiwei.]" };
     for (int i = 0; i != pieceNum; ++i)
         key_.F32Keys[i] = copyright[i] & KeyBytes[i % 4]; // ord(c)
@@ -182,9 +183,8 @@ void Info::readXQF(std::istream& is)
         if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
-
     infoMap_ = std::map<std::wstring, std::wstring>{
-        { L"Version_xqf", std::to_wstring(key_.version) },
+        { L"Version_xqf", std::to_wstring(Version_XQF) },
         { L"Result", (std::map<unsigned char, std::wstring>{ { 0, L"未知" }, { 1, L"红胜" }, { 2, L"黑胜" }, { 3, L"和棋" } })[headPlayResult] },
         { L"PlayType", (std::map<unsigned char, std::wstring>{ { 0, L"全局" }, { 1, L"开局" }, { 2, L"中局" }, { 3, L"残局" } })[headCodeA_H[0]] },
         { L"TitleA", Tools::s2ws(TitleA) },

@@ -362,24 +362,26 @@ void Instance::readXQF(const string& filename)
 void RootMove::readXQF(std::istream& is, const InfoSpace::Key& key)
 {
     unsigned char KeyXYf{ key.KeyXYf }, KeyXYt{ key.KeyXYt };
-    int version{ key.version }, KeyRMKSize{ key.KeyRMKSize };
+    int version{ key.Version_XQF }, KeyRMKSize{ key.KeyRMKSize };
+    char data[4]{};
+    std::function<unsigned char(unsigned char, unsigned char)> __sub = [](unsigned char a, unsigned char b) {
+        return a - b;
+    }; // 保持为<256
+    auto __readbytes = [&](char* bytes, int size) {
+        int pos = is.tellg();
+        std::wcout << "pos :" << pos << std::endl;
+        is.read(bytes, size);
+        if (version > 10) // '字节解密'
+            for (int i = 0; i != size; ++i)
+                bytes[i] = __sub(bytes[i], key.F32Keys[(pos + i) % 32]);
+    };
+    auto __readremarksize = [&]() {
+        //char byteSize[4]{}; // 一定要初始化:{}
+        __readbytes(data, 4);
+        return *(int*)data - KeyRMKSize;
+    };
     std::function<void(Move&)> __read = [&](Move& move) {
-        auto __sub = [](const int a, const int b) { return (256 + a - b) % 256; }; // 保持为<256
-        auto __readbytes = [&](char* byteStr, int size) {
-            int pos = is.tellg();
-            is.read(byteStr, size);
-            if (version > 10) // '字节解密'
-                for (int i = 0; i != size; ++i)
-                    byteStr[i] = __sub((unsigned char)(byteStr[i]), key.F32Keys[(pos + i) % 32]);
-        };
-        auto __readremarksize = [&]() {
-            char byteSize[4]{}; // 一定要初始化:{}
-            __readbytes(byteSize, 4);
-            int size{ *(int*)(unsigned char*)byteSize };
-            return size - KeyRMKSize;
-        };
-
-        char data[4]{};
+        std::wcout << "Read move line :" << __LINE__ << std::endl;
         __readbytes(data, 4);
         //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
         int fcolrow{ __sub(data[0], 0X18 + KeyXYf) }, tcolrow{ __sub(data[1], 0X20 + KeyXYt) };
@@ -412,16 +414,19 @@ void RootMove::readXQF(std::istream& is, const InfoSpace::Key& key)
             std::wcout << move.remark() << std::endl;
         }
 
-        std::wcout << "Read move line :" << __LINE__ << std::endl;
         if (ChildTag & 0x80) //# 有左子树
             __read(*move.addNext());
         if (ChildTag & 0x40) // # 有右子树
             __read(*move.addOther());
     };
 
-    std::wcout << "Start read move!  " << version << " " << KeyXYf << " "
-               << KeyXYt << " " << KeyRMKSize << " " << key.F32Keys[0] << std::endl;
     //is.seekg(1024);
+    int p = is.tellg();
+    std::wcout << "Start read move! -" << p << "- " << version << " " << KeyXYf << " "
+               << KeyXYt << " " << KeyRMKSize << " " << std::endl;
+    for (int i = 0; i != 32; ++i)
+        std::cout << key.F32Keys[i] << " ";
+    std::cout << std::endl;
     __read(*this);
     std::wcout << "Read move finished!" << std::endl;
 }
