@@ -16,7 +16,7 @@ int main(int argc, char const* argv[])
     std::ios_base::sync_with_stdio(false);
 
     auto time0 = steady_clock::now();
-    /*
+    //*
     if (argc == 7)
         InstanceSpace::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
             std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));
@@ -29,11 +29,13 @@ int main(int argc, char const* argv[])
     Tools::writeTxt("a.txt", board.test());
     std::wcout << board.test() << std::endl;
     //*/
-    //*
+    /*
     InstanceSpace::Instance instance{};
     Tools::writeTxt("a.txt", instance.test());
     instance.read("01.xqf"); //
-    //instance.write("01.pgn_cc"); //
+    instance.write("01.pgn_iccs"); //
+    instance.write("01.pgn_zh"); //
+    instance.write("01.pgn_cc"); //
     //*/
 
     auto time_d = steady_clock::now() - time0;

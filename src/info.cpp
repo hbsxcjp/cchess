@@ -45,6 +45,7 @@ Info::Info()
 
 void Info::read(std::istream& is, RecFormat fmt)
 {
+    key_ = Key{};
     switch (fmt) {
     case RecFormat::XQF:
         readXQF(is);
@@ -118,7 +119,7 @@ void Info::readXQF(std::istream& is)
         headCodeA_H[16]{}, TitleA[65]{}, TitleB[65]{}, //对局类型(开,中,残等)
         Event[65]{}, Date[17]{}, Site[17]{}, Red[17]{}, Black[17]{},
         Opening[65]{}, Redtime[17]{}, Blktime[17]{}, Reservedh[33]{},
-        RMKWriter[17]{}, Author[17]{};//, Other[528]{}; // 棋谱评论员/文件的作者
+        RMKWriter[17]{}, Author[17]{}; //, Other[528]{}; // 棋谱评论员/文件的作者
 
     is.read(Signature, 2).get(Version_XQF).get(headKeyMask).read(ProductId, 4); // = 8 bytes
     is.get(headKeyOrA).get(headKeyOrB).get(headKeyOrC).get(headKeyOrD);
@@ -129,19 +130,14 @@ void Info::readXQF(std::istream& is)
     is.read(headCodeA_H, 16).read(TitleA, 64).read(TitleB, 64);
     is.read(Event, 64).read(Date, 16).read(Site, 16).read(Red, 16).read(Black, 16);
     is.read(Opening, 64).read(Redtime, 16).read(Blktime, 16).read(Reservedh, 32);
-    is.read(RMKWriter, 16).read(Author, 16); // = 496 bytes
-    //int p = is.tellg();
-    //std::wcout << "is pos 0: -" << p << "- " << std::endl;
-    //is.read(Other, 528); // = 1024 bytes
-    //is.ignore(528); // = 1024 bytes
-    //std::wcout << "is pos 1: -" << (p = is.tellg()) << "- " << std::endl;
+    is.read(RMKWriter, 16).read(Author, 16);
 
     assert(Signature[0] == 0x58 || Signature[1] == 0x51);
     assert((headKeysSum + headKeyXY + headKeyXYf + headKeyXYt) % 256 == 0); // L" 检查密码校验和不对，不等于0。\n";
     assert(Version_XQF <= 18); // L" 这是一个高版本的XQF文件，您需要更高版本的XQStudio来读取这个文件。\n";
 
     key_.Version_XQF = Version_XQF;
-    unsigned char KeyXY{}, head_QiziXY[pieceNum]{};
+    unsigned char KeyXY{}, *head_QiziXY{ (unsigned char*)headQiziXY };
     if (Version_XQF > 10) { // version <= 10 兼容1.0以前的版本
         std::function<unsigned char(unsigned char, unsigned char)> __calkey = [](unsigned char bKey, unsigned char cKey) {
             return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey; // % 256; // 保持为<256

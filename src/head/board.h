@@ -44,7 +44,7 @@ public:
     Board();
 
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int row, const int col) const { return seats_.at(row * ColNum + col); }
-    //const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const { return getSeat(rowcol / 10, rowcol % 10); }
+    const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const { return getSeat(rowcol / 10, rowcol % 10); }
     const std::shared_ptr<SeatSpace::Seat>& getRotateSeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
     const std::shared_ptr<SeatSpace::Seat>& getSymmetrySeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
 

@@ -33,14 +33,15 @@ Instance::Instance()
 
 void Instance::read(const std::string& infilename)
 {
-    std::ifstream ifs(infilename);
     format_ = getRecFormat(Tools::getExt(infilename));
+    std::ifstream ifs;
+    ifs = format_ != RecFormat::XQF ? std::ifstream(infilename) : std::ifstream(infilename, std::ios_base::binary);
     info_->read(ifs, format_);
-    std::wcout << L"info read finished!\n" << info_->toString() << info_->getPieceChars() << std::endl;
+    //std::wcout << L"info finished!" << std::endl;// << info_->toString() << info_->getPieceChars()
     board_->putPieces(info_->getPieceChars());
-    std::wcout << L"setBoard finished!\n" << board_->toString() << std::endl;
+    //std::wcout << L"board_->putPieces finished!" << std::endl;// << board_->toString()
     rootMove_->read(ifs, format_, *board_, info_->getKey());
-    std::wcout << L"readFile finished!" << std::endl;
+    //std::wcout << L"rootMove finished!" << std::endl;
     currentMove_ = rootMove_;
 }
 
@@ -49,9 +50,9 @@ void Instance::write(const std::string& outfilename)
     std::ofstream ofs(outfilename);
     format_ = getRecFormat(Tools::getExt(outfilename));
     info_->write(ofs, format_);
-    std::wcout << L"writeInfo finished!" << std::endl;
+    //std::wcout << L"writeInfo finished!" << std::endl;
     rootMove_->write(ofs, format_);
-    std::wcout << L"writeMove finished!" << std::endl;
+    //std::wcout << L"writeMove finished!" << std::endl;
 }
 
 const bool Instance::isStart() const { return !currentMove_->prev(); }
@@ -173,7 +174,13 @@ RecFormat getRecFormat(const std::string& ext)
         return RecFormat::PGN_CC;
 }
 
-void Instance::transDir(const std::string& dirfrom, const RecFormat fmt)
+const int Instance::getMovCount() const { return rootMove_->getMovCount(); }
+const int Instance::getRemCount() const { return rootMove_->getRemCount(); }
+const int Instance::getRemLenMax() const { return rootMove_->getRemLenMax(); }
+const int Instance::getMaxRow() const { return rootMove_->getMaxRow(); }
+const int Instance::getMaxCol() const { return rootMove_->getMaxCol(); }
+
+void transDir(const std::string& dirfrom, const RecFormat fmt)
 {
     int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
     std::string extensions{ ".xqf.pgn_iccs.pgn_zh.pgn_cc.bin.json" };
@@ -199,13 +206,14 @@ void Instance::transDir(const std::string& dirfrom, const RecFormat fmt)
                         fcount += 1;
 
                         //std::cout << infilename << std::endl;
-                        this->read(infilename);
-                        this->write(fileto + getExtName(fmt));
+                        Instance ci{};
+                        ci.read(infilename);
+                        ci.write(fileto + getExtName(fmt));
                         //std::cout << fileto << std::endl;
 
-                        movcount += rootMove_->getMovCount();
-                        remcount += rootMove_->getRemCount();
-                        remlenmax = std::max(remlenmax, rootMove_->getRemLenMax());
+                        movcount += ci.getMovCount();
+                        remcount += ci.getRemCount();
+                        remlenmax = std::max(remlenmax, ci.getRemLenMax());
                     } else
                         Tools::copyFile(infilename.c_str(), (fileto + ext_old).c_str());
                 }
@@ -230,13 +238,12 @@ void testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
     };
     std::vector<RecFormat> fmts{ RecFormat::XQF, RecFormat::PGN_ICCS, RecFormat::PGN_ZH, RecFormat::PGN_CC,
         RecFormat::BIN, RecFormat::JSON };
-    Instance ci{};
     // 调节三个循环变量的初值、终值，控制转换目录
     for (int dir = fd; dir != td; ++dir)
         for (int fIndex = ff; fIndex != ft; ++fIndex)
             for (int tIndex = tf; tIndex != tt; ++tIndex)
                 if (tIndex != fIndex)
-                    ci.transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
+                    transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
 }
 
 const std::wstring Instance::test() const

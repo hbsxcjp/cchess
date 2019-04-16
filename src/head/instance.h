@@ -57,9 +57,14 @@ public:
     void goLast();
     void goInc(const int inc);
     void changeSide(const ChangeType ct);
-    void transDir(const std::string& dirfrom, const RecFormat fmt);
     const std::wstring toString() const;
     const std::wstring test() const;
+
+    const int getMovCount() const;
+    const int getRemCount() const;
+    const int getRemLenMax() const;
+    const int getMaxRow() const;
+    const int getMaxCol() const;
 
 private:
     RecFormat format_;
@@ -71,6 +76,7 @@ private:
 
 const std::string getExtName(const RecFormat fmt);
 RecFormat getRecFormat(const std::string& ext);
+void transDir(const std::string& dirfrom, const RecFormat fmt);
 void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
 }
 
