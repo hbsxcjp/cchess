@@ -26,7 +26,7 @@ Info::Info()
         { L"ECCO", L"" },
         { L"Event", L"" },
         { L"FEN", L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR r - - 0 1" },
-        { L"Format", L"ZH" },
+        { L"Format", L"" },
         { L"Game", L"Chinese Chess" },
         { L"Opening", L"" },
         { L"PlayType", L"" },
@@ -63,8 +63,9 @@ void Info::read(std::istream& is, RecFormat fmt)
     infoMap_[L"Format"] = Tools::s2ws(InstanceSpace::getExtName(fmt));
 }
 
-void Info::write(std::ostream& os, RecFormat fmt) const
+void Info::write(std::ostream& os, RecFormat fmt)
 {
+    infoMap_[L"Format"] = Tools::s2ws(InstanceSpace::getExtName(fmt));
     switch (fmt) {
     case RecFormat::XQF:
         writeXQF(os);
@@ -153,6 +154,8 @@ void Info::readXQF(std::istream& is)
         }
         for (int i = 0; i != pieceNum; ++i)
             head_QiziXY[i] -= KeyXY; // 保持为8位无符号整数，<256
+    } else {
+        key_.KeyRMKSize = key_.KeyXYf = key_.KeyXYt = 0;
     }
     int KeyBytes[4]{
         (headKeysSum & headKeyMask) | headKeyOrA,

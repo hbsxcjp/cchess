@@ -32,14 +32,14 @@ const std::wstring Board::getPieceChars() const
     return wss.str();
 }
 
-const std::shared_ptr<SeatSpace::Seat>& Board::getRotateSeat(const std::shared_ptr<SeatSpace::Seat>& seat) const
+const int Board::getRotate(int rowcol) const
 { // ChangeType::ROTATE旋转
-    return getSeat(RowNum - seat->row() - 1, ColNum - seat->col() - 1);
+    return (RowNum - rowcol / 10 - 1) * 10 + (ColNum - rowcol % 10 - 1);
 }
 
-const std::shared_ptr<SeatSpace::Seat>& Board::getSymmetrySeat(const std::shared_ptr<SeatSpace::Seat>& seat) const
+const int Board::getSymmetry(int rowcol) const
 { // ChangeType::SYMMETRY 对称
-    return getSeat(seat->row(), ColNum - seat->col() - 1);
+    return rowcol / 10 + (ColNum - rowcol % 10 - 1);
 }
 
 const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
@@ -204,7 +204,7 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::moveSeats(std::shared
     return seats;
 }
 
-void Board::putPieces(const std::wstring& pieceChars)
+void Board::reset(const std::wstring& pieceChars)
 {
     assert(seats_.size() == pieceChars.size());
     wchar_t ch{};
@@ -231,12 +231,10 @@ void Board::changeSide(const ChangeType ct)
     auto getOthPiece = [&](const std::shared_ptr<PieceSpace::Piece>& piece) {
         return pieces_.at((std::distance(pieces_.begin(), std::find(pieces_.begin(), pieces_.end(), piece)) + 16) % 32);
     };
-    //auto getChangeSeat = std::mem_fn(ct == ChangeType::ROTATE ? &Board::getRotateSeat : &Board::getSymmetrySeat);
+    auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &Board::getRotate : &Board::getSymmetry);
     for_each(seats_.begin(), seats_.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
         seatPieces.push_back(ct == ChangeType::EXCHANGE ? (seat->piece() ? getOthPiece(seat->piece()) : nullptr)
-                                                        : (ct == ChangeType::ROTATE ? getRotateSeat(seat)->piece()
-                                                                                    : getSymmetrySeat(seat)->piece()));
-        //: getChangeSeat(this, seat)->piece());
+                                                        : getSeat(changeRowcol(this, seat->rowcol()))->piece());
     });
     int index{ -1 };
     for_each(seats_.begin(), seats_.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) {

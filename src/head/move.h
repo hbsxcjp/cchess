@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace PieceSpace {
 class Piece;
@@ -68,7 +69,7 @@ public:
     const std::shared_ptr<Move>& done();
     const std::shared_ptr<Move>& undo();
     std::vector<std::shared_ptr<Move>> getPrevMoves();
-    const std::wstring toString() const;
+    virtual const std::wstring toString() const;
 
 private:
     std::shared_ptr<SeatSpace::Seat> fseat_{};
@@ -88,13 +89,17 @@ private:
     int CC_ColNo_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
 };
 
-class RootMove : public Move {
+class MoveManager {
 public:
-    using Move::Move;
+    MoveManager() = default;
+
     void read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board, const InfoSpace::Key& key);
     void write(std::ostream& os, RecFormat fmt) const;
     void setMoves(RecFormat fmt, const BoardSpace::Board& board);
+    void changeSide(const BoardSpace::Board* board, std::_Mem_fn<const int (BoardSpace::Board::*)(int rowcol) const> changeRowcol);
+    const std::wstring& remark() const { return remark_; }
     const std::wstring moveInfo() const;
+    const std::wstring toString() const;
 
     const int getMovCount() const { return movCount; }
     const int getRemCount() const { return remCount; }
@@ -105,7 +110,7 @@ public:
 private:
     void readXQF(std::istream& is, const InfoSpace::Key& key);
     void writeXQF(std::ostream& os) const;
-    const std::wstring getMoveStr(std::istream& is) const;
+    const std::wstring __getMoveStr(std::istream& is) const;
     void readPGN_ICCSZH(std::istream& is, RecFormat fmt);
     void writePGN_ICCSZH(std::ostream& os, RecFormat fmt) const;
     void readPGN_CC(std::istream& is);
@@ -115,6 +120,8 @@ private:
     void readJSON(std::istream& is);
     void writeJSON(std::ostream& os) const;
 
+    std::shared_ptr<Move> rootMove_{};
+    std::wstring remark_{}; // 注释
     int movCount{ 0 }; //着法数量
     int remCount{ 0 }; //注解数量
     int remLenMax{ 0 }; //注解最大长度

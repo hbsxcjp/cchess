@@ -23,7 +23,7 @@ public:
 
     const int row() const { return row_; }
     const int col() const { return col_; }
-    const int rowcolValue() const { return row_ << 4 | col_; } // 高四位为行，低四位为列
+    const int rowcol() const { return row_ * 10 + col_; }
     const std::shared_ptr<PieceSpace::Piece> piece() const { return piece_; }
     const bool isDiffColor(const std::shared_ptr<Seat>& fseat) const;
     void put(const std::shared_ptr<PieceSpace::Piece>& piece = nullptr) { piece_ = piece; } // 置入棋子

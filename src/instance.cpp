@@ -23,41 +23,41 @@ namespace InstanceSpace {
 
 // Instance
 Instance::Instance()
-    : format_{ RecFormat::XQF }
-    , info_{ std::make_shared<InfoSpace::Info>() }
+    : info_{ std::make_shared<InfoSpace::Info>() }
     , board_{ std::make_shared<BoardSpace::Board>() }
-    , rootMove_{ std::make_shared<MoveSpace::RootMove>() }
-    , currentMove_(rootMove_)
+    , moveManager_{ std::make_shared<MoveSpace::MoveManager>() }
+    , currentMove_{}
 {
 }
 
 void Instance::read(const std::string& infilename)
 {
-    format_ = getRecFormat(Tools::getExt(infilename));
+    RecFormat fmt = getRecFormat(Tools::getExt(infilename));
     std::ifstream ifs;
-    ifs = format_ != RecFormat::XQF ? std::ifstream(infilename) : std::ifstream(infilename, std::ios_base::binary);
-    info_->read(ifs, format_);
+    ifs = fmt != RecFormat::XQF ? std::ifstream(infilename) : std::ifstream(infilename, std::ios_base::binary);
+    info_ = std::make_shared<InfoSpace::Info>();
+    info_->read(ifs, fmt);
     //std::wcout << L"info finished!" << std::endl;// << info_->toString() << info_->getPieceChars()
-    board_->putPieces(info_->getPieceChars());
-    //std::wcout << L"board_->putPieces finished!" << std::endl;// << board_->toString()
-    rootMove_->read(ifs, format_, *board_, info_->getKey());
+    board_->reset(info_->getPieceChars());
+    //std::wcout << L"board_->reset finished!" << std::endl;// << board_->toString()
+    moveManager_ = std::make_shared<MoveSpace::MoveManager>();
+    moveManager_->read(ifs, fmt, *board_, info_->getKey());
     //std::wcout << L"rootMove finished!" << std::endl;
-    currentMove_ = rootMove_;
 }
 
 void Instance::write(const std::string& outfilename)
 {
+    RecFormat fmt = getRecFormat(Tools::getExt(outfilename));
     std::ofstream ofs(outfilename);
-    format_ = getRecFormat(Tools::getExt(outfilename));
-    info_->write(ofs, format_);
-    //std::wcout << L"writeInfo finished!" << std::endl;
-    rootMove_->write(ofs, format_);
-    //std::wcout << L"writeMove finished!" << std::endl;
+    info_->write(ofs, fmt);
+    //std::wcout << L"writeInfo finished!\n" << info_->toString() << std::endl;
+    moveManager_->write(ofs, fmt);
+    //std::wcout << L"writeMove finished!\n" << moveManager_->toString() << std::endl;
 }
 
-const bool Instance::isStart() const { return !currentMove_->prev(); }
+const bool Instance::isStart() const { return !currentMove_; }
 
-const bool Instance::isLast() const { return !currentMove_->next(); }
+const bool Instance::isLast() const { return !currentMove_ || !currentMove_->next(); }
 
 // 基本走法
 void Instance::go()
@@ -110,21 +110,10 @@ void Instance::changeSide(const ChangeType ct) // 未测试
     backFirst();
     board_->changeSide(ct);
     info_->setFEN(board_->getPieceChars());
-
     if (ct != ChangeType::EXCHANGE) {
-        auto getChangeSeat = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotateSeat : &BoardSpace::Board::getSymmetrySeat);
-        std::function<void(MoveSpace::Move&)> __setSeat = [&](MoveSpace::Move& move) {
-            move.setSeats(getChangeSeat(this->board_, move.fseat()), getChangeSeat(this->board_, move.tseat()));
-            if (move.next())
-                __setSeat(*move.next());
-            if (move.other())
-                __setSeat(*move.other());
-        };
-        if (rootMove_->next())
-            __setSeat(*rootMove_->next()); // 驱动调用递归函数
+        auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotate : &BoardSpace::Board::getSymmetry);
+        moveManager_->changeSide(&(*board_), changeRowcol);
     }
-
-    rootMove_->setMoves(format_, *board_); //借用RecFormat::BIN
     for (auto& move : curmove->getPrevMoves())
         move->done();
 }
@@ -132,7 +121,7 @@ void Instance::changeSide(const ChangeType ct) // 未测试
 const std::wstring Instance::toString() const
 {
     std::wstringstream wss{};
-    wss << board_->toString();
+    wss << board_->toString() << moveManager_->toString();
     return wss.str();
 }
 
@@ -152,7 +141,7 @@ const std::string getExtName(const RecFormat fmt)
     case RecFormat::PGN_CC:
         return ".pgn_cc";
     default:
-        return ".pgn3";
+        return ".pgn_cc";
     }
 }
 
@@ -174,17 +163,18 @@ RecFormat getRecFormat(const std::string& ext)
         return RecFormat::PGN_CC;
 }
 
-const int Instance::getMovCount() const { return rootMove_->getMovCount(); }
-const int Instance::getRemCount() const { return rootMove_->getRemCount(); }
-const int Instance::getRemLenMax() const { return rootMove_->getRemLenMax(); }
-const int Instance::getMaxRow() const { return rootMove_->getMaxRow(); }
-const int Instance::getMaxCol() const { return rootMove_->getMaxCol(); }
+const int Instance::getMovCount() const { return moveManager_->getMovCount(); }
+const int Instance::getRemCount() const { return moveManager_->getRemCount(); }
+const int Instance::getRemLenMax() const { return moveManager_->getRemLenMax(); }
+const int Instance::getMaxRow() const { return moveManager_->getMaxRow(); }
+const int Instance::getMaxCol() const { return moveManager_->getMaxCol(); }
 
 void transDir(const std::string& dirfrom, const RecFormat fmt)
 {
     int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
     std::string extensions{ ".xqf.pgn_iccs.pgn_zh.pgn_cc.bin.json" };
     std::string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + getExtName(fmt) };
+    Instance ci{};
     std::function<void(std::string, std::string)> __trans = [&](const std::string& dirfrom, std::string dirto) {
         long hFile = 0; //文件句柄
         struct _finddata_t fileinfo; //文件信息
@@ -206,9 +196,10 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
                         fcount += 1;
 
                         //std::cout << infilename << std::endl;
-                        Instance ci{};
                         ci.read(infilename);
+                        std::cout << infilename << " read finished!" << std::endl;
                         ci.write(fileto + getExtName(fmt));
+                        //std::cout << fileto + getExtName(fmt) << " write finished!" << std::endl;
                         //std::cout << fileto << std::endl;
 
                         movcount += ci.getMovCount();
@@ -252,7 +243,7 @@ const std::wstring Instance::test() const
     for (const auto& fen : { L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR",
              L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" }) {
         auto pieceChars = InfoSpace::getPieceChars(fen);
-        board_->putPieces(pieceChars);
+        board_->reset(pieceChars);
         wss << "fen:" << fen << "\nget:" << InfoSpace::getFEN(pieceChars)
             << "\ngetChars:" << pieceChars << "\nboardGet:" << board_->getPieceChars() << L'\n';
 

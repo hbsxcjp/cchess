@@ -1,7 +1,7 @@
 #include "board.h"
 #include "instance.h"
-#include "piece.h"
-#include "seat.h"
+//#include "piece.h"
+//#include "seat.h"
 #include "tools.h"
 #include <chrono>
 #include <iostream>
@@ -36,6 +36,7 @@ int main(int argc, char const* argv[])
     instance.write("01.pgn_iccs"); //
     instance.write("01.pgn_zh"); //
     instance.write("01.pgn_cc"); //
+    std::wcout << instance.toString();
     //*/
 
     auto time_d = steady_clock::now() - time0;

@@ -20,7 +20,7 @@ public:
     Info();
 
     void read(std::istream& is, RecFormat fmt);
-    void write(std::ostream& os, RecFormat fmt) const;
+    void write(std::ostream& os, RecFormat fmt);
     void setFEN(const std::wstring& pieceChars);
     const std::wstring getPieceChars() const;
     const Key& getKey() { return key_; }

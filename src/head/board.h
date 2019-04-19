@@ -45,8 +45,8 @@ public:
 
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int row, const int col) const { return seats_.at(row * ColNum + col); }
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const { return getSeat(rowcol / 10, rowcol % 10); }
-    const std::shared_ptr<SeatSpace::Seat>& getRotateSeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
-    const std::shared_ptr<SeatSpace::Seat>& getSymmetrySeat(const std::shared_ptr<SeatSpace::Seat>& seat) const;
+    const int getRotate(int rowcol) const;
+    const int getSymmetry(int rowcol) const;
 
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
     getMoveSeatFromIccs(const std::wstring& ICCS) const;
@@ -65,7 +65,7 @@ public:
     // '获取棋子可走的位置, 不能被将军'
     const std::vector<std::shared_ptr<SeatSpace::Seat>> moveSeats(std::shared_ptr<SeatSpace::Seat>& fseat) const;
     const std::wstring getPieceChars() const;
-    void putPieces(const std::wstring& pieceChars);
+    void reset(const std::wstring& pieceChars);
     void changeSide(const ChangeType ct);
     static const wchar_t nullChar{ L'_' };
 
