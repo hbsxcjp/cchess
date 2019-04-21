@@ -45,8 +45,8 @@ public:
 
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int row, const int col) const { return seats_.at(row * ColNum + col); }
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const { return getSeat(rowcol / 10, rowcol % 10); }
-    const int getRotate(int rowcol) const;
-    const int getSymmetry(int rowcol) const;
+    const int getRotate(int rowcol) const { return (RowNum - rowcol / 10 - 1) * 10 + (ColNum - rowcol % 10 - 1); }
+    const int getSymmetry(int rowcol) const { return rowcol + ColNum - rowcol % 10 * 2 - 1; }
 
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
     getMoveSeatFromIccs(const std::wstring& ICCS) const;
@@ -92,7 +92,7 @@ private:
     void __setBottomSide();
     const PieceColor __getColor(const wchar_t numZh) const;
     const bool __isBottomSide(const PieceColor color) const { return bottomColor == color; }
-    const std::shared_ptr<SeatSpace::Seat> __getKingSeat(const PieceColor color) const;
+    const std::shared_ptr<SeatSpace::Seat>& __getKingSeat(const PieceColor color) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats() const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color) const;

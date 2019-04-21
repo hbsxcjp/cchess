@@ -1,6 +1,7 @@
-#include "Info.h"
+#include "info.h"
 #include "../json/json.h"
-#include "Board.h"
+#include "board.h"
+#include "piece.h"
 #include "instance.h"
 #include "tools.h"
 #include <algorithm>
@@ -82,17 +83,14 @@ void Info::write(std::ostream& os, RecFormat fmt)
     }
 }
 
-void Info::setFEN(const std::wstring& pieceChars)
-{
-    //infoMap_[L"FEN"] = getFEN(pieceChars) + L" " + (firstColor_ == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
-    //std::wstring rfen{ infoMap_[L"FEN"] };
-    //assert(getPieceChars(rfen.substr(0, rfen.find(L' '))) == pieceChars);
-}
+//void Info::setFEN(const std::wstring& pieceChars, PieceColor color)
+//{
+//    infoMap_[L"FEN"] = getFEN(pieceChars) + L" " + (color == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
+//}
 
 const std::wstring Info::getPieceChars() const
 {
-    std::wstring rfen{ infoMap_.at(L"FEN") };
-    std::wstring fen{ rfen.substr(0, rfen.find(L' ')) };
+    std::wstring rfen{ infoMap_.at(L"FEN") }, fen{ rfen.substr(0, rfen.find(L' ')) };
     return InfoSpace::getPieceChars(fen);
 }
 
@@ -139,14 +137,16 @@ void Info::readXQF(std::istream& is)
 
     key_.Version_XQF = Version_XQF;
     unsigned char KeyXY{}, *head_QiziXY{ (unsigned char*)headQiziXY };
-    if (Version_XQF > 10) { // version <= 10 兼容1.0以前的版本
+    if (Version_XQF <= 10) { // version <= 10 兼容1.0以前的版本
+        key_.KeyRMKSize = key_.KeyXYf = key_.KeyXYt = 0;
+    } else {
         std::function<unsigned char(unsigned char, unsigned char)> __calkey = [](unsigned char bKey, unsigned char cKey) {
             return (((((bKey * bKey) * 3 + 9) * 3 + 8) * 2 + 1) * 3 + 8) * cKey; // % 256; // 保持为<256
         };
         KeyXY = __calkey(headKeyXY, headKeyXY);
         key_.KeyXYf = __calkey(headKeyXYf, KeyXY);
         key_.KeyXYt = __calkey(headKeyXYt, key_.KeyXYf);
-        key_.KeyRMKSize = ((static_cast<unsigned char>(headKeysSum) * 256 + static_cast<unsigned char>(headKeyXY)) % 32000) + 767; // % 65536
+        key_.KeyRMKSize = (static_cast<unsigned char>(headKeysSum) * 256 + static_cast<unsigned char>(headKeyXY)) % 32000 + 767; // % 65536
         if (Version_XQF >= 12) { // 棋子位置循环移动
             std::vector<unsigned char> Qixy(std::begin(headQiziXY), std::end(headQiziXY)); // 数组不能拷贝
             for (int i = 0; i != pieceNum; ++i)
@@ -154,8 +154,6 @@ void Info::readXQF(std::istream& is)
         }
         for (int i = 0; i != pieceNum; ++i)
             head_QiziXY[i] -= KeyXY; // 保持为8位无符号整数，<256
-    } else {
-        key_.KeyRMKSize = key_.KeyXYf = key_.KeyXYt = 0;
     }
     int KeyBytes[4]{
         (headKeysSum & headKeyMask) | headKeyOrA,
@@ -172,7 +170,7 @@ void Info::readXQF(std::istream& is)
     std::wstring pieChars = L"RNBAKABNRCCPPPPPrnbakabnrccppppp"; // QiziXY设定的棋子顺序
     for (int i = 0; i != pieceNum; ++i) {
         int xy = head_QiziXY[i];
-        if (xy < 90) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
+        if (xy <= 89) // 用单字节坐标表示, 将字节变为十进制,  十位数为X(0-8),个位数为Y(0-9),棋盘的左下角为原点(0, 0)
             pieceChars[xy % 10 * 9 + xy / 10] = pieChars[i];
     }
     infoMap_ = std::map<std::wstring, std::wstring>{
@@ -188,7 +186,7 @@ void Info::readXQF(std::istream& is)
         { L"Opening", Tools::s2ws(Opening) },
         { L"RMKWriter", Tools::s2ws(RMKWriter) },
         { L"Author", Tools::s2ws(Author) },
-        { L"FEN", getFEN(pieceChars) }
+        { L"FEN", getFEN(pieceChars) } // 可能存在不是红棋先走的情况？
     };
 }
 
@@ -220,8 +218,8 @@ void Info::writePGN(std::ostream& os) const
 void Info::readBIN(std::istream& is)
 {
     std::size_t size{};
-    std::string key{}, value{};
     is >> std::noskipws >> size;
+    std::string key{}, value{};
     for (std::size_t i = 0; i < size; ++i) { // 以size为分割
         std::getline(is, key);
         std::getline(is, value);
@@ -246,7 +244,7 @@ void Info::readJSON(std::istream& is)
     if (!parseFromStream(builder, is, &root, &errs))
         return;
 
-    Json::Value infoItem{ root["infoMap_"] };
+    Json::Value infoItem{ root["info"] };
     for (auto& key : infoItem.getMemberNames())
         infoMap_[Tools::s2ws(key)] = Tools::s2ws(infoItem[key].asString());
 }
@@ -259,7 +257,7 @@ void Info::writeJSON(std::ostream& os) const
     std::for_each(infoMap_.begin(), infoMap_.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
         infoItem[Tools::ws2s(kv.first)] = Tools::ws2s(kv.second);
     });
-    root["infoMap_"] = infoItem;
+    root["info"] = infoItem;
     writer->write(root, &os); // 能否与move同步?
 }
 

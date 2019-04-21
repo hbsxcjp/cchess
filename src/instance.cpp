@@ -1,6 +1,6 @@
-#include "Instance.h"
+#include "instance.h"
 #include "../json/json.h"
-#include "Info.h"
+#include "info.h"
 #include "board.h"
 #include "move.h"
 #include "piece.h"
@@ -25,8 +25,8 @@ namespace InstanceSpace {
 Instance::Instance()
     : info_{ std::make_shared<InfoSpace::Info>() }
     , board_{ std::make_shared<BoardSpace::Board>() }
-    , moveManager_{ std::make_shared<MoveSpace::MoveManager>() }
-    , currentMove_{}
+    , MoveOwner_{ std::make_shared<MoveSpace::MoveOwner>() }
+    , currentMove_{}    
 {
 }
 
@@ -37,12 +37,13 @@ void Instance::read(const std::string& infilename)
     ifs = fmt != RecFormat::XQF ? std::ifstream(infilename) : std::ifstream(infilename, std::ios_base::binary);
     info_ = std::make_shared<InfoSpace::Info>();
     info_->read(ifs, fmt);
-    //std::wcout << L"info finished!" << std::endl;// << info_->toString() << info_->getPieceChars()
+    //std::wcout << L"info finished!" << info_->toString() << info_->getPieceChars() << std::endl;//
     board_->reset(info_->getPieceChars());
-    //std::wcout << L"board_->reset finished!" << std::endl;// << board_->toString()
-    moveManager_ = std::make_shared<MoveSpace::MoveManager>();
-    moveManager_->read(ifs, fmt, *board_, info_->getKey());
-    //std::wcout << L"rootMove finished!" << std::endl;
+    //std::wcout << L"board_->reset finished!\n" << board_->toString() << std::endl;//
+    MoveOwner_ = std::make_shared<MoveSpace::MoveOwner>();
+    MoveOwner_->read(ifs, fmt, *board_, info_->getKey());
+    std::wcout << L"rootMove finished!" << std::endl;
+    currentMove_ = nullptr;
 }
 
 void Instance::write(const std::string& outfilename)
@@ -51,8 +52,8 @@ void Instance::write(const std::string& outfilename)
     std::ofstream ofs(outfilename);
     info_->write(ofs, fmt);
     //std::wcout << L"writeInfo finished!\n" << info_->toString() << std::endl;
-    moveManager_->write(ofs, fmt);
-    //std::wcout << L"writeMove finished!\n" << moveManager_->toString() << std::endl;
+    MoveOwner_->write(ofs, fmt);
+    //std::wcout << L"writeMove finished!\n" << MoveOwner_->toString() << std::endl;
 }
 
 const bool Instance::isStart() const { return !currentMove_; }
@@ -106,22 +107,23 @@ void Instance::goInc(const int inc)
 
 void Instance::changeSide(const ChangeType ct) // 未测试
 {
-    auto curmove = currentMove_;
+    auto prevMoves = currentMove_->getPrevMoves();
     backFirst();
     board_->changeSide(ct);
-    info_->setFEN(board_->getPieceChars());
     if (ct != ChangeType::EXCHANGE) {
         auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotate : &BoardSpace::Board::getSymmetry);
-        moveManager_->changeSide(&(*board_), changeRowcol);
+        MoveOwner_->changeSide(&(*board_), changeRowcol);
     }
-    for (auto& move : curmove->getPrevMoves())
+    //auto color = prevMoves.empty() ? PieceColor::RED : prevMoves[0]->fseat()->piece()->color();
+    //info_->setFEN(board_->getPieceChars(), color);
+    for (auto& move : prevMoves)
         move->done();
 }
 
 const std::wstring Instance::toString() const
 {
     std::wstringstream wss{};
-    wss << board_->toString() << moveManager_->toString();
+    wss << info_->toString() << board_->toString() << MoveOwner_->toString();
     return wss.str();
 }
 
@@ -163,11 +165,11 @@ RecFormat getRecFormat(const std::string& ext)
         return RecFormat::PGN_CC;
 }
 
-const int Instance::getMovCount() const { return moveManager_->getMovCount(); }
-const int Instance::getRemCount() const { return moveManager_->getRemCount(); }
-const int Instance::getRemLenMax() const { return moveManager_->getRemLenMax(); }
-const int Instance::getMaxRow() const { return moveManager_->getMaxRow(); }
-const int Instance::getMaxCol() const { return moveManager_->getMaxCol(); }
+const int Instance::getMovCount() const { return MoveOwner_->getMovCount(); }
+const int Instance::getRemCount() const { return MoveOwner_->getRemCount(); }
+const int Instance::getRemLenMax() const { return MoveOwner_->getRemLenMax(); }
+const int Instance::getMaxRow() const { return MoveOwner_->getMaxRow(); }
+const int Instance::getMaxCol() const { return MoveOwner_->getMaxCol(); }
 
 void transDir(const std::string& dirfrom, const RecFormat fmt)
 {
@@ -197,7 +199,7 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
 
                         //std::cout << infilename << std::endl;
                         ci.read(infilename);
-                        std::cout << infilename << " read finished!" << std::endl;
+                        //std::cout << infilename << " read finished!" << std::endl;
                         ci.write(fileto + getExtName(fmt));
                         //std::cout << fileto + getExtName(fmt) << " write finished!" << std::endl;
                         //std::cout << fileto << std::endl;
@@ -237,18 +239,28 @@ void testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
                     transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
 }
 
-const std::wstring Instance::test() const
+const std::wstring Instance::test()
 {
-    std::wstringstream wss{};
-    for (const auto& fen : { L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR",
-             L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" }) {
-        auto pieceChars = InfoSpace::getPieceChars(fen);
-        board_->reset(pieceChars);
-        wss << "fen:" << fen << "\nget:" << InfoSpace::getFEN(pieceChars)
-            << "\ngetChars:" << pieceChars << "\nboardGet:" << board_->getPieceChars() << L'\n';
+    std::wstringstream wss{};    
+    read("01.xqf"); 
+    write("01.pgn_iccs");
 
-        wss << L'\n' << board_->test() << L'\n';
-    }
+    read("01.pgn_iccs");
+    write("01.pgn_zh"); 
+
+    read("01.pgn_zh"); 
+    write("01.pgn_cc"); 
+    
+    read("01.pgn_cc");
+    //write("01.bin"); 
+    
+    //read("01.bin");
+    //write("01.json"); 
+
+    //read("01.json");
+    wss << toString(); 
+    
+    
     return wss.str();
 }
 }

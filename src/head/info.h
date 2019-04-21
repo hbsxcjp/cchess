@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+enum class PieceColor;
 enum class RecFormat;
 
 namespace InfoSpace {
@@ -21,7 +22,7 @@ public:
 
     void read(std::istream& is, RecFormat fmt);
     void write(std::ostream& os, RecFormat fmt);
-    void setFEN(const std::wstring& pieceChars);
+    //void setFEN(const std::wstring& pieceChars, PieceColor color);
     const std::wstring getPieceChars() const;
     const Key& getKey() { return key_; }
     const std::wstring toString() const;

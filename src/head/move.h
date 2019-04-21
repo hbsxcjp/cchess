@@ -1,11 +1,11 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace PieceSpace {
 class Piece;
@@ -69,7 +69,7 @@ public:
     const std::shared_ptr<Move>& done();
     const std::shared_ptr<Move>& undo();
     std::vector<std::shared_ptr<Move>> getPrevMoves();
-    virtual const std::wstring toString() const;
+    const std::wstring toString() const;
 
 private:
     std::shared_ptr<SeatSpace::Seat> fseat_{};
@@ -79,24 +79,25 @@ private:
     std::shared_ptr<Move> other_{};
     std::weak_ptr<Move> prev_{};
 
-    int frowcol_{};
-    int trowcol_{};
+    int frowcol_{ -1 };
+    int trowcol_{ -1 };
     std::wstring iccs_{}; // 着法数字字母描述
     std::wstring zh_{}; // 着法中文描述
     std::wstring remark_{}; // 注释
-    int nextNo_{ 0 }; // 着法深度
+    int nextNo_{ 1 }; // 着法深度
     int otherNo_{ 0 }; // 变着广度
     int CC_ColNo_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
 };
 
-class MoveManager {
+class MoveOwner {
 public:
-    MoveManager() = default;
+    MoveOwner() = default;
 
     void read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board, const InfoSpace::Key& key);
     void write(std::ostream& os, RecFormat fmt) const;
     void setMoves(RecFormat fmt, const BoardSpace::Board& board);
     void changeSide(const BoardSpace::Board* board, std::_Mem_fn<const int (BoardSpace::Board::*)(int rowcol) const> changeRowcol);
+
     const std::wstring& remark() const { return remark_; }
     const std::wstring moveInfo() const;
     const std::wstring toString() const;
@@ -120,6 +121,7 @@ private:
     void readJSON(std::istream& is);
     void writeJSON(std::ostream& os) const;
 
+    bool hasMove_{ false };
     std::shared_ptr<Move> rootMove_{};
     std::wstring remark_{}; // 注释
     int movCount{ 0 }; //着法数量

@@ -1,19 +1,27 @@
 [Author ""]
 [Black ""]
+[BlackTeam ""]
 [Date ""]
+[ECCO ""]
 [Event ""]
 [FEN "5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5"]
-[Format ".xqf"]
+[Format ".pgn_cc"]
+[Game "Chinese Chess"]
 [Opening ""]
 [PlayType "残局"]
 [RMKWriter ""]
 [Red ""]
+[RedTeam ""]
 [Result "红胜"]
+[Round ""]
 [Site ""]
+[Title ""]
 [TitleA "第01局"]
+[Variation ""]
+[Version ""]
 [Version_xqf "18"]
 
-　开始　　　　　　　　　　　　　　　　　　　　　　　　　　　　
+　开始　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　
 　　↓　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　
 马四进三……………………………………………………………………马四进五　
 　　↓　　　　　　　　　　　　　　　　　　　　　　　　　　　　　↓　　
@@ -71,3 +79,4 @@
 }
 (22,6): {　　和棋。
 }
+【着法深度：22, 视图宽度：6, 着法数量：44, 注解数量：6, 注解最长：35】

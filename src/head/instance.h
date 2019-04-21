@@ -25,7 +25,7 @@ class Info;
 
 namespace MoveSpace {
 class Move;
-class MoveManager;
+class MoveOwner;
 }
 
 enum class PieceColor;
@@ -58,7 +58,7 @@ public:
     void goInc(const int inc);
     void changeSide(const ChangeType ct);
     const std::wstring toString() const;
-    const std::wstring test() const;
+    const std::wstring test();
 
     const int getMovCount() const;
     const int getRemCount() const;
@@ -69,7 +69,7 @@ public:
 private:
     std::shared_ptr<InfoSpace::Info> info_;
     std::shared_ptr<BoardSpace::Board> board_;
-    std::shared_ptr<MoveSpace::MoveManager> moveManager_;
+    std::shared_ptr<MoveSpace::MoveOwner> MoveOwner_;
     std::shared_ptr<MoveSpace::Move> currentMove_; // board对应该着已执行的状态
 };
 

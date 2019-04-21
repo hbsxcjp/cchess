@@ -20,14 +20,15 @@ const bool Seat::isDiffColor(const std::shared_ptr<Seat>& fseat) const
 const std::wstring Seat::toString() const
 {
     std::wstringstream wss{};
-    wss << row_ << col_ << (piece_ ? piece_->name() : L' '); //<< std::boolalpha << std::setw(2) <<
+    wss << row_ << col_ << (piece_ ? piece_->name() : L'-'); //<< std::boolalpha << std::setw(2) <<
     return wss.str();
 }
 
-const std::shared_ptr<PieceSpace::Piece> Seat::to(std::shared_ptr<Seat>& tseat,
+
+const std::shared_ptr<PieceSpace::Piece> Seat::movTo(std::shared_ptr<Seat>& tseat,
     const std::shared_ptr<PieceSpace::Piece>& fillPiece)
 {
-    const auto& eatPiece = tseat->piece();
+    auto eatPiece = tseat->piece();
     tseat->put(piece_);
     put(fillPiece);
     return eatPiece;
