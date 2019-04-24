@@ -1,8 +1,7 @@
 #ifndef MOVE_H
 #define MOVE_H
+// 中国象棋棋盘布局类型 by-cjp
 
-#include <functional>
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -14,18 +13,6 @@ class Piece;
 namespace SeatSpace {
 class Seat;
 }
-
-namespace InfoSpace {
-struct Key;
-}
-
-namespace BoardSpace {
-class Board;
-}
-
-enum class PieceColor;
-enum class ChangeType;
-enum class RecFormat;
 
 namespace MoveSpace {
 
@@ -45,9 +32,12 @@ public:
     const std::shared_ptr<Move> prev() const { return prev_.lock(); }
     void cutNext() { next_ = nullptr; }
     void cutOther() { other_ && (other_ = other_->other_); }
+    void setPrev(std::weak_ptr<Move> prev) { prev_ = prev; }
     const std::shared_ptr<Move>& addNext();
     const std::shared_ptr<Move>& addOther();
-    void setPrev(std::weak_ptr<Move> prev) { prev_ = prev; }
+    std::vector<std::shared_ptr<Move>> getPrevMoves();
+    const std::shared_ptr<Move>& done();
+    const std::shared_ptr<Move>& undo();
 
     int frowcol() const { return frowcol_; }
     int trowcol() const { return trowcol_; }
@@ -66,9 +56,6 @@ public:
     void setOtherNo(int otherNo) { otherNo_ = otherNo; }
     void setCC_ColNo(int CC_ColNo) { CC_ColNo_ = CC_ColNo; }
 
-    const std::shared_ptr<Move>& done();
-    const std::shared_ptr<Move>& undo();
-    std::vector<std::shared_ptr<Move>> getPrevMoves();
     const std::wstring toString() const;
 
 private:
@@ -87,48 +74,6 @@ private:
     int nextNo_{ 1 }; // 着法深度
     int otherNo_{ 0 }; // 变着广度
     int CC_ColNo_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
-};
-
-class MoveOwner {
-public:
-    MoveOwner() = default;
-
-    void read(std::istream& is, RecFormat fmt, const BoardSpace::Board& board, const InfoSpace::Key& key);
-    void write(std::ostream& os, RecFormat fmt) const;
-    void setMoves(RecFormat fmt, const BoardSpace::Board& board);
-    void changeSide(const BoardSpace::Board* board, std::_Mem_fn<const int (BoardSpace::Board::*)(int rowcol) const> changeRowcol);
-
-    const std::wstring& remark() const { return remark_; }
-    const std::wstring moveInfo() const;
-    const std::wstring toString() const;
-
-    const int getMovCount() const { return movCount; }
-    const int getRemCount() const { return remCount; }
-    const int getRemLenMax() const { return remLenMax; }
-    const int getMaxRow() const { return maxRow; }
-    const int getMaxCol() const { return maxCol; }
-
-private:
-    void readXQF(std::istream& is, const InfoSpace::Key& key);
-    void writeXQF(std::ostream& os) const;
-    const std::wstring __getMoveStr(std::istream& is) const;
-    void readPGN_ICCSZH(std::istream& is, RecFormat fmt);
-    void writePGN_ICCSZH(std::ostream& os, RecFormat fmt) const;
-    void readPGN_CC(std::istream& is);
-    void writePGN_CC(std::ostream& os) const;
-    void readBIN(std::istream& is);
-    void writeBIN(std::ostream& os) const;
-    void readJSON(std::istream& is);
-    void writeJSON(std::ostream& os) const;
-
-    bool hasMove_{ false };
-    std::shared_ptr<Move> rootMove_{};
-    std::wstring remark_{}; // 注释
-    int movCount{ 0 }; //着法数量
-    int remCount{ 0 }; //注解数量
-    int remLenMax{ 0 }; //注解最大长度
-    int maxRow{ 0 }; //# 存储最大着法深度
-    int maxCol{ 0 }; //# 存储视图最大列数
 };
 }
 

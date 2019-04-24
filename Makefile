@@ -1,4 +1,4 @@
-objects = obj/tools.o obj/piece.o obj/seat.o obj/board.o obj/info.o obj/move.o obj/instance.o obj/main.o \
+objects = obj/tools.o obj/piece.o obj/seat.o obj/board.o obj/move.o obj/instance.o obj/main.o \
             obj/jsoncpp.o 
 
 vpath %.h src/head src/json
@@ -14,8 +14,6 @@ obj/instance.o: instance.cpp
 	gcc -c -o obj/instance.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/instance.cpp
 obj/move.o: move.cpp
 	gcc -c -o obj/move.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/move.cpp
-obj/info.o: info.cpp
-	gcc -c -o obj/info.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/info.cpp
 obj/board.o: board.cpp
 	gcc -c -o obj/board.o -std=c++11 -fexec-charset=gbk -iquote src/head -Wall src/board.cpp
 obj/seat.o: seat.cpp

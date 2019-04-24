@@ -16,7 +16,7 @@ int main(int argc, char const* argv[])
     std::ios_base::sync_with_stdio(false);
 
     auto time0 = steady_clock::now();
-    /*
+    //*
     if (argc == 7)
         InstanceSpace::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
             std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));
@@ -28,11 +28,8 @@ int main(int argc, char const* argv[])
     BoardSpace::Board board{};
     Tools::writeTxt("a.txt", board.test());
     //*/
-    //*
-    InstanceSpace::Instance instance{};
-    Tools::writeTxt("a.txt", instance.test());
-    //*/
-
+    //Tools::writeTxt("a.txt", InstanceSpace::test());
+    
     auto time_d = steady_clock::now() - time0;
     std::cout << "use time: " << duration_cast<milliseconds>(time_d).count() / 1000.0 << "s\n";
 
