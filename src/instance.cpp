@@ -135,9 +135,8 @@ void Instance::read(const std::string& infilename)
     }
 
     board_->reset(pieceChars());
-    if (rootMove_->frowcol() >= 0 || !rootMove_->iccs().empty() || !rootMove_->zh().empty())
-        setMoves(fmt);
-    std::wcout << L"rootMove finished!" << std::endl;
+    setMoves(fmt);
+    //std::wcout << L"rootMove finished!" << std::endl;
     currentMove_ = nullptr;
 }
 
@@ -270,11 +269,11 @@ void Instance::readXQF(std::istream& is)
             for (int i = 0; i != size; ++i)
                 bytes[i] = __sub(bytes[i], F32Keys[(pos + i) % 32]);
     };
-    char data[4]{}, &frc{ data[0] }, &trc{ data[1] }, &tag{ data[2] }, clen[4]{};
-    int* len{ (int*)clen };
+    char data[4]{}, &frc{ data[0] }, &trc{ data[1] }, &tag{ data[2] };
     auto __getRemarksize = [&]() {
+        char clen[4]{};
         __readBytes(clen, 4);
-        return *len - KeyRMKSize;
+        return *(int*)clen - KeyRMKSize;
     };
     std::function<std::wstring()> __readDataAndGetRemark = [&]() {
         __readBytes(data, 4);
@@ -310,8 +309,13 @@ void Instance::readXQF(std::istream& is)
 
     is.seekg(1024);
     remark_ = __readDataAndGetRemark();
-    if (tag & 0x80) //# 有左子树
+    char rtag{ tag };
+    if (rtag & 0x80) //# 有左子树
         __readMove(*rootMove_);
+    if (rtag & 0x40) { // # 有右子树
+        std::wcout << L"*rootMove_ 有右子树!" << std::endl;
+        __readMove(*rootMove_);
+    }
 }
 
 const std::wstring Instance::__getMoveStr(std::istream& is) const
@@ -414,17 +418,18 @@ void Instance::__writeMove_PGN_ICCSZH(std::ostream& os, RecFormat fmt) const
     };
 
     __writeRemark(remark_);
-    __writeMove(*rootMove_, false);
+    if (rootMove_->fseat())
+        __writeMove(*rootMove_, false);
     os << Tools::ws2s(wss.str());
 }
 
 void Instance::__readMove_PGN_CC(std::istream& is)
 {
     const std::wstring imoveStr{ __getMoveStr(is) };
-    auto pos = imoveStr.find(L"\n(");
-    std::wstring moveStr{ imoveStr.substr(0, pos) }, remStr{ imoveStr.substr(pos) };
+    auto pos0 = imoveStr.find(L"\n("), pos1 = imoveStr.find(L"\n【");
+    std::wstring moveStr{ imoveStr.substr(0, std::min(pos0, pos1)) }, remStr{ imoveStr.substr(std::min(pos0, imoveStr.size()), pos1) };
     std::wregex lingrg{ LR"(\n)" }, mvStrrg{ LR"(.{5})" }, moverg{ LR"(([^…　]{4}[…　]))" },
-        remrg{ LR"(\(\s*(\d+,\d+)\): \{([\s\S]*?)\})" };
+        remrg{ LR"(\s*(\(\d+,\d+\)): \{([\s\S]*?)\})" };
     std::vector<std::vector<std::wstring>> movlines{};
     for (std::wsregex_token_iterator lineStrit{ moveStr.begin(), moveStr.end(), lingrg, -1 }, end{}; lineStrit != end; ++++lineStrit) {
         std::vector<std::wstring> lines{};
@@ -440,7 +445,7 @@ void Instance::__readMove_PGN_CC(std::istream& is)
         std::wstring zhStr{ movlines[row][col] };
         if (regex_match(zhStr, moverg)) {
             move.setZh(zhStr.substr(0, 4));
-            move.setRemark(rems[std::to_wstring(row) + L',' + std::to_wstring(col)]);
+            move.setRemark(rems[L'(' + std::to_wstring(row) + L',' + std::to_wstring(col) + L')']);
             if (zhStr.back() == L'…')
                 __readMove(*move.addOther(), row, col + 1);
             if (int(movlines.size()) - 1 > row && movlines[row + 1][col][0] != L'　')
@@ -452,7 +457,7 @@ void Instance::__readMove_PGN_CC(std::istream& is)
         }
     };
 
-    remark_ = rems[L"0,0"];
+    remark_ = rems[L"(0,0)"];
     if (!movlines.empty())
         __readMove(*rootMove_, 1, 0);
 }
@@ -464,6 +469,7 @@ void Instance::__writeMove_PGN_CC(std::ostream& os) const
     std::vector<std::wstring> lineStr((getMaxRow() + 1) * 2, lstr);
     std::function<void(const MoveSpace::Move&)> __setMoveZH = [&](const MoveSpace::Move& move) {
         int firstcol{ move.CC_ColNo() * 5 }, row{ move.nextNo() * 2 };
+        //assert(move.zh().size() == 4);
         lineStr.at(row).replace(firstcol, 4, move.zh());
         if (!move.remark().empty())
             remStrs << L"(" << move.nextNo() << L"," << move.CC_ColNo() << L"): {" << move.remark() << L"}\n";
@@ -482,7 +488,8 @@ void Instance::__writeMove_PGN_CC(std::ostream& os) const
         remStrs << L"(0,0): {" << remark_ << L"}\n";
     lineStr.front().replace(0, 3, L"　开始");
     lineStr.at(1).at(2) = L'↓';
-    __setMoveZH(*rootMove_);
+    if (rootMove_->fseat())
+        __setMoveZH(*rootMove_);
     std::wstringstream wss{};
     for (auto& line : lineStr)
         wss << line << L'\n';
@@ -492,36 +499,36 @@ void Instance::__writeMove_PGN_CC(std::ostream& os) const
 
 void Instance::readBIN(std::istream& is)
 {
-    std::size_t size{};
-    is >> std::noskipws >> size;
-    std::string key{}, value{};
-    for (std::size_t i = 0; i < size; ++i) { // 以size为分割
-        std::getline(is, key);
-        std::getline(is, value);
-        info_[Tools::s2ws(key)] = Tools::s2ws(value);
-    }
-
     char len[sizeof(int)]{};
-    int* length{ (int*)len };
-    std::function<std::wstring()> __getRemark = [&]() {
+    std::function<std::wstring()> __getWstring = [&]() {
         is.read(len, sizeof(int));
-        if (*length > 0) {
-            char rem[*length + 1]{};
-            is.read(rem, *length);
+        int length{ *(int*)len };
+        if (length > 0) {
+            char rem[length + 1]{};
+            is.read(rem, length);
             return Tools::s2ws(rem);
         } else
             return std::wstring{};
     };
+
+    is.read(len, sizeof(int));
+    int size{ *(int*)len };
+    for (int i = 0; i < size; ++i) { // 以size为分割
+        auto key = __getWstring();
+        auto value = __getWstring();
+        info_[key] = value;
+        std::wcout << key << L": " << value << std::endl;
+    }
+
     std::function<void(MoveSpace::Move&)> __readMove = [&](MoveSpace::Move& move) {
         char frowcol{}, trowcol{}, tag{};
         is.get(frowcol).get(trowcol).get(tag);
 
         //std::cout << int(frowcol) << int(trowcol) << std::endl;
-
         move.setFrowcol(frowcol);
         move.setTrowcol(trowcol);
         if (tag & 0x08)
-            move.setRemark(__getRemark());
+            move.setRemark(__getWstring());
         //std::wcout << move.toString() << std::endl;
 
         if (tag & 0x80)
@@ -530,7 +537,7 @@ void Instance::readBIN(std::istream& is)
             __readMove(*move.addOther());
     };
 
-    remark_ = __getRemark();
+    remark_ = __getWstring();
     char tag{};
     is.get(tag);
     if (tag)
@@ -539,25 +546,25 @@ void Instance::readBIN(std::istream& is)
 
 void Instance::writeBIN(std::ostream& os) const
 {
-    std::wstringstream wss{};
-    std::for_each(info_.begin(), info_.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
-        wss << kv.first << L'\n' << kv.second << L'\n';
-    });
-    os << info_.size() << Tools::ws2s(wss.str());
-
-    auto __writeRemark = [&](const std::wstring& remark) {
-        std::string sremark{ Tools::ws2s(remark) };
-        int len = sremark.size();
-        os.write((char*)&len, sizeof(int));
-        if (len > 0)
-            os.write(sremark.c_str(), len);
+    auto __writeWstring = [&](const std::wstring& wstr) {
+        std::string str{ Tools::ws2s(wstr) };
+        int len = str.size();
+        os.write((char*)&len, sizeof(int)).write(str.c_str(), len);
     };
+    
+    int len = info_.size();
+    os.write((char*)&len, sizeof(int));
+    std::for_each(info_.begin(), info_.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
+        __writeWstring(kv.first);
+        __writeWstring(kv.second);
+    });
+
     std::function<void(const MoveSpace::Move&)> __writeMove = [&](const MoveSpace::Move& move) {
         const std::wstring& remark{ move.remark() };
-        os.put(move.frowcol()).put(move.trowcol()).put((move.next() ? 0x80 : 0x00) | (move.other() ? 0x40 : 0x00) | (remark.empty() ? 0x00 : 0x08));
-        if (!remark.empty()) {
-            __writeRemark(remark);
-        }
+        os.put(move.frowcol()).put(move.trowcol()).put((move.next() ? 0x80 : 0x00) | (move.other() ? 0x40 : 0x00) | (!remark.empty() ? 0x08 : 0x00));
+        if (!remark.empty())
+            __writeWstring(remark);
+
         //std::wcout << move.toString() << std::endl;
 
         if (move.next())
@@ -566,11 +573,10 @@ void Instance::writeBIN(std::ostream& os) const
             __writeMove(*move.other());
     };
 
-    __writeRemark(remark_); // 至少会写入0
-    if (rootMove_->fseat()) {
-        os.put(1);
+    __writeWstring(remark_); // 至少会写入0
+    os.put(bool(rootMove_->fseat()));
+    if (rootMove_->fseat())
         __writeMove(*rootMove_);
-    }
 }
 
 void Instance::readJSON(std::istream& is)
@@ -644,28 +650,25 @@ void Instance::setMoves(RecFormat fmt)
     std::function<void(MoveSpace::Move&)> __set = [&](MoveSpace::Move& move) {
         //std::wcout << move.toString() << std::endl;
 
-        if (fmt == RecFormat::PGN_ICCS)
-            move.setSeats(board_->getMoveSeatFromIccs(move.iccs()));
-        else if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC)
-            move.setSeats(board_->getMoveSeatFromZh(move.zh()));
-        else
+        if (fmt == RecFormat::PGN_ICCS || fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC) {
+            auto moveSeats = fmt == RecFormat::PGN_ICCS ? board_->getMoveSeatFromIccs(move.iccs())
+                                                        : board_->getMoveSeatFromZh(move.zh());
+            move.setFrowcol(moveSeats.first->rowcol());
+            move.setTrowcol(moveSeats.second->rowcol());
+            move.setSeats(moveSeats);
+        } else //RecFormat::XQF RecFormat::BIN RecFormat::JSON
             move.setSeats(board_->getSeat(move.frowcol()), board_->getSeat(move.trowcol()));
-
-#ifndef NDEBUG
-        if (!move.fseat()->piece())
-            std::wcout << board_->toString() << "\n"
-                       << move.frowcol() << " " << move.trowcol() << "\n"
-                       << move.toString() << std::endl;
-#endif
-        assert(move.fseat()->piece());
-
         if (fmt != RecFormat::PGN_ZH && fmt != RecFormat::PGN_CC)
             move.setZh(board_->getZh(move.fseat(), move.tseat()));
-        if (fmt != RecFormat::PGN_ICCS) //RecFormat::XQF RecFormat::BIN RecFormat::JSON
+        if (fmt != RecFormat::PGN_ICCS)
             move.setIccs(board_->getIccs(move.fseat(), move.tseat()));
 
+        //std::wcout << L"   ?: " << move.toString() << std::endl;
+        assert(move.frowcol() >= 0 && move.frowcol() <= 98);
+        assert(move.trowcol() >= 0 && move.trowcol() <= 98);
         assert(move.zh().size() == 4);
         assert(move.iccs().size() == 4);
+        assert(move.fseat()->piece());
 
         ++movCount;
         maxCol = std::max(maxCol, move.otherNo());
@@ -677,19 +680,25 @@ void Instance::setMoves(RecFormat fmt)
         }
 
         move.done();
+        //std::wcout << L"done: " << move.toString() << L'\n' << board_->toString() << std::endl;
         if (move.next())
             __set(*move.next());
+
         move.undo();
+        //std::wcout << L"undo: " << move.toString() << L'\n' << board_->toString() << std::endl;
+
         if (move.other()) {
             ++maxCol;
             __set(*move.other());
         }
     };
 
-    __set(*rootMove_); // 驱动函数
+    if (rootMove_->frowcol() >= 0 || !rootMove_->iccs().empty() || !rootMove_->zh().empty())
+        __set(*rootMove_); // 驱动函数
 }
 
-const std::wstring Instance::moveInfo() const
+const std::wstring
+Instance::moveInfo() const
 {
     std::wstringstream wss{};
     wss << L"【着法深度：" << maxRow << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
@@ -791,7 +800,6 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
     int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
     std::string extensions{ ".xqf.pgn_iccs.pgn_zh.pgn_cc.bin.json" };
     std::string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + getExtName(fmt) };
-    Instance ci{};
     std::function<void(std::string, std::string)> __trans = [&](const std::string& dirfrom, std::string dirto) {
         long hFile = 0; //文件句柄
         struct _finddata_t fileinfo; //文件信息
@@ -812,12 +820,13 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
                     if (extensions.find(ext_old) != std::string::npos) {
                         fcount += 1;
 
+                        Instance ci{};
                         //std::cout << infilename << std::endl;
                         ci.read(infilename);
                         //std::cout << infilename << " read finished!" << std::endl;
+                        //std::cout << fileto << std::endl;
                         ci.write(fileto + getExtName(fmt));
                         //std::cout << fileto + getExtName(fmt) << " write finished!" << std::endl;
-                        //std::cout << fileto << std::endl;
 
                         movcount += ci.getMovCount();
                         remcount += ci.getRemCount();

@@ -18,9 +18,9 @@ const std::shared_ptr<Move>& Move::setSeats(const std::shared_ptr<SeatSpace::Sea
     const std::shared_ptr<SeatSpace::Seat>& tseat)
 {
     fseat_ = fseat;
-    frowcol_ = fseat->rowcol();
+    //frowcol_ = fseat->rowcol();
     tseat_ = tseat;
-    trowcol_ = tseat->rowcol();
+    //trowcol_ = tseat->rowcol();
     return std::move(shared_from_this());
 }
 
@@ -75,7 +75,7 @@ const std::shared_ptr<Move>& Move::undo()
 const std::wstring Move::toString() const
 {
     std::wstringstream wss{};
-    wss << std::setw(2) << std::to_wstring(frowcol_) << L'>' << std::setw(2) << std::to_wstring(trowcol_)
+    wss << std::setw(2) << std::to_wstring(frowcol_) << L'_' << std::setw(2) << std::to_wstring(trowcol_)
         << L'-' << std::setw(4) << iccs_ << L':' << std::setw(4) << zh_ << L'{' << remark_ << L'}';
     return wss.str();
 }
