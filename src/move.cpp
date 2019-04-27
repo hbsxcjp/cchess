@@ -3,11 +3,11 @@
 #include "piece.h"
 #include "seat.h"
 #include <algorithm>
-#include <cassert>
+//#include <cassert>
 #include <cmath>
 #include <functional>
 #include <iomanip>
-#include <iostream>
+//#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -75,7 +75,7 @@ const std::shared_ptr<Move>& Move::undo()
 const std::wstring Move::toString() const
 {
     std::wstringstream wss{};
-    wss << std::setw(2) << std::to_wstring(frowcol_) << L'_' << std::setw(2) << std::to_wstring(trowcol_)
+    wss << frowcol_ / 10 << frowcol_ % 10 << L'_' << trowcol_ / 10 << trowcol_ % 10
         << L'-' << std::setw(4) << iccs_ << L':' << std::setw(4) << zh_ << L'{' << remark_ << L'}';
     return wss.str();
 }

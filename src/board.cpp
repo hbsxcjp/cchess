@@ -85,7 +85,7 @@ Board::getMoveSeatFromZh(const std::wstring& zhStr) const
         assert(trow <= RowUpIndex && trow >= RowLowIndex);
         tseat = getSeat(trow, toCol);
     }
-    assert(zhStr == getZh(fseat, tseat));
+    //assert(zhStr == getZh(fseat, tseat));
 
     return make_pair(fseat, tseat);
 }
@@ -111,8 +111,8 @@ const std::wstring Board::getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
     wss << getMovChar(isSameRow, isBottom, toRow > fromRow)
         << (isLineMove(name) && !isSameRow ? getNumChar(color, abs(fromRow - toRow)) : getColChar(color, isBottom, toCol));
 
-    //auto& mvSeats = getMoveSeatFromZh(wss.str());
-    //assert(fseat == mvSeats.first && tseat == mvSeats.second);
+    auto& mvSeats = getMoveSeatFromZh(wss.str());
+    assert(fseat == mvSeats.first && tseat == mvSeats.second);
 
     return wss.str();
 }
