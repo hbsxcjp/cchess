@@ -134,13 +134,13 @@ void Instance::read(const std::string& infilename)
     default:
         break;
     }
-    //std::wcout << L"readFile finished!" << std::endl;
+    std::wcout << L"readFile finished!" << std::endl;
 
     board_->reset(pieceChars());
     //std::wcout << board_->toString() << std::endl;
 
     setMoves(fmt);
-    //std::wcout << L"setMoves finished!" << std::endl;
+    std::wcout << L"setMoves finished!" << std::endl;
     currentMove_ = nullptr;
 }
 
@@ -520,25 +520,29 @@ void Instance::readBIN(std::istream& is)
         is.get(frowcol).get(trowcol).get(tag);
         move.setFrowcol(frowcol);
         move.setTrowcol(trowcol);
-        move.setRemark(__readWstring());
+        if (tag & 0x20)
+            move.setRemark(__readWstring());
         if (tag & 0x80)
             __readMove(*move.addNext());
         if (tag & 0x40)
             __readMove(*move.addOther());
     };
 
-    is.read(len, sizeof(int));
-    int size{ *(int*)len };
-    std::wstring key{}, value{};
-    for (int i = 0; i < size; ++i) { // 以size为分割
-        key = __readWstring();
-        value = __readWstring();
-        info_[key] = value;
+    char tag{};
+    is.get(tag);
+    if (tag & 0x80) {
+        char len{};
+        is.get(len);
+        std::wstring key{}, value{};
+        for (int i = 0; i < len; ++i) {
+            key = __readWstring();
+            value = __readWstring();
+            info_[key] = value;
+        }
     }
-    remark_ = __readWstring();
-    char rtag{};
-    is.get(rtag);
-    if (rtag)
+    if (tag & 0x40)
+        remark_ = __readWstring();
+    if (tag & 0x20)
         __readMove(*rootMove_);
 }
 
@@ -550,23 +554,28 @@ void Instance::writeBIN(std::ostream& os) const
         os.write((char*)&len, sizeof(int)).write(str.c_str(), len);
     };
     std::function<void(const MoveSpace::Move&)> __writeMove = [&](const MoveSpace::Move& move) {
-        os.put(move.frowcol()).put(move.trowcol()).put((move.next() ? 0x80 : 0x00) | (move.other() ? 0x40 : 0x00));
-        __writeWstring(move.remark());
-        if (move.next())
+        char tag = (move.next() ? 0x80 : 0x00) | (move.other() ? 0x40 : 0x00) | (!move.remark().empty() ? 0x20 : 0x00);
+        os.put(move.frowcol()).put(move.trowcol()).put(tag);
+        if (tag & 0x20)
+            __writeWstring(move.remark());
+        if (tag & 0x80)
             __writeMove(*move.next());
-        if (move.other())
+        if (tag & 0x40)
             __writeMove(*move.other());
     };
 
-    int len = info_.size();
-    os.write((char*)&len, sizeof(int));
-    std::for_each(info_.begin(), info_.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
-        __writeWstring(kv.first);
-        __writeWstring(kv.second);
-    });
-    __writeWstring(remark_); // 至少会写入0
-    os.put(bool(rootMove_->fseat()));
-    if (rootMove_->fseat())
+    char tag = (!info_.empty() ? 0x80 : 0x00) | (!remark_.empty() ? 0x40 : 0x00) | (rootMove_->fseat() ? 0x20 : 0x00);
+    os.put(tag);
+    if (tag & 0x80) {
+        os.put(info_.size());
+        std::for_each(info_.begin(), info_.end(), [&](const std::pair<std::wstring, std::wstring>& kv) {
+            __writeWstring(kv.first);
+            __writeWstring(kv.second);
+        });
+    }
+    if (tag & 0x40)
+        __writeWstring(remark_);
+    if (tag & 0x20)
         __writeMove(*rootMove_);
 }
 
@@ -649,17 +658,21 @@ void Instance::setMoves(RecFormat fmt)
             move.setSeats(moveSeats);
         } else //RecFormat::XQF RecFormat::BIN RecFormat::JSON
             move.setSeats(board_->getSeat(move.frowcol()), board_->getSeat(move.trowcol()));
+
+        assert(move.frowcol() >= 0 && move.frowcol() <= 98);
+        assert(move.trowcol() >= 0 && move.trowcol() <= 98);
+        if (!move.fseat()->piece())
+            std::wcout << move.toString() << "movCount:" << movCount << L'\n' << board_->toString() << std::endl;
+        assert(move.fseat()->piece());
+
         if (fmt != RecFormat::PGN_ZH && fmt != RecFormat::PGN_CC)
-            ;//move.setZh(board_->getZh(move.fseat(), move.tseat()));
+            move.setZh(board_->getZh(move.fseat(), move.tseat()));
         if (fmt != RecFormat::PGN_ICCS)
             move.setIccs(board_->getIccs(move.fseat(), move.tseat()));
 
-        //std::wcout << L"   ?: " << move.toString() << std::endl;
-        assert(move.frowcol() >= 0 && move.frowcol() <= 98);
-        assert(move.trowcol() >= 0 && move.trowcol() <= 98);
-        //assert(move.zh().size() == 4);
+        assert(move.zh().size() == 4);
         assert(move.iccs().size() == 4);
-        assert(move.fseat()->piece());
+        //std::wcout << L"   ?: " << move.toString() << std::endl;
 
         ++movCount;
         maxCol = std::max(maxCol, move.otherNo());
@@ -812,7 +825,7 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
                         fcount += 1;
 
                         Instance ci{};
-                        //std::cout << infilename << std::endl;
+                        std::cout << infilename << std::endl;
                         ci.read(infilename);
                         //std::cout << infilename << " read finished!" << std::endl;
                         //std::cout << fileto << std::endl;
