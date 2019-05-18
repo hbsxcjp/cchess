@@ -77,10 +77,11 @@ void Instance::changeSide(ChangeType ct) // 未测试
     backFirst();
     board_->changeSide(ct);
     if (ct != ChangeType::EXCHANGE) {
-        auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotate : &BoardSpace::Board::getSymmetry);
+        auto changeRowcol = ct == ChangeType::ROTATE ? &BoardSpace::RowcolManager::getRotate : &BoardSpace::RowcolManager::getSymmetry;
+        //auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotate : &BoardSpace::Board::getSymmetry);
         std::function<void(MoveSpace::Move&)> __setRowcol = [&](MoveSpace::Move& move) {
-            move.setFrowcol(changeRowcol(board_, move.fseat()->rowcol()));
-            move.setTrowcol(changeRowcol(board_, move.tseat()->rowcol()));
+            move.setFrowcol(changeRowcol(move.fseat()->rowcol()));
+            move.setTrowcol(changeRowcol(move.tseat()->rowcol()));
             if (move.next())
                 __setRowcol(*move.next());
             if (move.other())
@@ -88,10 +89,10 @@ void Instance::changeSide(ChangeType ct) // 未测试
         };
         if (rootMove_->fseat())
             __setRowcol(*rootMove_); // 驱动调用递归函数
-        setMoves(RecFormat::BIN); //借用RecFormat::BIN
+        __setMoves(RecFormat::BIN); //借用RecFormat::BIN
     }
     auto color = rootMove_->fseat() ? rootMove_->fseat()->piece()->color() : PieceColor::RED;
-    setFEN(board_->getPieceChars(), color);
+    __setFEN(board_->getPieceChars(), color);
     for (auto& move : prevMoves)
         move->done();
 }
@@ -111,7 +112,7 @@ void Instance::read(const std::string& infilename)
                                                                        : std::ifstream(infilename) };
     switch (fmt) {
     case RecFormat::XQF:
-        readXQF(is);
+        __readXQF(is);
         break;
     case RecFormat::PGN_ICCS:
         __readInfo_PGN(is);
@@ -126,21 +127,21 @@ void Instance::read(const std::string& infilename)
         __readMove_PGN_CC(is);
         break;
     case RecFormat::BIN:
-        readBIN(is);
+        __readBIN(is);
         break;
     case RecFormat::JSON:
-        readJSON(is);
+        __readJSON(is);
         break;
     default:
         break;
     }
-    std::wcout << L"readFile finished!" << std::endl;
+    //std::wcout << L"readFile finished!" << std::endl;
 
-    board_->reset(pieceChars());
+    board_->reset(__pieceChars());
     //std::wcout << board_->toString() << std::endl;
+    __setMoves(fmt);
+    //std::wcout << L"__setMoves finished!" << std::endl;
 
-    setMoves(fmt);
-    std::wcout << L"setMoves finished!" << std::endl;
     currentMove_ = nullptr;
 }
 
@@ -165,10 +166,10 @@ void Instance::write(const std::string& outfilename)
         __writeMove_PGN_CC(os);
         break;
     case RecFormat::BIN:
-        writeBIN(os);
+        __writeBIN(os);
         break;
     case RecFormat::JSON:
-        writeJSON(os);
+        __writeJSON(os);
         break;
     default:
         break;
@@ -176,7 +177,7 @@ void Instance::write(const std::string& outfilename)
     //std::wcout << L"writeMove finished!\n" << MoveOwner_->toString() << std::endl;
 }
 
-void Instance::readXQF(std::istream& is)
+void Instance::__readXQF(std::istream& is)
 {
     const int pieceNum{ 32 };
     char Signature[3]{}, Version{}, headKeyMask{}, ProductId[4]{}, //文件标记'XQ'=$5158/版本/加密掩码/ProductId[4], 产品(厂商的产品号)
@@ -241,7 +242,7 @@ void Instance::readXQF(std::istream& is)
         F32Keys[i] = copyright[i] & KeyBytes[i % 4]; // ord(c)
 
     // 取得棋子字符串
-    std::wstring pieceChars(90, BoardSpace::Board::nullChar);
+    std::wstring pieceChars(90, BoardSpace::PieceCharManager::nullChar());
     std::wstring pieChars = L"RNBAKABNRCCPPPPPrnbakabnrccppppp"; // QiziXY设定的棋子顺序
     for (int i = 0; i != pieceNum; ++i) {
         int xy = head_QiziXY[i];
@@ -500,11 +501,11 @@ void Instance::__writeMove_PGN_CC(std::ostream& os) const
     std::wstringstream wss{};
     for (auto& line : lineStr)
         wss << line << L'\n';
-    wss << remStrs.str() << moveInfo();
+    wss << remStrs.str() << __moveInfo();
     os << Tools::ws2s(wss.str());
 }
 
-void Instance::readBIN(std::istream& is)
+void Instance::__readBIN(std::istream& is)
 {
     char len[sizeof(int)]{};
     std::function<std::wstring()> __readWstring = [&]() {
@@ -546,7 +547,7 @@ void Instance::readBIN(std::istream& is)
         __readMove(*rootMove_);
 }
 
-void Instance::writeBIN(std::ostream& os) const
+void Instance::__writeBIN(std::ostream& os) const
 {
     auto __writeWstring = [&](const std::wstring& wstr) {
         std::string str{ Tools::ws2s(wstr) };
@@ -579,7 +580,7 @@ void Instance::writeBIN(std::ostream& os) const
         __writeMove(*rootMove_);
 }
 
-void Instance::readJSON(std::istream& is)
+void Instance::__readJSON(std::istream& is)
 {
     Json::CharReaderBuilder builder;
     Json::Value root;
@@ -607,7 +608,7 @@ void Instance::readJSON(std::istream& is)
         __readMove(*rootMove_, rootItem);
 }
 
-void Instance::writeJSON(std::ostream& os) const
+void Instance::__writeJSON(std::ostream& os) const
 {
     Json::Value root{}, infoItem{};
     Json::StreamWriterBuilder builder;
@@ -633,19 +634,19 @@ void Instance::writeJSON(std::ostream& os) const
     writer->write(root, &os);
 }
 
-void Instance::setFEN(const std::wstring& pieceChars, PieceColor color)
+void Instance::__setFEN(const std::wstring& pieceChars, PieceColor color)
 {
     info_[L"FEN"] = getFEN(pieceChars) + L" " + (color == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
 }
 
-const std::wstring Instance::pieceChars() const
+const std::wstring Instance::__pieceChars() const
 {
     std::wstring rfen{ info_.at(L"FEN") }, fen{ rfen.substr(0, rfen.find(L' ')) };
     return getPieceChars(fen);
 }
 
 // （rootMove）调用, 设置树节点的seat or zh'  // C++primer P512
-void Instance::setMoves(RecFormat fmt)
+void Instance::__setMoves(RecFormat fmt)
 {
     std::function<void(MoveSpace::Move&)> __set = [&](MoveSpace::Move& move) {
         //std::wcout << move.toString() << std::endl;
@@ -662,7 +663,7 @@ void Instance::setMoves(RecFormat fmt)
         assert(move.frowcol() >= 0 && move.frowcol() <= 98);
         assert(move.trowcol() >= 0 && move.trowcol() <= 98);
         if (!move.fseat()->piece())
-            std::wcout << move.toString() << "movCount:" << movCount << L'\n' << board_->toString() << std::endl;
+            std::wcout << move.toString() << "movCount:" << movCount_ << L'\n' << board_->toString() << std::endl;
         assert(move.fseat()->piece());
 
         if (fmt != RecFormat::PGN_ZH && fmt != RecFormat::PGN_CC)
@@ -674,13 +675,13 @@ void Instance::setMoves(RecFormat fmt)
         assert(move.iccs().size() == 4);
         //std::wcout << L"   ?: " << move.toString() << std::endl;
 
-        ++movCount;
-        maxCol = std::max(maxCol, move.otherNo());
-        maxRow = std::max(maxRow, move.nextNo());
-        move.setCC_ColNo(maxCol); // # 本着在视图中的列数
+        ++movCount_;
+        maxCol_ = std::max(maxCol_, move.otherNo());
+        maxRow_ = std::max(maxRow_, move.nextNo());
+        move.setCC_ColNo(maxCol_); // # 本着在视图中的列数
         if (!move.remark().empty()) {
-            ++remCount;
-            remLenMax = std::max(remLenMax, static_cast<int>(move.remark().size()));
+            ++remCount_;
+            remLenMax_ = std::max(remLenMax_, static_cast<int>(move.remark().size()));
         }
 
         move.done();
@@ -692,7 +693,7 @@ void Instance::setMoves(RecFormat fmt)
         //std::wcout << L"undo: " << move.toString() << L'\n' << board_->toString() << std::endl;
 
         if (move.other()) {
-            ++maxCol;
+            ++maxCol_;
             __set(*move.other());
         }
     };
@@ -701,12 +702,11 @@ void Instance::setMoves(RecFormat fmt)
         __set(*rootMove_); // 驱动函数
 }
 
-const std::wstring
-Instance::moveInfo() const
+const std::wstring Instance::__moveInfo() const
 {
     std::wstringstream wss{};
-    wss << L"【着法深度：" << maxRow << L", 视图宽度：" << maxCol << L", 着法数量：" << movCount
-        << L", 注解数量：" << remCount << L", 注解最长：" << remLenMax << L"】\n";
+    wss << L"【着法深度：" << maxRow_ << L", 视图宽度：" << maxCol_ << L", 着法数量：" << movCount_
+        << L", 注解数量：" << remCount_ << L", 注解最长：" << remLenMax_ << L"】\n";
     return wss.str();
 }
 
@@ -730,57 +730,6 @@ const std::string getExtName(const RecFormat fmt)
     }
 }
 
-const std::wstring getFEN(const std::wstring& pieceChars)
-{
-    //'下划线字符串对应数字字符'
-    std::vector<std::pair<std::wstring, std::wstring>> line_nums{
-        { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
-        { L"______", L"6" }, { L"_____", L"5" }, { L"____", L"4" },
-        { L"___", L"3" }, { L"__", L"2" }, { L"_", L"1" }
-    };
-    std::wstring fen{};
-    for (int i = 81; i >= 0; i -= 9)
-        fen += pieceChars.substr(i, 9) + L"/";
-    fen.erase(fen.size() - 1, 1);
-    std::wstring::size_type pos;
-    for (auto& linenum : line_nums)
-        while ((pos = fen.find(linenum.first)) != std::wstring::npos)
-            fen.replace(pos, linenum.first.size(), linenum.second);
-    /*
-    assert(pieceChars.size() == 90);
-    std::wstring fen{};
-    std::wregex linerg{ LR"(.{9})" }, sp{ LR"()" + board_->getNullChar() + LR"({1,9})" };
-    std::wsregex_token_iterator end_it{};
-    //std::wstringstream wss{};
-    for (std::wsregex_token_iterator lineIter{ pieceChars.begin(), pieceChars.end(), linerg, 0 }; lineIter != end_it; ++lineIter) {
-        std::wstringstream wss{};
-        for (std::wsregex_token_iterator charIter{ (*lineIter).begin(), (*lineIter).end(), sp, -1 }; charIter != end_it; ++charIter) {
-            wss << *charIter;
-            wss << num; // sp.size?
-        }
-        wss << L'/';
-        fen.insert(0, wss.str());
-    }*/
-    //assert(getPieceChars(fen) == pieceChars);
-    return fen;
-}
-
-const std::wstring getPieceChars(const std::wstring& fen)
-{
-    std::wstring pieceChars{};
-    std::wregex sp{ LR"(/)" };
-    for (std::wsregex_token_iterator fenLineIter{ fen.begin(), fen.end(), sp, -1 };
-         fenLineIter != std::wsregex_token_iterator{}; ++fenLineIter) {
-        std::wstringstream wss{};
-        for (auto wch : std::wstring{ *fenLineIter })
-            wss << (isdigit(wch) ? std::wstring(wch - 48, BoardSpace::Board::nullChar) : std::wstring{ wch }); // ASCII: 0:48
-        pieceChars.insert(0, wss.str());
-    }
-
-    assert(fen == getFEN(pieceChars));
-    return pieceChars;
-}
-
 RecFormat getRecFormat(const std::string& ext)
 {
     if (ext == ".xqf")
@@ -797,6 +746,59 @@ RecFormat getRecFormat(const std::string& ext)
         return RecFormat::PGN_CC;
     else
         return RecFormat::PGN_CC;
+}
+
+const std::wstring getFEN(const std::wstring& pieceChars)
+{
+    //*'下划线字符串对应数字字符'
+    std::vector<std::pair<std::wstring, std::wstring>> line_nums{
+        { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
+        { L"______", L"6" }, { L"_____", L"5" }, { L"____", L"4" },
+        { L"___", L"3" }, { L"__", L"2" }, { L"_", L"1" }
+    };
+    std::wstring fen{};
+    for (int i = 81; i >= 0; i -= 9)
+        fen += pieceChars.substr(i, 9) + L"/";
+    fen.erase(fen.size() - 1, 1);
+    std::wstring::size_type pos;
+    for (auto& linenum : line_nums)
+        while ((pos = fen.find(linenum.first)) != std::wstring::npos)
+            fen.replace(pos, linenum.first.size(), linenum.second);
+    //*/
+    /*
+    assert(pieceChars.size() == 90);
+    std::wstring fen{};
+    std::wregex linerg{ LR"(.{9})" }, nullrg{ LR"()" + board_->getNullChar() + LR"({1,9})" };
+    std::wsregex_token_iterator end_it{};
+    std::wstringstream wss{};
+    for (std::wsregex_token_iterator lineIter{ pieceChars.begin(), pieceChars.end(), linerg, 0 }; lineIter != end_it; ++lineIter) {
+        std::wstringstream wss{};
+        for (std::wsregex_token_iterator charIter{ (*lineIter).begin(), (*lineIter).end(), nullrg, -1 }; charIter != end_it; ++charIter) {
+            wss << *charIter;
+            wss << num; // nullrg.size?
+        }
+        wss << L'/';
+        fen.insert(0, wss.str());
+    }//*/
+
+    //assert(getPieceChars(fen) == pieceChars);
+    return fen;
+}
+
+const std::wstring getPieceChars(const std::wstring& fen)
+{
+    std::wstring pieceChars{};
+    std::wregex linerg{ LR"(/)" };
+    for (std::wsregex_token_iterator fenLineIter{ fen.begin(), fen.end(), linerg, -1 };
+         fenLineIter != std::wsregex_token_iterator{}; ++fenLineIter) {
+        std::wstringstream wss{};
+        for (auto wch : std::wstring{ *fenLineIter })
+            wss << (isdigit(wch) ? std::wstring(wch - 48, BoardSpace::PieceCharManager::nullChar()) : std::wstring{ wch }); // ASCII: 0:48
+        pieceChars.insert(0, wss.str());
+    }
+
+    //assert(fen == getFEN(pieceChars));
+    return pieceChars;
 }
 
 void transDir(const std::string& dirfrom, const RecFormat fmt)
@@ -825,7 +827,7 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
                         fcount += 1;
 
                         Instance ci{};
-                        std::cout << infilename << std::endl;
+                        //std::cout << infilename << std::endl;
                         ci.read(infilename);
                         //std::cout << infilename << " read finished!" << std::endl;
                         //std::cout << fileto << std::endl;

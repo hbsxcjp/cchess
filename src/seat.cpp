@@ -24,7 +24,6 @@ const std::wstring Seat::toString() const
     return wss.str();
 }
 
-
 const std::shared_ptr<PieceSpace::Piece> Seat::movTo(std::shared_ptr<Seat>& tseat,
     const std::shared_ptr<PieceSpace::Piece>& fillPiece)
 {

@@ -23,28 +23,23 @@ Board::Board()
 {
 }
 
-const std::wstring Board::getPieceChars() const
-{
-    std::wstringstream wss{};
-    std::shared_ptr<PieceSpace::Piece> pie{};
-    for_each(seats_.begin(), seats_.end(),
-        [&](const std::shared_ptr<SeatSpace::Seat>& seat) { wss << ((pie = seat->piece()) ? pie->ch() : nullChar); });
-    return wss.str();
-}
+const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const int row, const int col) const { return seats_.at(RowcolManager::getIndex(row, col)); }
+
+const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const int rowcol) const { return seats_.at(RowcolManager::getIndex(rowcol)); }
 
 const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
 Board::getMoveSeatFromIccs(const std::wstring& ICCS) const
 {
     std::string iccs{ Tools::ws2s(ICCS) };
-    return make_pair(getSeat(iccs.at(1) - 48, iccs.at(0) - 97), getSeat(iccs.at(3) - 48, iccs.at(2) - 97)); // 0:48, a:97
+    return make_pair(getSeat(PieceCharManager::getRowFromICCSChar(iccs.at(1)), PieceCharManager::getColFromICCSChar(iccs.at(0))),
+        getSeat(PieceCharManager::getRowFromICCSChar(iccs.at(3)), PieceCharManager::getColFromICCSChar(iccs.at(2))));
 }
 
 const std::wstring Board::getIccs(const std::shared_ptr<SeatSpace::Seat>& fseat,
     const std::shared_ptr<SeatSpace::Seat>& tseat) const
 {
     std::wstringstream wss{};
-    const std::wstring ColChars{ L"abcdefghi" };
-    wss << ColChars.at(fseat->col()) << fseat->row() << ColChars.at(tseat->col()) << tseat->row();
+    wss << PieceCharManager::getColICCSChar(fseat->col()) << fseat->row() << PieceCharManager::getColICCSChar(tseat->col()) << tseat->row();
     return wss.str();
 }
 
@@ -56,33 +51,33 @@ Board::getMoveSeatFromZh(const std::wstring& zhStr) const
     std::shared_ptr<SeatSpace::Seat> fseat{}, tseat{};
     std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
     // 根据最后一个字符判断该着法属于哪一方
-    PieceColor color{ __getColor(zhStr.back()) };
+    PieceColor color{ PieceCharManager::getColorFromZh(zhStr.back()) };
     bool isBottom{ __isBottomSide(color) };
-    int index{}, movDir{ getMovNum(isBottom, zhStr.at(2)) };
+    int index{}, movDir{ PieceCharManager::getMovNum(isBottom, zhStr.at(2)) };
     wchar_t name{ zhStr.front() };
 
-    if (isPieceName(name)) { // 首字符为棋子名
-        seats = __getLiveSeats(color, name, getCol(isBottom, getNum(color, zhStr.at(1))));
+    if (PieceCharManager::isPiece(name)) { // 首字符为棋子名
+        seats = __getLiveSeats(color, name, PieceCharManager::getCol(isBottom, PieceCharManager::getNum(color, zhStr.at(1))));
         assert(seats.size() > 0);
         //# 排除：士、象同列时不分前后，以进、退区分棋子。移动方向为退时，修正index
         index = (seats.size() == 2 && movDir == -1) ? 1 : 0; //&& isAdvBish(name)
     } else {
         name = zhStr.at(1);
-        seats = isPawn(name) ? __sortPawnSeats(color, name) : __getLiveSeats(color, name);
-        index = getIndex(seats.size(), isBottom, zhStr.front());
+        seats = PieceCharManager::isPawn(name) ? __sortPawnSeats(color, name) : __getLiveSeats(color, name);
+        index = PieceCharManager::getIndex(seats.size(), isBottom, zhStr.front());
     }
 
     assert(index <= static_cast<int>(seats.size()) - 1);
     fseat = seats.at(index);
-    int num{ getNum(color, zhStr.back()) }, toCol{ getCol(isBottom, num) };
-    if (isLineMove(name)) {
+    int num{ PieceCharManager::getNum(color, zhStr.back()) }, toCol{ PieceCharManager::getCol(isBottom, num) };
+    if (PieceCharManager::isLineMove(name)) {
         int trow{ fseat->row() + movDir * num };
-        assert(movDir == 0 || (trow <= RowUpIndex && trow >= RowLowIndex));
+        assert(movDir == 0 || (trow <= RowcolManager::RowUpIndex() && trow >= RowcolManager::RowLowIndex()));
         tseat = movDir == 0 ? getSeat(fseat->row(), toCol) : getSeat(trow, fseat->col());
     } else { // 斜线走子：仕、相、马
         int colAway{ abs(toCol - fseat->col()) }, //  相距1或2列
-            trow{ fseat->row() + movDir * (isAdvBish(name) ? colAway : (colAway == 1 ? 2 : 1)) };
-        assert(trow <= RowUpIndex && trow >= RowLowIndex);
+            trow{ fseat->row() + movDir * (PieceCharManager::isAdvBish(name) ? colAway : (colAway == 1 ? 2 : 1)) };
+        assert(trow <= RowcolManager::RowUpIndex() && trow >= RowcolManager::RowLowIndex());
         tseat = getSeat(trow, toCol);
     }
     //assert(zhStr == getZh(fseat, tseat));
@@ -102,19 +97,64 @@ const std::wstring Board::getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
     bool isSameRow{ fromRow == toRow }, isBottom{ __isBottomSide(color) };
     auto seats = __getLiveSeats(color, name, fromCol);
 
-    if (seats.size() > 1 && isStronge(name)) {
-        if (isPawn(name))
+    if (seats.size() > 1 && PieceCharManager::isStronge(name)) {
+        if (PieceCharManager::isPawn(name))
             seats = __sortPawnSeats(color, name);
-        wss << getIndexChar(seats.size(), isBottom, distance(seats.begin(), find(seats.begin(), seats.end(), fseat))) << name;
+        wss << PieceCharManager::getIndexChar(seats.size(), isBottom, distance(seats.begin(), find(seats.begin(), seats.end(), fseat))) << name;
     } else //将帅, 仕(士),相(象): 不用“前”和“后”区别，因为能退的一定在前，能进的一定在后
-        wss << name << getColChar(color, isBottom, fromCol);
-    wss << getMovChar(isSameRow, isBottom, toRow > fromRow)
-        << (isLineMove(name) && !isSameRow ? getNumChar(color, abs(fromRow - toRow)) : getColChar(color, isBottom, toCol));
+        wss << name << PieceCharManager::getColChar(color, isBottom, fromCol);
+    wss << PieceCharManager::getMovChar(isSameRow, isBottom, toRow > fromRow)
+        << (PieceCharManager::isLineMove(name) && !isSameRow ? PieceCharManager::getNumChar(color, abs(fromRow - toRow))
+                                                             : PieceCharManager::getColChar(color, isBottom, toCol));
 
     auto& mvSeats = getMoveSeatFromZh(wss.str());
     assert(fseat == mvSeats.first && tseat == mvSeats.second);
 
     return wss.str();
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::putSeats(const std::shared_ptr<PieceSpace::Piece>& piece) const
+{
+    bool isBottom{ __isBottomSide(piece->color()) };
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    std::vector<std::pair<int, int>> rowcols{};
+    switch (piece->kind()) {
+    case PieceKind::KING:
+        rowcols = RowcolManager::getKingRowcols(isBottom);
+        break;
+    case PieceKind::ADVSIOR:
+        rowcols = RowcolManager::getAdvisorRowcols(isBottom);
+        break;
+    case PieceKind::BISHOP:
+        rowcols = RowcolManager::getBishopRowcols(isBottom);
+        break;
+    case PieceKind::PAWN:
+        rowcols = RowcolManager::getPawnRowcols(isBottom);
+        break;
+    default: // PieceKind::KNIGHT, PieceKind::ROOK, PieceKind::CANNON
+        return seats_;
+    }
+    for (auto& rowcol : rowcols)
+        seats.push_back(getSeat(rowcol.first, rowcol.second));
+    return seats;
+}
+
+// '获取棋子可走的位置, 不能被将军'
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::moveSeats(std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    assert(fseat->piece());
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    auto color = fseat->piece()->color();
+    auto pieMoveSeats = __getMoveSeats(fseat);
+    std::copy_if(pieMoveSeats.begin(), pieMoveSeats.end(), std::back_inserter(seats),
+        [&](std::shared_ptr<SeatSpace::Seat>& tseat) {
+            auto& eatPiece = fseat->movTo(tseat);
+            // 移动棋子后，检测是否会被对方将军
+            bool killed{ isKilled(color) };
+            tseat->movTo(fseat, eatPiece);
+            return !killed;
+        });
+    return seats;
 }
 
 //判断是否将军
@@ -136,8 +176,8 @@ const bool Board::isKilled(const PieceColor color) const
     // '获取某方可杀将棋子全部可走的位置
     std::vector<std::shared_ptr<SeatSpace::Seat>> strongeMoveSeats{}, liveSeats{ __getLiveSeats(othColor) };
     std::for_each(liveSeats.begin(), liveSeats.end(), [&](const std::shared_ptr<SeatSpace::Seat>& fseat) {
-        if (isStronge(fseat->piece()->name())) {
-            auto& mvSeats = fseat->piece()->__moveSeats(*this, fseat);
+        if (PieceCharManager::isStronge(fseat->piece()->name())) {
+            auto& mvSeats = __getMoveSeats(fseat);
             copy(mvSeats.begin(), mvSeats.end(), std::back_inserter(strongeMoveSeats));
         }
     });
@@ -156,24 +196,6 @@ const bool Board::isDied(const PieceColor color) const
     return true;
 }
 
-// '获取棋子可走的位置, 不能被将军'
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::moveSeats(std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-    assert(fseat->piece());
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    auto color = fseat->piece()->color();
-    auto pieMoveSeats = fseat->piece()->__moveSeats(*this, fseat);
-    std::copy_if(pieMoveSeats.begin(), pieMoveSeats.end(), std::back_inserter(seats),
-        [&](std::shared_ptr<SeatSpace::Seat>& tseat) {
-            auto& eatPiece = fseat->movTo(tseat);
-            // 移动棋子后，检测是否会被对方将军
-            bool killed{ isKilled(color) };
-            tseat->movTo(fseat, eatPiece);
-            return !killed;
-        });
-    return seats;
-}
-
 void Board::reset(const std::wstring& pieceChars)
 {
     assert(seats_.size() == pieceChars.size());
@@ -181,7 +203,7 @@ void Board::reset(const std::wstring& pieceChars)
     int chIndex{ -1 };
     std::vector<bool> used(pieces_.size(), false);
     std::for_each(seats_.begin(), seats_.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
-        if ((ch = pieceChars[++chIndex]) != nullChar) {
+        if ((ch = pieceChars[++chIndex]) != PieceCharManager::nullChar()) {
             for (int index = used.size() - 1; index >= 0; --index)
                 if (!used[index] && pieces_[index]->ch() == ch) {
                     seat->put(pieces_[index]);
@@ -200,10 +222,10 @@ void Board::changeSide(const ChangeType ct)
     auto getOthPiece = [&](const std::shared_ptr<PieceSpace::Piece>& piece) {
         return pieces_.at((std::distance(pieces_.begin(), std::find(pieces_.begin(), pieces_.end(), piece)) + 16) % 32);
     };
-    auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &Board::getRotate : &Board::getSymmetry);
+    auto changeRowcol = ct == ChangeType::ROTATE ? &RowcolManager::getRotate : &RowcolManager::getSymmetry;
     std::for_each(seats_.begin(), seats_.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
         seatPieces.push_back(ct == ChangeType::EXCHANGE ? (seat->piece() ? getOthPiece(seat->piece()) : nullptr)
-                                                        : getSeat(changeRowcol(this, seat->rowcol()))->piece());
+                                                        : getSeat(changeRowcol(seat->rowcol()))->piece());
     });
     int index{ -1 };
     std::for_each(seats_.begin(), seats_.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
@@ -218,258 +240,17 @@ void Board::__setBottomSide()
         return seat->piece() == pieces_[0];
     }); // 定位红帅
     assert(pos != seats_.end());
-    bottomColor = (*pos)->row() < RowLowUpIndex ? PieceColor::RED : PieceColor::BLACK;
+    bottomColor = RowcolManager::isBottom((*pos)->row()) ? PieceColor::RED : PieceColor::BLACK;
 }
 
 const std::shared_ptr<SeatSpace::Seat>& Board::__getKingSeat(const PieceColor color) const
 {
-    auto& seats = getKingSeats(color);
+    auto& seats = putSeats(pieces_[color == PieceColor::RED ? 0 : 16]);
     auto pos = std::find_if(seats.begin(), seats.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
-        return seat->piece() && isKing(seat->piece()->name());
+        return seat->piece() && PieceCharManager::isKing(seat->piece()->name());
     });
     assert(pos != seats.end());
     return *pos;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getKingSeats(const PieceColor color) const
-{
-    bool isBottom{ __isBottomSide(color) };
-    int rowLow{ isBottom ? RowLowIndex : RowUpMidIndex },
-        rowUp{ isBottom ? RowLowMidIndex : RowUpIndex };
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    for (int row = rowLow; row <= rowUp; ++row)
-        for (int col = ColMidLowIndex; col <= ColMidUpIndex; ++col)
-            seats.push_back(getSeat(row, col));
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getAdvisorSeats(const PieceColor color) const
-{
-    bool isBottom{ __isBottomSide(color) };
-    int rowLow{ isBottom ? RowLowIndex : RowUpMidIndex },
-        rowUp{ isBottom ? RowLowMidIndex : RowUpIndex }, rmd{ isBottom ? 1 : 0 }; // 行列和的奇偶值
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    for (int row = rowLow; row <= rowUp; ++row)
-        for (int col = ColMidLowIndex; col <= ColMidUpIndex; ++col)
-            if ((col + row) % 2 == rmd)
-                seats.push_back(getSeat(row, col));
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getBishopSeats(const PieceColor color) const
-{
-    bool isBottom{ __isBottomSide(color) };
-    int rowLow{ isBottom ? RowLowIndex : RowUpLowIndex },
-        rowUp{ isBottom ? RowLowUpIndex : RowUpIndex };
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    for (int row = rowLow; row <= rowUp; row += 2)
-        for (int col = ColLowIndex; col <= ColUpIndex; col += 2) {
-            int gap{ row - col };
-            if ((isBottom && (gap == 2 || gap == -2 || gap == -6))
-                || (!isBottom && (gap == 7 || gap == 3 || gap == -1)))
-                seats.push_back(getSeat(row, col));
-        }
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getPawnSeats(const PieceColor color) const
-{
-    bool isBottom{ __isBottomSide(color) };
-    int lfrow{ isBottom ? RowLowUpIndex - 1 : RowUpLowIndex },
-        ufrow{ isBottom ? RowLowUpIndex : RowUpLowIndex + 1 },
-        ltrow{ isBottom ? RowUpLowIndex : RowLowIndex },
-        utrow{ isBottom ? RowUpIndex : RowLowUpIndex };
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    for (int row = lfrow; row <= ufrow; ++row)
-        for (int col = ColLowIndex; col <= ColUpIndex; col += 2)
-            seats.push_back(getSeat(row, col));
-    for (int row = ltrow; row <= utrow; ++row)
-        for (int col = ColLowIndex; col <= ColUpIndex; ++col)
-            seats.push_back(getSeat(row, col));
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getKingMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-    std::vector<std::shared_ptr<SeatSpace::Seat>> pieceSeats{ fseat->piece()->getSeats(*this) }, seats{};
-    int frow{ fseat->row() }, fcol{ fseat->col() };
-    std::copy_if(pieceSeats.begin(), pieceSeats.end(), std::back_inserter(seats),
-        [&](const std::shared_ptr<SeatSpace::Seat>& tseat) {
-            return (((frow == tseat->row() && abs(fcol - tseat->col()) == 1)
-                        || (abs(frow - tseat->row()) == 1 && fcol == tseat->col()))
-                && tseat->isDiffColor(fseat));
-        });
-    //std::wcout << fseat->toString() << L"getKingMoveSeats: " << __getSeatsStr(seats) << std::endl;
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getAdvsiorMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-
-    std::vector<std::shared_ptr<SeatSpace::Seat>> pieceSeats{ fseat->piece()->getSeats(*this) }, seats{};
-    int frow{ fseat->row() }, fcol{ fseat->col() };
-    std::copy_if(pieceSeats.begin(), pieceSeats.end(), std::back_inserter(seats),
-        [&](const std::shared_ptr<SeatSpace::Seat>& tseat) {
-            return (abs(frow - tseat->row()) == 1
-                && abs(fcol - tseat->col()) == 1
-                && tseat->isDiffColor(fseat));
-        });
-    //std::wcout << fseat->toString() << L"getAdvisorMoveSeats: " << __getSeatsStr(seats) << std::endl;
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getBishopMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-
-    std::vector<std::shared_ptr<SeatSpace::Seat>> pieceSeats{ fseat->piece()->getSeats(*this) }, seats{};
-    int frow{ fseat->row() }, fcol{ fseat->col() };
-    std::copy_if(pieceSeats.begin(), pieceSeats.end(), std::back_inserter(seats),
-        [&](const std::shared_ptr<SeatSpace::Seat>& tseat) {
-            return (abs(frow - tseat->row()) == 2
-                && abs(fcol - tseat->col()) == 2
-                && !getSeat((frow + tseat->row()) >> 1, (fcol + tseat->col()) >> 1)->piece()
-                && tseat->isDiffColor(fseat));
-        });
-    //std::wcout << fseat->toString() << L"getBishopMoveSeats: " << __getSeatsStr(seats) << std::endl;
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getKnightMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    int frow{ fseat->row() }, fcol{ fseat->col() };
-    std::copy_if(seats_.begin(), seats_.end(), std::back_inserter(seats),
-        [&](const std::shared_ptr<SeatSpace::Seat>& tseat) {
-            int trow{ tseat->row() }, tcol{ tseat->col() }, irow{ frow > trow ? -1 : 1 }, icol{ fcol > tcol ? -1 : 1 };
-            return (((abs(frow - trow) == 1 && abs(fcol - tcol) == 2 && !getSeat(frow, fcol + icol)->piece())
-                        || (abs(frow - trow) == 2 && abs(fcol - tcol) == 1 && !getSeat(frow + irow, fcol)->piece()))
-                && tseat->isDiffColor(fseat));
-        });
-
-    assert(seats.size() <= 8);
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getRookMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    for (auto& seatLine : __getRookCannonMoveSeat_Lines(fseat))
-        for (auto& tseat : seatLine) {
-            if (tseat->isDiffColor(fseat))
-                seats.push_back(tseat);
-            if (tseat->piece())
-                break;
-        }
-    //std::wcout << fseat->toString() << L"getRookMoveSeats: " << __getSeatsStr(seats) << std::endl;
-    return seats;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getCannonMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    for (auto& seatLine : __getRookCannonMoveSeat_Lines(fseat)) {
-        bool skip = false;
-        for (auto& tseat : seatLine)
-            if (!skip) {
-                if (!tseat->piece())
-                    seats.push_back(tseat);
-                else
-                    skip = true;
-            } else if (tseat->piece()) {
-                if (tseat->isDiffColor(fseat))
-                    seats.push_back(tseat);
-                break;
-            }
-    }
-    //std::wcout << fseat->toString() << L"getCannonMoveSeats: " << __getSeatsStr(seats) << std::endl;
-    return seats;
-}
-
-const std::vector<std::vector<std::shared_ptr<SeatSpace::Seat>>> Board::__getRookCannonMoveSeat_Lines(const std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-    std::vector<std::vector<std::shared_ptr<SeatSpace::Seat>>> seatLines(4);
-    int frow{ fseat->row() }, fcol{ fseat->col() };
-    for (int col = fcol - 1; col >= ColLowIndex; --col)
-        seatLines[0].push_back(getSeat(frow, col));
-    for (int col = fcol + 1; col <= ColUpIndex; ++col)
-        seatLines[1].push_back(getSeat(frow, col));
-    for (int row = frow - 1; row >= RowLowIndex; --row)
-        seatLines[2].push_back(getSeat(row, fcol));
-    for (int row = frow + 1; row <= RowUpIndex; ++row)
-        seatLines[3].push_back(getSeat(row, fcol));
-    return seatLines;
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getPawnMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
-{
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    std::vector<std::pair<int, int>> trowcols{};
-    int frow{ fseat->row() }, fcol{ fseat->col() }, row{}, col{};
-    bool isBottom{ __isBottomSide(fseat->piece()->color()) };
-    if ((isBottom && (row = frow + 1) <= RowUpIndex)
-        || (!isBottom && (row = frow - 1) >= RowLowIndex))
-        trowcols.push_back({ row, fcol });
-    if (isBottom == (frow > RowLowUpIndex)) { // 兵已过河
-        if ((col = fcol - 1) >= ColLowIndex)
-            trowcols.push_back({ frow, col });
-        if ((col = fcol + 1) <= ColUpIndex)
-            trowcols.push_back({ frow, col });
-    }
-    std::for_each(trowcols.begin(), trowcols.end(), [&](std::pair<int, int>& trowcol) {
-        auto& seat = getSeat(trowcol.first, trowcol.second);
-        if (seat->isDiffColor(fseat))
-            seats.push_back(seat);
-    });
-    //std::wcout << fseat->toString() << L"getPawnMoveSeats: " << __getSeatsStr(seats) << std::endl;
-    return seats;
-}
-
-const std::vector<std::shared_ptr<PieceSpace::Piece>> Board::creatPieces() const
-{
-    return std::vector<std::shared_ptr<PieceSpace::Piece>>{
-        std::make_shared<PieceSpace::King>(L'K', nameChars.at(0)),
-        std::make_shared<PieceSpace::Advisor>(L'A', nameChars.at(2)),
-        std::make_shared<PieceSpace::Advisor>(L'A', nameChars.at(2)),
-        std::make_shared<PieceSpace::Bishop>(L'B', nameChars.at(4)),
-        std::make_shared<PieceSpace::Bishop>(L'B', nameChars.at(4)),
-        std::make_shared<PieceSpace::Knight>(L'N', nameChars.at(6)),
-        std::make_shared<PieceSpace::Knight>(L'N', nameChars.at(6)),
-        std::make_shared<PieceSpace::Rook>(L'R', nameChars.at(7)),
-        std::make_shared<PieceSpace::Rook>(L'R', nameChars.at(7)),
-        std::make_shared<PieceSpace::Cannon>(L'C', nameChars.at(8)),
-        std::make_shared<PieceSpace::Cannon>(L'C', nameChars.at(8)),
-        std::make_shared<PieceSpace::Pawn>(L'P', nameChars.at(9)),
-        std::make_shared<PieceSpace::Pawn>(L'P', nameChars.at(9)),
-        std::make_shared<PieceSpace::Pawn>(L'P', nameChars.at(9)),
-        std::make_shared<PieceSpace::Pawn>(L'P', nameChars.at(9)),
-        std::make_shared<PieceSpace::Pawn>(L'P', nameChars.at(9)),
-        std::make_shared<PieceSpace::King>(L'k', nameChars.at(1)),
-        std::make_shared<PieceSpace::Advisor>(L'a', nameChars.at(3)),
-        std::make_shared<PieceSpace::Advisor>(L'a', nameChars.at(3)),
-        std::make_shared<PieceSpace::Bishop>(L'b', nameChars.at(5)),
-        std::make_shared<PieceSpace::Bishop>(L'b', nameChars.at(5)),
-        std::make_shared<PieceSpace::Knight>(L'n', nameChars.at(6)),
-        std::make_shared<PieceSpace::Knight>(L'n', nameChars.at(6)),
-        std::make_shared<PieceSpace::Rook>(L'r', nameChars.at(7)),
-        std::make_shared<PieceSpace::Rook>(L'r', nameChars.at(7)),
-        std::make_shared<PieceSpace::Cannon>(L'c', nameChars.at(8)),
-        std::make_shared<PieceSpace::Cannon>(L'c', nameChars.at(8)),
-        std::make_shared<PieceSpace::Pawn>(L'p', nameChars.at(10)),
-        std::make_shared<PieceSpace::Pawn>(L'p', nameChars.at(10)),
-        std::make_shared<PieceSpace::Pawn>(L'p', nameChars.at(10)),
-        std::make_shared<PieceSpace::Pawn>(L'p', nameChars.at(10)),
-        std::make_shared<PieceSpace::Pawn>(L'p', nameChars.at(10))
-    };
-}
-
-const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::creatSeats() const
-{
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    for (int row = 0; row < RowNum; ++row)
-        for (int col = 0; col < ColNum; ++col)
-            seats.push_back(std::make_shared<SeatSpace::Seat>(row, col));
-    return seats;
 }
 
 // '多兵排序'
@@ -491,11 +272,6 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__sortPawnSeats(const
                 copy(colSeat.second.begin(), colSeat.second.end(), std::back_inserter(seats));
         }); //按列存入
     return seats;
-}
-
-const PieceColor Board::__getColor(const wchar_t numZh) const
-{
-    return numChars.at(PieceColor::RED).find(numZh) != std::wstring::npos ? PieceColor::RED : PieceColor::BLACK;
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getLiveSeats() const
@@ -530,25 +306,170 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getLiveSeats(const 
     return seats;
 }
 
-const std::wstring Board::__getSeatsStr(const std::vector<std::shared_ptr<SeatSpace::Seat>>& seats) const
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    auto& toSeats = putSeats(fseat->piece());
+    assert(find(toSeats.begin(), toSeats.end(), fseat) != toSeats.end());
+    switch (fseat->piece()->kind()) {
+    case PieceKind::KING:
+        return __getKingMoveSeats(fseat);
+    case PieceKind::ADVSIOR:
+        return __getAdvsiorMoveSeats(fseat);
+    case PieceKind::BISHOP:
+        return __getBishopMoveSeats(fseat);
+    case PieceKind::KNIGHT:
+        return __getKnightMoveSeats(fseat);
+    case PieceKind::ROOK:
+        return __getRookMoveSeats(fseat);
+    case PieceKind::CANNON:
+        return __getCannonMoveSeats(fseat);
+    default: // PieceKind::PAWN:
+        return __getPawnMoveSeats(fseat);
+    }
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getKingMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    int frow{ fseat->row() }, fcol{ fseat->col() };
+    auto& toSeats = putSeats(fseat->piece());
+    std::copy_if(toSeats.begin(), toSeats.end(), std::back_inserter(seats),
+        [&](const std::shared_ptr<SeatSpace::Seat>& tseat) {
+            return (((frow == tseat->row() && abs(fcol - tseat->col()) == 1)
+                        || (abs(frow - tseat->row()) == 1 && fcol == tseat->col()))
+                && tseat->isDiffColor(fseat));
+        });
+    return seats;
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getAdvsiorMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    int frow{ fseat->row() }, fcol{ fseat->col() };
+    auto& toSeats = putSeats(fseat->piece());
+    std::copy_if(toSeats.begin(), toSeats.end(), std::back_inserter(seats),
+        [&](const std::shared_ptr<SeatSpace::Seat>& tseat) {
+            return (abs(frow - tseat->row()) == 1
+                && abs(fcol - tseat->col()) == 1
+                && tseat->isDiffColor(fseat));
+        });
+    return seats;
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getBishopMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    int frow{ fseat->row() }, fcol{ fseat->col() };
+    auto& toSeats = putSeats(fseat->piece());
+    std::copy_if(toSeats.begin(), toSeats.end(), std::back_inserter(seats),
+        [&](const std::shared_ptr<SeatSpace::Seat>& tseat) {
+            return (abs(frow - tseat->row()) == 2
+                && abs(fcol - tseat->col()) == 2
+                && !getSeat((frow + tseat->row()) >> 1, (fcol + tseat->col()) >> 1)->piece()
+                && tseat->isDiffColor(fseat));
+        });
+    return seats;
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getKnightMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    int frow{ fseat->row() }, fcol{ fseat->col() };
+    std::copy_if(seats_.begin(), seats_.end(), std::back_inserter(seats),
+        [&](const std::shared_ptr<SeatSpace::Seat>& tseat) {
+            int trow{ tseat->row() }, tcol{ tseat->col() }, irow{ frow > trow ? -1 : 1 }, icol{ fcol > tcol ? -1 : 1 };
+            return (((abs(frow - trow) == 1 && abs(fcol - tcol) == 2 && !getSeat(frow, fcol + icol)->piece())
+                        || (abs(frow - trow) == 2 && abs(fcol - tcol) == 1 && !getSeat(frow + irow, fcol)->piece()))
+                && tseat->isDiffColor(fseat));
+        });
+
+    assert(seats.size() <= 8);
+    return seats;
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getRookMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    for (auto& seatLine : __getRookCannonMoveSeat_Lines(fseat))
+        for (auto& tseat : seatLine) {
+            if (tseat->isDiffColor(fseat))
+                seats.push_back(tseat);
+            if (tseat->piece())
+                break;
+        }
+    return seats;
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getCannonMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    for (auto& seatLine : __getRookCannonMoveSeat_Lines(fseat)) {
+        bool skip = false;
+        for (auto& tseat : seatLine)
+            if (!skip) {
+                if (!tseat->piece())
+                    seats.push_back(tseat);
+                else
+                    skip = true;
+            } else if (tseat->piece()) {
+                if (tseat->isDiffColor(fseat))
+                    seats.push_back(tseat);
+                break;
+            }
+    }
+    return seats;
+}
+
+const std::vector<std::vector<std::shared_ptr<SeatSpace::Seat>>> Board::__getRookCannonMoveSeat_Lines(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    std::vector<std::vector<std::shared_ptr<SeatSpace::Seat>>> seatLines(4);
+    int frow{ fseat->row() }, fcol{ fseat->col() };
+    for (int col = fcol - 1; col >= RowcolManager::ColLowIndex(); --col)
+        seatLines[0].push_back(getSeat(frow, col));
+    for (int col = fcol + 1; col <= RowcolManager::ColUpIndex(); ++col)
+        seatLines[1].push_back(getSeat(frow, col));
+    for (int row = frow - 1; row >= RowcolManager::RowLowIndex(); --row)
+        seatLines[2].push_back(getSeat(row, fcol));
+    for (int row = frow + 1; row <= RowcolManager::RowUpIndex(); ++row)
+        seatLines[3].push_back(getSeat(row, fcol));
+    return seatLines;
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::__getPawnMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const
+{
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    std::vector<std::pair<int, int>> trowcols{};
+    int frow{ fseat->row() }, fcol{ fseat->col() }, row{}, col{};
+    bool isBottom{ __isBottomSide(fseat->piece()->color()) };
+    if ((isBottom && (row = frow + 1) <= RowcolManager::RowUpIndex())
+        || (!isBottom && (row = frow - 1) >= RowcolManager::RowLowIndex()))
+        trowcols.push_back({ row, fcol });
+    if (isBottom == (frow > RowcolManager::RowLowUpIndex())) { // 兵已过河
+        if ((col = fcol - 1) >= RowcolManager::ColLowIndex())
+            trowcols.push_back({ frow, col });
+        if ((col = fcol + 1) <= RowcolManager::ColUpIndex())
+            trowcols.push_back({ frow, col });
+    }
+    std::for_each(trowcols.begin(), trowcols.end(), [&](std::pair<int, int>& trowcol) {
+        auto& seat = getSeat(trowcol.first, trowcol.second);
+        if (seat->isDiffColor(fseat))
+            seats.push_back(seat);
+    });
+    return seats;
+}
+
+const std::wstring Board::getPieceChars() const
 {
     std::wstringstream wss{};
-    wss << seats.size() << L"个: ";
-    std::for_each(seats.begin(), seats.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) { wss << seat->toString() << L' '; });
+    std::shared_ptr<PieceSpace::Piece> pie{};
+    for_each(seats_.begin(), seats_.end(),
+        [&](const std::shared_ptr<SeatSpace::Seat>& seat) { wss << ((pie = seat->piece()) ? pie->ch() : PieceCharManager::nullChar()); });
     return wss.str();
 }
 
-//const wchar_t Board::nullChar;
-const std::wstring Board::nameChars{ L"帅将仕士相象马车炮兵卒" };
-const std::wstring Board::movChars{ L"退平进" };
-const std::map<PieceColor, std::wstring> Board::numChars{
-    { PieceColor::RED, L"一二三四五六七八九" },
-    { PieceColor::BLACK, L"１２３４５６７８９" }
-};
-
 const std::wstring Board::toString() const
-{
-    // 文本空棋盘
+{  // 文本空棋盘
     std::wstring textBlankBoard{ L"┏━┯━┯━┯━┯━┯━┯━┯━┓\n"
                                  "┃　│　│　│╲│╱│　│　│　┃\n"
                                  "┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
@@ -568,15 +489,9 @@ const std::wstring Board::toString() const
                                  "┠─┼─┼─┼─╳─┼─┼─┼─┨\n"
                                  "┃　│　│　│╱│╲│　│　│　┃\n"
                                  "┗━┷━┷━┷━┷━┷━┷━┷━┛\n" }; // 边框粗线
-    std::map<wchar_t, wchar_t> rcpName{ { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' } };
-    auto __getName = [&](const PieceSpace::Piece& pie) {
-        wchar_t name = pie.name();
-        return ((pie.color() == PieceColor::BLACK && rcpName.find(name) != rcpName.end())
-                ? rcpName[name]
-                : name);
-    };
+
     for (auto& seat : __getLiveSeats())
-        textBlankBoard[(ColNum - seat->row()) * 2 * (ColNum * 2) + seat->col() * 2] = __getName(*seat->piece());
+        textBlankBoard[(RowcolManager::ColNum() - seat->row()) * 2 * (RowcolManager::ColNum() * 2) + seat->col() * 2] = PieceCharManager::getPrintName((*seat->piece()));
     return textBlankBoard;
 }
 
@@ -600,24 +515,31 @@ const std::wstring Board::test()
 
         //*
         std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-        wss << L"getAllSeats() " << __getSeatsStr(getAllSeats()) << L'\n';
-        wss << L"__getLiveSeats() " << __getSeatsStr(__getLiveSeats()) << L"\n";
-        for (auto color : { PieceColor::RED, PieceColor::BLACK }) {
-            wss << L"PieceColor: " << static_cast<int>(color) << L'\n';
-            wss << L"__getKingSeat() " << __getKingSeat(color)->toString() << L'\n';
-            wss << L"getKingSeats() " << __getSeatsStr(getKingSeats(color)) << L'\n';
-            wss << L"getAdvisorSeats() " << __getSeatsStr(getAdvisorSeats(color)) << L'\n';
-            wss << L"getBishopSeats() " << __getSeatsStr(getBishopSeats(color)) << L'\n';
-            wss << L"getPawnSeats() " << __getSeatsStr(getPawnSeats(color)) << L'\n';
-            wss << L"__getLiveSeats() " << __getSeatsStr(__getLiveSeats(color)) << L"\n";
-        }
+        wss << L"getAllSeats() " << getSeatsStr(putSeats(pieces_[5])) << L'\n';
+        wss << L"__getLiveSeats() " << getSeatsStr(__getLiveSeats()) << L"\n";
+
+        wss << L"PieceColor: " << static_cast<int>(PieceColor::RED) << L'\n';
+        wss << L"__getKingSeat() " << __getKingSeat(PieceColor::RED)->toString() << L'\n';
+        wss << L"getKingSeats() " << getSeatsStr(putSeats(pieces_[0])) << L'\n';
+        wss << L"getAdvisorSeats() " << getSeatsStr(putSeats(pieces_[1])) << L'\n';
+        wss << L"getBishopSeats() " << getSeatsStr(putSeats(pieces_[3])) << L'\n';
+        wss << L"getPawnSeats() " << getSeatsStr(putSeats(pieces_[14])) << L'\n';
+        wss << L"__getLiveSeats() " << getSeatsStr(__getLiveSeats(PieceColor::RED)) << L"\n";
+
+        wss << L"PieceColor: " << static_cast<int>(PieceColor::BLACK) << L'\n';
+        wss << L"__getKingSeat() " << __getKingSeat(PieceColor::BLACK)->toString() << L'\n';
+        wss << L"getKingSeats() " << getSeatsStr(putSeats(pieces_[16])) << L'\n';
+        wss << L"getAdvisorSeats() " << getSeatsStr(putSeats(pieces_[17])) << L'\n';
+        wss << L"getBishopSeats() " << getSeatsStr(putSeats(pieces_[19])) << L'\n';
+        wss << L"getPawnSeats() " << getSeatsStr(putSeats(pieces_[31])) << L'\n';
+        wss << L"__getLiveSeats() " << getSeatsStr(__getLiveSeats(PieceColor::BLACK)) << L"\n";
         //*/
         //*
         auto getLiveSeatsStr = [&](void) {
             wss << L"\nbottomColor: " << static_cast<int>(bottomColor) << L'\n' << toString();
             for (auto color : { PieceColor::RED, PieceColor::BLACK })
                 for (auto fseat : __getLiveSeats(color))
-                    wss << fseat->toString() << L"=>" << __getSeatsStr(moveSeats(fseat)) << L'\n';
+                    wss << fseat->toString() << L"=>" << getSeatsStr(moveSeats(fseat)) << L'\n';
         };
         getLiveSeatsStr();
         //*/
@@ -629,6 +551,156 @@ const std::wstring Board::test()
         //*/
         wss << L"\n";
     }
+    return wss.str();
+}
+
+const std::vector<std::pair<int, int>> RowcolManager::getKingRowcols(bool isBottom)
+{
+    std::vector<std::pair<int, int>> rowcols{};
+    int rowLow{ isBottom ? RowLowIndex_ : RowUpMidIndex_ },
+        rowUp{ isBottom ? RowLowMidIndex_ : RowUpIndex_ };
+    for (int row = rowLow; row <= rowUp; ++row)
+        for (int col = ColMidLowIndex_; col <= ColMidUpIndex_; ++col)
+            rowcols.push_back({ row, col });
+    return rowcols;
+}
+
+const std::vector<std::pair<int, int>> RowcolManager::getAdvisorRowcols(bool isBottom)
+{
+    std::vector<std::pair<int, int>> rowcols{};
+    int rowLow{ isBottom ? RowLowIndex_ : RowUpMidIndex_ },
+        rowUp{ isBottom ? RowLowMidIndex_ : RowUpIndex_ }, rmd{ isBottom ? 1 : 0 }; // 行列和的奇偶值
+    for (int row = rowLow; row <= rowUp; ++row)
+        for (int col = ColMidLowIndex_; col <= ColMidUpIndex_; ++col)
+            if ((col + row) % 2 == rmd)
+                rowcols.push_back({ row, col });
+    return rowcols;
+}
+
+const std::vector<std::pair<int, int>> RowcolManager::getBishopRowcols(bool isBottom)
+{
+    std::vector<std::pair<int, int>> rowcols{};
+    int rowLow{ isBottom ? RowLowIndex_ : RowUpLowIndex_ },
+        rowUp{ isBottom ? RowLowUpIndex_ : RowUpIndex_ };
+    for (int row = rowLow; row <= rowUp; row += 2)
+        for (int col = ColLowIndex_; col <= ColUpIndex_; col += 2) {
+            int gap{ row - col };
+            if ((isBottom && (gap == 2 || gap == -2 || gap == -6))
+                || (!isBottom && (gap == 7 || gap == 3 || gap == -1)))
+                rowcols.push_back({ row, col });
+        }
+    return rowcols;
+}
+
+const std::vector<std::pair<int, int>> RowcolManager::getPawnRowcols(bool isBottom)
+{
+    std::vector<std::pair<int, int>> rowcols{};
+    int lfrow{ isBottom ? RowLowUpIndex_ - 1 : RowUpLowIndex_ },
+        ufrow{ isBottom ? RowLowUpIndex_ : RowUpLowIndex_ + 1 },
+        ltrow{ isBottom ? RowUpLowIndex_ : RowLowIndex_ },
+        utrow{ isBottom ? RowUpIndex_ : RowLowUpIndex_ };
+    for (int row = lfrow; row <= ufrow; ++row)
+        for (int col = ColLowIndex_; col <= ColUpIndex_; col += 2)
+            rowcols.push_back({ row, col });
+    for (int row = ltrow; row <= utrow; ++row)
+        for (int col = ColLowIndex_; col <= ColUpIndex_; ++col)
+            rowcols.push_back({ row, col });
+    return rowcols;
+}
+
+const wchar_t PieceCharManager::getName(const wchar_t ch)
+{
+    std::map<int, int> chIndex_nameIndex{
+        { 0, 0 }, { 1, 2 }, { 2, 4 }, { 3, 6 }, { 4, 7 }, { 5, 8 }, { 6, 9 },
+        { 7, 1 }, { 8, 3 }, { 9, 5 }, { 10, 6 }, { 11, 7 }, { 12, 8 }, { 13, 10 }
+    };
+    return nameChars_.at(chIndex_nameIndex.at(chStr_.find(ch)));
+}
+
+const wchar_t PieceCharManager::getPrintName(const PieceSpace::Piece& piece)
+{
+    std::map<wchar_t, wchar_t> rcpName{ { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' } };
+    wchar_t name = piece.name();
+    return (piece.color() == PieceColor::BLACK && rcpName.find(name) != rcpName.end()) ? rcpName[name] : name;
+}
+
+const PieceColor PieceCharManager::getColor(const wchar_t ch) { return islower(ch) ? PieceColor::BLACK : PieceColor::RED; }
+
+const PieceKind PieceCharManager::getKind(const wchar_t ch)
+{
+    switch (std::tolower(ch)) {
+    case L'k':
+        return PieceKind::KING;
+    case L'a':
+        return PieceKind::ADVSIOR;
+    case L'b':
+        return PieceKind::BISHOP;
+    case L'n':
+        return PieceKind::KNIGHT;
+    case L'r':
+        return PieceKind::ROOK;
+    case L'c':
+        return PieceKind::CANNON;
+    default: // L'p':
+        return PieceKind::PAWN;
+    }
+}
+
+const std::vector<wchar_t> PieceCharManager::getAllChs()
+{
+    std::vector<wchar_t> chs{};
+    for (auto i : { 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6,
+             7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13, 13 })
+        chs.push_back(chStr_.at(i));
+    return chs; //L"KAABBNNRRCCPPPPPkaabbnnrrccppppp"
+};
+
+const PieceColor PieceCharManager::getColorFromZh(const wchar_t numZh)
+{
+    return numChars_.at(PieceColor::RED).find(numZh) != std::wstring::npos ? PieceColor::RED : PieceColor::BLACK;
+}
+
+const int PieceCharManager::getIndex(const int seatsLen, const bool isBottom, const wchar_t preChar)
+{
+    int index{ static_cast<int>(__getPreChars(seatsLen).find(preChar)) };
+    return isBottom ? seatsLen - 1 - index : index;
+}
+
+const wchar_t PieceCharManager::getIndexChar(const int seatsLen, const bool isBottom, const int index)
+{
+    return __getPreChars(seatsLen).at(isBottom ? seatsLen - 1 - index : index);
+}
+
+const std::wstring PieceCharManager::nameChars_{ L"帅将仕士相象马车炮兵卒" };
+const std::wstring PieceCharManager::movChars_{ L"退平进" };
+const std::map<PieceColor, std::wstring> PieceCharManager::numChars_{
+    { PieceColor::RED, L"一二三四五六七八九" },
+    { PieceColor::BLACK, L"１２３４５６７８９" }
+};
+const std::wstring PieceCharManager::chStr_{ L"KABNRCPkabnrcp" };
+
+const std::vector<std::shared_ptr<PieceSpace::Piece>> creatPieces()
+{
+    std::vector<std::shared_ptr<PieceSpace::Piece>> pieces{};
+    for (auto ch : PieceCharManager::getAllChs())
+        pieces.push_back(std::make_shared<PieceSpace::Piece>(ch));
+    return pieces;
+}
+
+const std::vector<std::shared_ptr<SeatSpace::Seat>> creatSeats()
+{
+    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    for (int row = 0; row < RowcolManager::RowNum(); ++row)
+        for (int col = 0; col < RowcolManager::ColNum(); ++col)
+            seats.push_back(std::make_shared<SeatSpace::Seat>(row, col));
+    return seats;
+}
+
+const std::wstring getSeatsStr(const std::vector<std::shared_ptr<SeatSpace::Seat>>& seats)
+{
+    std::wstringstream wss{};
+    wss << seats.size() << L"个: ";
+    std::for_each(seats.begin(), seats.end(), [&](const std::shared_ptr<SeatSpace::Seat>& seat) { wss << seat->toString() << L' '; });
     return wss.str();
 }
 }

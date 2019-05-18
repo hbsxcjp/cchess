@@ -1,4 +1,4 @@
-//#include "board.h"
+#include "board.h"
 #include "instance.h"
 //#include "piece.h"
 //#include "seat.h"
@@ -27,8 +27,8 @@ int main(int argc, char const* argv[])
     /*
     BoardSpace::Board board{};
     Tools::writeTxt("a.txt", board.test());
+    Tools::writeTxt("b.txt", InstanceSpace::test());
     //*/
-    //Tools::writeTxt("a.txt", InstanceSpace::test());
     
     auto time_d = steady_clock::now() - time0;
     std::cout << "use time: " << duration_cast<milliseconds>(time_d).count() / 1000.0 << "s\n";

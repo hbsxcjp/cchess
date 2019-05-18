@@ -55,14 +55,14 @@ public:
     void write(const std::string& outfilename);
 
     const std::wstring& remark() const { return remark_; }
-    const int getMovCount() const { return movCount; }
-    const int getRemCount() const { return remCount; }
-    const int getRemLenMax() const { return remLenMax; }
-    const int getMaxRow() const { return maxRow; }
-    const int getMaxCol() const { return maxCol; }
+    const int getMovCount() const { return movCount_; }
+    const int getRemCount() const { return remCount_; }
+    const int getRemLenMax() const { return remLenMax_; }
+    const int getMaxRow() const { return maxRow_; }
+    const int getMaxCol() const { return maxCol_; }
 
 private:
-    void readXQF(std::istream& is);
+    void __readXQF(std::istream& is);
     const std::wstring __getMoveStr(std::istream& is) const;
     void __readInfo_PGN(std::istream& is);
     void __writeInfo_PGN(std::ostream& os) const;
@@ -70,16 +70,16 @@ private:
     void __writeMove_PGN_ICCSZH(std::ostream& os, RecFormat fmt) const;
     void __readMove_PGN_CC(std::istream& is);
     void __writeMove_PGN_CC(std::ostream& os) const;
-    void readBIN(std::istream& is);
-    void writeBIN(std::ostream& os) const;
-    void readJSON(std::istream& is);
-    void writeJSON(std::ostream& os) const;
+    void __readBIN(std::istream& is);
+    void __writeBIN(std::ostream& os) const;
+    void __readJSON(std::istream& is);
+    void __writeJSON(std::ostream& os) const;
 
-    void setFEN(const std::wstring& pieceChars, PieceColor color);
-    void setFormat(RecFormat fmt);
-    const std::wstring pieceChars() const;
-    void setMoves(RecFormat fmt);
-    const std::wstring moveInfo() const;
+    void __setFEN(const std::wstring& pieceChars, PieceColor color);
+    void __setFormat(RecFormat fmt);
+    const std::wstring __pieceChars() const;
+    void __setMoves(RecFormat fmt);
+    const std::wstring __moveInfo() const;
 
     std::map<std::wstring, std::wstring> info_{};
     std::shared_ptr<BoardSpace::Board> board_{};
@@ -87,11 +87,11 @@ private:
     std::shared_ptr<MoveSpace::Move> currentMove_{}; // board对应该着已执行的状态
 
     std::wstring remark_{}; // 注释
-    int movCount{ 0 }; //着法数量
-    int remCount{ 0 }; //注解数量
-    int remLenMax{ 0 }; //注解最大长度
-    int maxRow{ 0 }; //# 存储最大着法深度
-    int maxCol{ 0 }; //# 存储视图最大列数
+    int movCount_{ 0 }; //着法数量
+    int remCount_{ 0 }; //注解数量
+    int remLenMax_{ 0 }; //注解最大长度
+    int maxRow_{ 0 }; //# 存储最大着法深度
+    int maxCol_{ 0 }; //# 存储视图最大列数
 };
 
 const std::wstring getFEN(const std::wstring& pieceChars);
