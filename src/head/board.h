@@ -56,9 +56,9 @@ public:
 
 private:
     void __setBottomSide();
-    const bool __isBottomSide(const PieceColor color) const { return bottomColor == color; }
+    const bool __isBottomSide(const PieceColor color) const { return bottomColor_ == color; }
     const std::shared_ptr<SeatSpace::Seat>& __getKingSeat(const PieceColor color) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __sortPawnSeats(const PieceColor color, const wchar_t name) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSortPawnLiveSeats(const PieceColor color, const wchar_t name) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats() const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color, const wchar_t name) const;
@@ -66,39 +66,36 @@ private:
 
     // 棋子可移动到的全部位置
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getKingMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getAdvsiorMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getKAPMoveSeats(PieceKind kind, const std::shared_ptr<SeatSpace::Seat>& fseat) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getBishopMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getKnightMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getRookMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getCannonMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
-    const std::vector<std::vector<std::shared_ptr<SeatSpace::Seat>>> __getRookCannonMoveSeat_Lines(
-        const std::shared_ptr<SeatSpace::Seat>& fseat) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getPawnMoveSeats(const std::shared_ptr<SeatSpace::Seat>& fseat) const;
 
-    PieceColor bottomColor; // 底端棋子颜色
+    PieceColor bottomColor_; // 底端棋子颜色
     const std::vector<std::shared_ptr<PieceSpace::Piece>> pieces_; // 一副棋子，固定的32个
     const std::vector<std::shared_ptr<SeatSpace::Seat>> seats_; // 一块棋盘位置容器，固定的90个
 };
 
 class RowcolManager {
 public:
-    static const int RowNum() { return RowNum_; };
     static const int ColNum() { return ColNum_; };
-    static const int RowLowIndex() { return RowLowIndex_; };
-    static const int RowLowUpIndex() { return RowLowUpIndex_; };
-    static const int RowUpIndex() { return RowUpIndex_; };
-    static const int ColLowIndex() { return ColLowIndex_; };
-    static const int ColUpIndex() { return ColUpIndex_; };
-
     static const bool isBottom(const int row) { return row < RowLowUpIndex_; };
     static const int getIndex(const int row, const int col) { return row * ColNum_ + col; }
     static const int getIndex(const int rowcol) { return rowcol / 10 * ColNum_ + rowcol % 10; }
 
+    static const std::vector<std::pair<int, int>> getAllRowcols();
     static const std::vector<std::pair<int, int>> getKingRowcols(bool isBottom);
     static const std::vector<std::pair<int, int>> getAdvisorRowcols(bool isBottom);
     static const std::vector<std::pair<int, int>> getBishopRowcols(bool isBottom);
     static const std::vector<std::pair<int, int>> getPawnRowcols(bool isBottom);
+
+    static const std::vector<std::pair<int, int>> getKingMoveRowcols(bool isBottom, int frow, int fcol);
+    static const std::vector<std::pair<int, int>> getAdvisorMoveRowcols(bool isBottom, int frow, int fcol);
+    static const std::vector<std::pair<int, int>> getBishopMoveRowcols(bool isBottom, int frow, int fcol);
+    static const std::vector<std::pair<int, int>> getKnightMoveRowcols(int frow, int fcol);
+    static const std::vector<std::vector<std::pair<int, int>>> getRookCannonMoveRowcol_Lines(int frow, int fcol);
+    static const std::vector<std::pair<int, int>> getPawnMoveRowcols(bool isBottom, int frow, int fcol);
 
     static const int getRotate(int rowcol) { return (RowNum_ - rowcol / 10 - 1) * 10 + (ColNum_ - rowcol % 10 - 1); }
     static const int getSymmetry(int rowcol) { return rowcol + ColNum_ - rowcol % 10 * 2 - 1; }
@@ -124,11 +121,11 @@ public:
     static const int getColFromICCSChar(const wchar_t ch) { return ch - 97; } // a:97
     static const wchar_t getColICCSChar(const int col) { return std::wstring(L"abcdefghi").at(col); } // a:97
 
+    static const std::vector<wchar_t> getAllChs();
     static const wchar_t getName(const wchar_t ch);
     static const wchar_t getPrintName(const PieceSpace::Piece& piece);
     static const PieceColor getColor(const wchar_t ch);
     static const PieceKind getKind(const wchar_t ch);
-    static const std::vector<wchar_t> getAllChs();
     static const PieceColor getColorFromZh(const wchar_t numZh);
     static const int getIndex(const int seatsLen, const bool isBottom, const wchar_t preChar);
     static const wchar_t getIndexChar(const int seatsLen, const bool isBottom, const int index);

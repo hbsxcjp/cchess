@@ -20,16 +20,19 @@ int main(int argc, char const* argv[])
     if (argc == 7)
         InstanceSpace::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
             std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));
-    else
-        InstanceSpace::testTransDir(0, 2, 0, 1, 3, 4);
+    else {
+        InstanceSpace::testTransDir(0, 2, 0, 1, 1, 6);
+        std::cout << "--------------------------------------------------------------------" << std::endl;
+        InstanceSpace::testTransDir(0, 2, 0, 6, 3, 4);
+    }
     //*/
 
-    /*
+    //*
     BoardSpace::Board board{};
     Tools::writeTxt("a.txt", board.test());
     Tools::writeTxt("b.txt", InstanceSpace::test());
     //*/
-    
+
     auto time_d = steady_clock::now() - time0;
     std::cout << "use time: " << duration_cast<milliseconds>(time_d).count() / 1000.0 << "s\n";
 

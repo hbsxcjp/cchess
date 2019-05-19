@@ -20,7 +20,7 @@ const bool Seat::isDiffColor(const std::shared_ptr<Seat>& fseat) const
 const std::wstring Seat::toString() const
 {
     std::wstringstream wss{};
-    wss << row_ << col_ << (piece_ ? piece_->name() : L'-'); //<< std::boolalpha << std::setw(2) <<
+    wss << row_ << col_ << (piece_ ? piece_->name() : L'_'); //<< std::boolalpha << std::setw(2) <<
     return wss.str();
 }
 
