@@ -62,13 +62,13 @@ std::vector<std::shared_ptr<Move>> Move::getPrevMoves()
 
 const std::shared_ptr<Move>& Move::done()
 {
-    eatPie_ = fseat_->movTo(tseat_);
+    eatPie_ = fseat_->movTo(*tseat_);
     return next_;
 }
 
 const std::shared_ptr<Move>& Move::undo()
 {
-    tseat_->movTo(fseat_, eatPie_);
+    tseat_->movTo(*fseat_, eatPie_);
     return std::move(prev());
 }
 

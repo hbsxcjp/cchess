@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+using namespace SeatSpace;
+using namespace PieceSpace;
 namespace InstanceSpace {
 
 // Instance
@@ -77,7 +79,7 @@ void Instance::changeSide(ChangeType ct) // 未测试
     backFirst();
     board_->changeSide(ct);
     if (ct != ChangeType::EXCHANGE) {
-        auto changeRowcol = ct == ChangeType::ROTATE ? &BoardSpace::RowcolManager::getRotate : &BoardSpace::RowcolManager::getSymmetry;
+        auto changeRowcol = ct == ChangeType::ROTATE ? &RowcolManager::getRotate : &RowcolManager::getSymmetry;
         //auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotate : &BoardSpace::Board::getSymmetry);
         std::function<void(MoveSpace::Move&)> __setRowcol = [&](MoveSpace::Move& move) {
             move.setFrowcol(changeRowcol(move.fseat()->rowcol()));
@@ -242,7 +244,7 @@ void Instance::__readXQF(std::istream& is)
         F32Keys[i] = copyright[i] & KeyBytes[i % 4]; // ord(c)
 
     // 取得棋子字符串
-    std::wstring pieceChars(90, BoardSpace::PieceCharManager::nullChar());
+    std::wstring pieceChars(90, CharManager::nullChar());
     std::wstring pieChars = L"RNBAKABNRCCPPPPPrnbakabnrccppppp"; // QiziXY设定的棋子顺序
     for (int i = 0; i != pieceNum; ++i) {
         int xy = head_QiziXY[i];
@@ -793,7 +795,7 @@ const std::wstring getPieceChars(const std::wstring& fen)
          fenLineIter != std::wsregex_token_iterator{}; ++fenLineIter) {
         std::wstringstream wss{};
         for (auto wch : std::wstring{ *fenLineIter })
-            wss << (isdigit(wch) ? std::wstring(wch - 48, BoardSpace::PieceCharManager::nullChar()) : std::wstring{ wch }); // ASCII: 0:48
+            wss << (isdigit(wch) ? std::wstring(wch - 48, CharManager::nullChar()) : std::wstring{ wch }); // ASCII: 0:48
         pieceChars.insert(0, wss.str());
     }
 

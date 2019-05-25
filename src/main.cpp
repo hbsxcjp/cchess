@@ -29,8 +29,8 @@ int main(int argc, char const* argv[])
 
     //*
     BoardSpace::Board board{};
-    Tools::writeTxt("a.txt", board.test());
-    Tools::writeTxt("b.txt", InstanceSpace::test());
+    Tools::writeTxt("board.txt", board.test());
+    Tools::writeTxt("instance.txt", InstanceSpace::test());
     //*/
 
     auto time_d = steady_clock::now() - time0;
