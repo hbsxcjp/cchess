@@ -61,7 +61,7 @@ public:
     const int getMaxRow() const { return maxRow_; }
     const int getMaxCol() const { return maxCol_; }
 
-private:
+private:    
     void __readXQF(std::istream& is);
     const std::wstring __getMoveStr(std::istream& is) const;
     void __readInfo_PGN(std::istream& is);
@@ -82,11 +82,11 @@ private:
     const std::wstring __moveInfo() const;
 
     std::map<std::wstring, std::wstring> info_{};
-    std::shared_ptr<BoardSpace::Board> board_{};
     std::shared_ptr<MoveSpace::Move> rootMove_{};
+    std::wstring remark_{}; // 注释
+    std::shared_ptr<BoardSpace::Board> board_{};
     std::shared_ptr<MoveSpace::Move> currentMove_{}; // board对应该着已执行的状态
 
-    std::wstring remark_{}; // 注释
     int movCount_{ 0 }; //着法数量
     int remCount_{ 0 }; //注解数量
     int remLenMax_{ 0 }; //注解最大长度

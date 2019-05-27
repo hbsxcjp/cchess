@@ -13,12 +13,10 @@ namespace PieceSpace {
 
 Piece::Piece(const wchar_t ch)
     : ch_{ ch }
+    , name_{ CharManager::getName(ch_) }
+    , color_{ CharManager::getColor(ch_) }
 {
 }
-
-inline const wchar_t Piece::name() const { return CharManager::getName(ch_); }
-
-inline const PieceColor Piece::color() const { return CharManager::getColor(ch_); }
 
 const std::wstring Piece::toString() const
 {
@@ -89,7 +87,7 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::__putSeats(const Boa
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Knight::__moveSeats(const Board& board,
     const SeatSpace::Seat& fseat) const
-{ 
+{
     return __overDifColorSeats(board, RowcolManager::getKnightObs_MoveRowcols(fseat.row(), fseat.col()));
 }
 
@@ -101,17 +99,14 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::__putSeats(const Board
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Rook::__moveSeats(const Board& board,
     const SeatSpace::Seat& fseat) const
 {
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    PieceColor fcolor{ fseat.piece()->color() };
+    std::vector<std::pair<int, int>> moveRowcols{};
     for (auto& rowcols : RowcolManager::getRookCannonMoveRowcol_Lines(fseat.row(), fseat.col()))
         for (auto& rowcol : rowcols) {
-            auto& tseat = board.getSeat(rowcol);
-            if (tseat->isDifColor(fcolor))
-                seats.push_back(tseat);
-            if (tseat->piece())
+            moveRowcols.push_back(rowcol);
+            if (board.getSeat(rowcol)->piece())
                 break;
         }
-    return seats;
+    return __difColorSeats(board, moveRowcols);
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::__putSeats(const Board& board) const
@@ -122,25 +117,23 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::__putSeats(const Boa
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Cannon::__moveSeats(const Board& board,
     const SeatSpace::Seat& fseat) const
 {
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
-    PieceColor fcolor{ fseat.piece()->color() };
+    std::vector<std::pair<int, int>> moveRowcols{};
     for (auto& rowcols : RowcolManager::getRookCannonMoveRowcol_Lines(fseat.row(), fseat.col())) {
         bool skip = false;
         for (auto& rowcol : rowcols) {
-            auto& tseat = board.getSeat(rowcol);
+            bool isPiece{ bool(board.getSeat(rowcol)->piece()) };
             if (!skip) {
-                if (!tseat->piece())
-                    seats.push_back(tseat);
+                if (!isPiece)
+                    moveRowcols.push_back(rowcol);
                 else
                     skip = true;
-            } else if (tseat->piece()) {
-                if (tseat->isDifColor(fcolor))
-                    seats.push_back(tseat);
+            } else if (isPiece) {
+                moveRowcols.push_back(rowcol);
                 break;
             }
         }
     }
-    return seats;
+    return __difColorSeats(board, moveRowcols);
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::__putSeats(const Board& board) const
@@ -156,7 +149,7 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Pawn::__moveSeats(const Boar
 
 const wchar_t CharManager::getName(const wchar_t ch)
 {
-    std::map<int, int> chIndex_nameIndex{
+    const std::map<int, int> chIndex_nameIndex{
         { 0, 0 }, { 1, 2 }, { 2, 4 }, { 3, 6 }, { 4, 7 }, { 5, 8 }, { 6, 9 },
         { 7, 1 }, { 8, 3 }, { 9, 5 }, { 10, 6 }, { 11, 7 }, { 12, 8 }, { 13, 10 }
     };
@@ -165,9 +158,9 @@ const wchar_t CharManager::getName(const wchar_t ch)
 
 const wchar_t CharManager::getPrintName(const PieceSpace::Piece& piece)
 {
-    std::map<wchar_t, wchar_t> rcpName{ { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' } };
-    wchar_t name = piece.name();
-    return (piece.color() == PieceColor::BLACK && rcpName.find(name) != rcpName.end()) ? rcpName[name] : name;
+    const std::map<wchar_t, wchar_t> rcpName{ { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' } };
+    const wchar_t name{ piece.name() };
+    return (piece.color() == PieceColor::BLACK && rcpName.find(name) != rcpName.end()) ? rcpName.at(name) : name;
 }
 
 const PieceColor CharManager::getColor(const wchar_t ch) { return islower(ch) ? PieceColor::BLACK : PieceColor::RED; }

@@ -14,6 +14,10 @@ namespace SeatSpace {
 class Seat;
 }
 
+namespace BoardSpace {
+class Board;
+}
+
 namespace MoveSpace {
 
 // 着法节点类
@@ -24,12 +28,18 @@ public:
     const std::shared_ptr<SeatSpace::Seat>& fseat() const { return fseat_; }
     const std::shared_ptr<SeatSpace::Seat>& tseat() const { return tseat_; }
     const std::shared_ptr<PieceSpace::Piece>& eatPie() const { return eatPie_; }
-    const std::shared_ptr<Move>& setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat, const std::shared_ptr<SeatSpace::Seat>& tseat);
-    const std::shared_ptr<Move>& setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>& seats);
-
     const std::shared_ptr<Move>& next() const { return next_; }
     const std::shared_ptr<Move>& other() const { return other_; }
     const std::shared_ptr<Move> prev() const { return prev_.lock(); }
+    int frowcol() const { return frowcol_; }
+    int trowcol() const { return trowcol_; }
+    const std::wstring& iccs() const { return iccs_; }
+    const std::wstring& zh() const { return zh_; }
+    const std::wstring& remark() const { return remark_; }
+    int nextNo() const { return nextNo_; }
+    int otherNo() const { return otherNo_; }
+    int CC_ColNo() const { return CC_ColNo_; }
+
     void cutNext() { next_ = nullptr; }
     void cutOther() { other_ && (other_ = other_->other_); }
     void setPrev(std::weak_ptr<Move> prev) { prev_ = prev; }
@@ -39,26 +49,26 @@ public:
     const std::shared_ptr<Move>& done();
     const std::shared_ptr<Move>& undo();
 
-    int frowcol() const { return frowcol_; }
-    int trowcol() const { return trowcol_; }
-    void setFrowcol(int frowcol) { frowcol_ = frowcol; }
-    void setTrowcol(int trowcol) { trowcol_ = trowcol; }
-    const std::wstring& iccs() const { return iccs_; }
-    const std::wstring& zh() const { return zh_; }
-    const std::wstring& remark() const { return remark_; }
     void setIccs(std::wstring iccs) { iccs_ = iccs; }
     void setZh(std::wstring zh) { zh_ = zh; }
+    void setFrowcol(int frowcol) { frowcol_ = frowcol; }
+    void setTrowcol(int trowcol) { trowcol_ = trowcol; }    
     void setRemark(std::wstring remark) { remark_ = remark; }
-    int nextNo() const { return nextNo_; }
-    int otherNo() const { return otherNo_; }
-    int CC_ColNo() const { return CC_ColNo_; }
     void setNextNo(int nextNo) { nextNo_ = nextNo; }
     void setOtherNo(int otherNo) { otherNo_ = otherNo; }
     void setCC_ColNo(int CC_ColNo) { CC_ColNo_ = CC_ColNo; }
 
+    void setFromRowcols(const std::shared_ptr<BoardSpace::Board>& board);
+    void setFromIccs(const std::shared_ptr<BoardSpace::Board>& board);
+    void setFromZh(const std::shared_ptr<BoardSpace::Board>& board);
+    
     const std::wstring toString() const;
 
 private:
+    void __setRowCols();
+    void __setIccs();
+    void __setZh(const std::shared_ptr<BoardSpace::Board>& board);
+
     std::shared_ptr<SeatSpace::Seat> fseat_{};
     std::shared_ptr<SeatSpace::Seat> tseat_{};
     std::shared_ptr<PieceSpace::Piece> eatPie_{};

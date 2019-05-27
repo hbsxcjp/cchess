@@ -34,10 +34,6 @@ public:
     const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(std::vector<std::pair<int, int>> rowcols = std::vector<std::pair<int, int>>{}) const;
 
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
-    getMoveSeatFromIccs(const std::wstring& ICCS) const;
-    const std::wstring getIccs(const std::shared_ptr<SeatSpace::Seat>& fseat,
-        const std::shared_ptr<SeatSpace::Seat>& tseat) const;
-    const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
     getMoveSeatFromZh(const std::wstring& Zh) const; // 中文纵线着法->(fseat, tseat), 着法未走状态
     const std::wstring getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
         const std::shared_ptr<SeatSpace::Seat>& tseat) const; // (fseat, tseat)->中文纵线着法, 着法未走状态
@@ -47,7 +43,6 @@ public:
 
     void reset(const std::wstring& pieceChars);
     void changeSide(const ChangeType ct);
-
     const std::wstring getPieceChars() const;
     const std::wstring toString() const;
     const std::wstring test();
@@ -55,12 +50,12 @@ public:
 private:
     void __setBottomSide();
     const std::shared_ptr<SeatSpace::Seat>& __getKingSeat(const PieceColor color) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSortPawnLiveSeats(const PieceColor color, const wchar_t name) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats() const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color, const wchar_t name) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color, const wchar_t name, const int col) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveStrongeSeats(const PieceColor color) const;
+    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSortPawnLiveSeats(const PieceColor color, const wchar_t name) const;
 
     PieceColor bottomColor_; // 底端棋子颜色
     const std::vector<std::shared_ptr<PieceSpace::Piece>> pieces_; // 一副棋子，固定的32个

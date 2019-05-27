@@ -17,6 +17,11 @@ int main(int argc, char const* argv[])
 
     auto time0 = steady_clock::now();
     //*
+    BoardSpace::Board board{};
+    Tools::writeTxt("board.txt", board.test());
+    Tools::writeTxt("instance.txt", InstanceSpace::test());
+    //*/
+    //*
     if (argc == 7)
         InstanceSpace::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
             std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));
@@ -25,12 +30,6 @@ int main(int argc, char const* argv[])
         std::cout << "--------------------------------------------------------------------" << std::endl;
         InstanceSpace::testTransDir(0, 2, 0, 6, 3, 4);
     }
-    //*/
-
-    //*
-    BoardSpace::Board board{};
-    Tools::writeTxt("board.txt", board.test());
-    Tools::writeTxt("instance.txt", InstanceSpace::test());
     //*/
 
     auto time_d = steady_clock::now() - time0;

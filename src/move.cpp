@@ -3,7 +3,7 @@
 #include "piece.h"
 #include "seat.h"
 #include <algorithm>
-//#include <cassert>
+#include <cassert>
 #include <cmath>
 #include <functional>
 #include <iomanip>
@@ -12,23 +12,9 @@
 #include <string>
 #include <vector>
 
+using namespace SeatSpace;
+using namespace PieceSpace;
 namespace MoveSpace {
-
-const std::shared_ptr<Move>& Move::setSeats(const std::shared_ptr<SeatSpace::Seat>& fseat,
-    const std::shared_ptr<SeatSpace::Seat>& tseat)
-{
-    fseat_ = fseat;
-    //frowcol_ = fseat->rowcol();
-    tseat_ = tseat;
-    //trowcol_ = tseat->rowcol();
-    return std::move(shared_from_this());
-}
-
-const std::shared_ptr<Move>& Move::setSeats(const std::pair<const std::shared_ptr<SeatSpace::Seat>,
-    const std::shared_ptr<SeatSpace::Seat>>& seats)
-{
-    return setSeats(seats.first, seats.second);
-}
 
 const std::shared_ptr<Move>& Move::addNext()
 {
@@ -72,11 +58,54 @@ const std::shared_ptr<Move>& Move::undo()
     return std::move(prev());
 }
 
+void Move::setFromRowcols(const std::shared_ptr<BoardSpace::Board>& board)
+{
+    fseat_ = board->getSeat(frowcol_);
+    tseat_ = board->getSeat(trowcol_);
+    __setIccs();
+    __setZh(board);
+}
+
+void Move::setFromIccs(const std::shared_ptr<BoardSpace::Board>& board)
+{
+    fseat_ = board->getSeat(CharManager::getRowFromICCSChar(iccs_.at(1)), CharManager::getColFromICCSChar(iccs_.at(0)));
+    tseat_ = board->getSeat(CharManager::getRowFromICCSChar(iccs_.at(3)), CharManager::getColFromICCSChar(iccs_.at(2)));
+    __setRowCols();
+    __setZh(board);
+}
+
+void Move::setFromZh(const std::shared_ptr<BoardSpace::Board>& board)
+{
+    auto& seats = board->getMoveSeatFromZh(zh_);
+    fseat_ = seats.first;
+    tseat_ = seats.second;
+    __setRowCols();
+    __setIccs();
+}
+
 const std::wstring Move::toString() const
 {
     std::wstringstream wss{};
     wss << frowcol_ / 10 << frowcol_ % 10 << L'_' << trowcol_ / 10 << trowcol_ % 10
         << L'-' << std::setw(4) << iccs_ << L':' << std::setw(4) << zh_ << L'{' << remark_ << L'}';
     return wss.str();
+}
+
+void Move::__setRowCols()
+{
+    frowcol_ = fseat_->rowcol();
+    trowcol_ = tseat_->rowcol();
+}
+
+void Move::__setIccs()
+{
+    std::wstringstream wss{};
+    wss << CharManager::getColICCSChar(fseat_->col()) << fseat_->row() << CharManager::getColICCSChar(tseat_->col()) << tseat_->row();
+    iccs_ = wss.str();
+}
+
+void Move::__setZh(const std::shared_ptr<BoardSpace::Board>& board)
+{
+    zh_ = board->getZh(fseat_, tseat_);
 }
 }

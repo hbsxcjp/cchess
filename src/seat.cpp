@@ -115,32 +115,34 @@ const std::vector<std::pair<int, int>> RowcolManager::getPawnRowcols(bool isBott
 
 const std::vector<std::pair<int, int>> RowcolManager::getKingMoveRowcols(bool isBottom, int frow, int fcol)
 {
-    std::vector<std::pair<int, int>> rowcols{ { frow, fcol - 1 }, { frow, fcol + 1 },
-        { frow - 1, fcol }, { frow + 1, fcol } },
-        moveRowcols{};
+    std::vector<std::pair<int, int>> rowcols{
+        { frow, fcol - 1 }, { frow, fcol + 1 },
+        { frow - 1, fcol }, { frow + 1, fcol }
+    };
     int rowLow{ isBottom ? RowLowIndex_ : RowUpMidIndex_ },
         rowUp{ isBottom ? RowLowMidIndex_ : RowUpIndex_ };
-    std::copy_if(rowcols.begin(), rowcols.end(), std::back_inserter(moveRowcols),
+    auto pos = std::remove_if(rowcols.begin(), rowcols.end(),
         [&](const std::pair<int, int>& rowcol) {
-            return (rowcol.first >= rowLow && rowcol.first <= rowUp
+            return !(rowcol.first >= rowLow && rowcol.first <= rowUp
                 && rowcol.second >= ColMidLowIndex_ && rowcol.second <= ColMidUpIndex_);
         });
-    return moveRowcols;
+    return std::vector<std::pair<int, int>>{ rowcols.begin(), pos };
 }
 
 const std::vector<std::pair<int, int>> RowcolManager::getAdvisorMoveRowcols(bool isBottom, int frow, int fcol)
 {
-    std::vector<std::pair<int, int>> rowcols{ { frow - 1, fcol - 1 }, { frow - 1, fcol + 1 },
-        { frow + 1, fcol - 1 }, { frow + 1, fcol + 1 } },
-        moveRowcols{};
+    std::vector<std::pair<int, int>> rowcols{
+        { frow - 1, fcol - 1 }, { frow - 1, fcol + 1 },
+        { frow + 1, fcol - 1 }, { frow + 1, fcol + 1 }
+    };
     int rowLow{ isBottom ? RowLowIndex_ : RowUpMidIndex_ },
         rowUp{ isBottom ? RowLowMidIndex_ : RowUpIndex_ };
-    std::copy_if(rowcols.begin(), rowcols.end(), std::back_inserter(moveRowcols),
+    auto pos = std::remove_if(rowcols.begin(), rowcols.end(),
         [&](const std::pair<int, int>& rowcol) {
-            return (rowcol.first >= rowLow && rowcol.first <= rowUp
+            return !(rowcol.first >= rowLow && rowcol.first <= rowUp
                 && rowcol.second >= ColMidLowIndex_ && rowcol.second <= ColMidUpIndex_);
         });
-    return moveRowcols;
+    return std::vector<std::pair<int, int>>{ rowcols.begin(), pos };
 }
 
 const std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> RowcolManager::getBishopObs_MoveRowcols(bool isBottom, int frow, int fcol)
@@ -197,18 +199,18 @@ const std::vector<std::vector<std::pair<int, int>>> RowcolManager::getRookCannon
 
 const std::vector<std::pair<int, int>> RowcolManager::getPawnMoveRowcols(bool isBottom, int frow, int fcol)
 {
-    std::vector<std::pair<int, int>> moveRowcols{};
+    std::vector<std::pair<int, int>> rowcols{};
     int row{}, col{};
     if ((isBottom && (row = frow + 1) <= RowUpIndex_)
         || (!isBottom && (row = frow - 1) >= RowLowIndex_))
-        moveRowcols.push_back({ row, fcol });
+        rowcols.push_back({ row, fcol });
     if (isBottom == (frow > RowLowUpIndex_)) { // 兵已过河
         if ((col = fcol - 1) >= ColLowIndex_)
-            moveRowcols.push_back({ frow, col });
+            rowcols.push_back({ frow, col });
         if ((col = fcol + 1) <= ColUpIndex_)
-            moveRowcols.push_back({ frow, col });
+            rowcols.push_back({ frow, col });
     }
-    return moveRowcols;
+    return rowcols;
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>> creatSeats()

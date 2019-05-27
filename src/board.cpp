@@ -42,22 +42,6 @@ const std::vector<std::shared_ptr<SeatSpace::Seat>> Board::getSeats(std::vector<
         return seats_;
 }
 
-const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
-Board::getMoveSeatFromIccs(const std::wstring& ICCS) const
-{
-    std::string iccs{ Tools::ws2s(ICCS) };
-    return make_pair(getSeat(CharManager::getRowFromICCSChar(iccs.at(1)), CharManager::getColFromICCSChar(iccs.at(0))),
-        getSeat(CharManager::getRowFromICCSChar(iccs.at(3)), CharManager::getColFromICCSChar(iccs.at(2))));
-}
-
-const std::wstring Board::getIccs(const std::shared_ptr<SeatSpace::Seat>& fseat,
-    const std::shared_ptr<SeatSpace::Seat>& tseat) const
-{
-    std::wstringstream wss{};
-    wss << CharManager::getColICCSChar(fseat->col()) << fseat->row() << CharManager::getColICCSChar(tseat->col()) << tseat->row();
-    return wss.str();
-}
-
 //中文纵线着法->(fseat, tseat)
 const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
 Board::getMoveSeatFromZh(const std::wstring& zhStr) const

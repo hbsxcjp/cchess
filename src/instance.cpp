@@ -24,8 +24,8 @@ namespace InstanceSpace {
 
 // Instance
 Instance::Instance()
-    : board_{ std::make_shared<BoardSpace::Board>() }
-    , rootMove_{ std::make_shared<MoveSpace::Move>() }
+    : rootMove_{ std::make_shared<MoveSpace::Move>() }
+    , board_{ std::make_shared<BoardSpace::Board>() }
 {
 }
 
@@ -653,25 +653,18 @@ void Instance::__setMoves(RecFormat fmt)
     std::function<void(MoveSpace::Move&)> __set = [&](MoveSpace::Move& move) {
         //std::wcout << move.toString() << std::endl;
 
-        if (fmt == RecFormat::PGN_ICCS || fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC) {
-            auto moveSeats = fmt == RecFormat::PGN_ICCS ? board_->getMoveSeatFromIccs(move.iccs())
-                                                        : board_->getMoveSeatFromZh(move.zh());
-            move.setFrowcol(moveSeats.first->rowcol());
-            move.setTrowcol(moveSeats.second->rowcol());
-            move.setSeats(moveSeats);
-        } else //RecFormat::XQF RecFormat::BIN RecFormat::JSON
-            move.setSeats(board_->getSeat(move.frowcol()), board_->getSeat(move.trowcol()));
+        if (fmt == RecFormat::PGN_ICCS)
+            move.setFromIccs(board_);
+        else if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC)
+            move.setFromZh(board_);
+        else //RecFormat::XQF RecFormat::BIN RecFormat::JSON
+            move.setFromRowcols(board_);
 
         assert(move.frowcol() >= 0 && move.frowcol() <= 98);
         assert(move.trowcol() >= 0 && move.trowcol() <= 98);
         if (!move.fseat()->piece())
             std::wcout << move.toString() << "movCount:" << movCount_ << L'\n' << board_->toString() << std::endl;
         assert(move.fseat()->piece());
-
-        if (fmt != RecFormat::PGN_ZH && fmt != RecFormat::PGN_CC)
-            move.setZh(board_->getZh(move.fseat(), move.tseat()));
-        if (fmt != RecFormat::PGN_ICCS)
-            move.setIccs(board_->getIccs(move.fseat(), move.tseat()));
 
         assert(move.zh().size() == 4);
         assert(move.iccs().size() == 4);
