@@ -94,8 +94,8 @@ private:
     int maxCol_{ 0 }; //# 存储视图最大列数
 };
 
-const std::wstring getFEN(const std::wstring& pieceChars);
-const std::wstring getPieceChars(const std::wstring& fen);
+const std::wstring pieCharsToFEN(const std::wstring& pieceChars);  // 便利函数，下同
+const std::wstring FENTopieChars(const std::wstring& fen);
 const std::string getExtName(const RecFormat fmt);
 RecFormat getRecFormat(const std::string& ext);
 void transDir(const std::string& dirfrom, const RecFormat fmt);

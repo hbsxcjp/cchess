@@ -308,10 +308,10 @@ const std::wstring Board::test()
     // Board test
     for (const auto& fen : { L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR",
              L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" }) {
-        auto pieceChars = InstanceSpace::getPieceChars(fen);
+        auto pieceChars = InstanceSpace::FENTopieChars(fen);
 
         reset(pieceChars);
-        wss << "fen:" << fen << "\nget:" << InstanceSpace::getFEN(pieceChars)
+        wss << "fen:" << fen << "\nget:" << InstanceSpace::pieCharsToFEN(pieceChars)
             << "\ngetChars:" << pieceChars << "\nboardGet:" << getPieceChars() << L'\n';
         //*
         for (auto color : { PieceColor::RED, PieceColor::BLACK })

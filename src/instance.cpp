@@ -264,7 +264,7 @@ void Instance::__readXQF(std::istream& is)
         { L"Opening", Tools::s2ws(Opening) },
         { L"RMKWriter", Tools::s2ws(RMKWriter) },
         { L"Author", Tools::s2ws(Author) },
-        { L"FEN", getFEN(pieceChars) } // 可能存在不是红棋先走的情况？
+        { L"FEN", pieCharsToFEN(pieceChars) } // 可能存在不是红棋先走的情况？
     };
 
     std::function<unsigned char(unsigned char, unsigned char)> __sub = [](unsigned char a, unsigned char b) {
@@ -638,13 +638,13 @@ void Instance::__writeJSON(std::ostream& os) const
 
 void Instance::__setFEN(const std::wstring& pieceChars, PieceColor color)
 {
-    info_[L"FEN"] = getFEN(pieceChars) + L" " + (color == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
+    info_[L"FEN"] = pieCharsToFEN(pieceChars) + L" " + (color == PieceColor::RED ? L"r" : L"b") + L" - - 0 1";
 }
 
 const std::wstring Instance::__pieceChars() const
 {
     std::wstring rfen{ info_.at(L"FEN") }, fen{ rfen.substr(0, rfen.find(L' ')) };
-    return getPieceChars(fen);
+    return FENTopieChars(fen);
 }
 
 // （rootMove）调用, 设置树节点的seat or zh'  // C++primer P512
@@ -743,7 +743,7 @@ RecFormat getRecFormat(const std::string& ext)
         return RecFormat::PGN_CC;
 }
 
-const std::wstring getFEN(const std::wstring& pieceChars)
+const std::wstring pieCharsToFEN(const std::wstring& pieceChars)
 {
     //*'下划线字符串对应数字字符'
     std::vector<std::pair<std::wstring, std::wstring>> line_nums{
@@ -776,11 +776,11 @@ const std::wstring getFEN(const std::wstring& pieceChars)
         fen.insert(0, wss.str());
     }//*/
 
-    //assert(getPieceChars(fen) == pieceChars);
+    //assert(FENTopieChars(fen) == pieceChars);
     return fen;
 }
 
-const std::wstring getPieceChars(const std::wstring& fen)
+const std::wstring FENTopieChars(const std::wstring& fen)
 {
     std::wstring pieceChars{};
     std::wregex linerg{ LR"(/)" };
@@ -792,7 +792,7 @@ const std::wstring getPieceChars(const std::wstring& fen)
         pieceChars.insert(0, wss.str());
     }
 
-    //assert(fen == getFEN(pieceChars));
+    //assert(fen == pieCharsToFEN(pieceChars));
     return pieceChars;
 }
 
