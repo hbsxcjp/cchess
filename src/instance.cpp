@@ -79,7 +79,7 @@ void Instance::changeSide(ChangeType ct) // 未测试
     backFirst();
     board_->changeSide(ct);
     if (ct != ChangeType::EXCHANGE) {
-        auto changeRowcol = ct == ChangeType::ROTATE ? &RowcolManager::getRotate : &RowcolManager::getSymmetry;
+        auto changeRowcol = ct == ChangeType::ROTATE ? &SeatManager::getRotate : &SeatManager::getSymmetry;
         //auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotate : &BoardSpace::Board::getSymmetry);
         std::function<void(MoveSpace::Move&)> __setRowcol = [&](MoveSpace::Move& move) {
             move.setFrowcol(changeRowcol(move.fseat()->rowcol()));
@@ -141,6 +141,7 @@ void Instance::read(const std::string& infilename)
 
     board_->reset(__pieceChars());
     //std::wcout << board_->toString() << std::endl;
+    //movCount_ = remCount_ = remLenMax_ = maxRow_ = maxCol_ = 0;
     __setMoves(fmt);
     //std::wcout << L"__setMoves finished!" << std::endl;
 
@@ -244,7 +245,7 @@ void Instance::__readXQF(std::istream& is)
         F32Keys[i] = copyright[i] & KeyBytes[i % 4]; // ord(c)
 
     // 取得棋子字符串
-    std::wstring pieceChars(90, CharManager::nullChar());
+    std::wstring pieceChars(90, PieceManager::nullChar());
     std::wstring pieChars = L"RNBAKABNRCCPPPPPrnbakabnrccppppp"; // QiziXY设定的棋子顺序
     for (int i = 0; i != pieceNum; ++i) {
         int xy = head_QiziXY[i];
@@ -788,7 +789,7 @@ const std::wstring FENTopieChars(const std::wstring& fen)
          fenLineIter != std::wsregex_token_iterator{}; ++fenLineIter) {
         std::wstringstream wss{};
         for (auto wch : std::wstring{ *fenLineIter })
-            wss << (isdigit(wch) ? std::wstring(wch - 48, CharManager::nullChar()) : std::wstring{ wch }); // ASCII: 0:48
+            wss << (isdigit(wch) ? std::wstring(wch - 48, PieceManager::nullChar()) : std::wstring{ wch }); // ASCII: 0:48
         pieceChars.insert(0, wss.str());
     }
 

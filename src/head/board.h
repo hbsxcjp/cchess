@@ -6,20 +6,18 @@
 
 namespace PieceSpace {
 class Piece;
+class Pieces;
 }
 
 namespace SeatSpace {
 class Seat;
+class Seats;
 }
 
 enum class PieceColor;
 enum class PieceKind;
 enum class RecFormat;
-enum class ChangeType {
-    EXCHANGE,
-    ROTATE,
-    SYMMETRY
-};
+enum class ChangeType;
 
 namespace BoardSpace {
 
@@ -30,8 +28,7 @@ public:
     const bool isBottomSide(const PieceColor color) const { return bottomColor_ == color; }
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int row, const int col) const;
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const;
-    const std::shared_ptr<SeatSpace::Seat>& getSeat(const std::pair<int, int>& rowcol) const { return getSeat(rowcol.first, rowcol.second); }
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> getSeats(std::vector<std::pair<int, int>> rowcols = std::vector<std::pair<int, int>>{}) const;
+    const std::shared_ptr<SeatSpace::Seat>& getSeat(const std::pair<int, int>& rowcol) const;
 
     const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
     getMoveSeatFromZh(const std::wstring& Zh) const; // 中文纵线着法->(fseat, tseat), 着法未走状态
@@ -41,6 +38,7 @@ public:
     const bool isKilled(const PieceColor color) const; //判断是否将军
     const bool isDied(const PieceColor color) const; //判断是否被将死
 
+    void reset();
     void reset(const std::wstring& pieceChars);
     void changeSide(const ChangeType ct);
     const std::wstring getPieceChars() const;
@@ -49,17 +47,10 @@ public:
 
 private:
     void __setBottomSide();
-    const std::shared_ptr<SeatSpace::Seat>& __getKingSeat(const PieceColor color) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats() const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color, const wchar_t name) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveSeats(const PieceColor color, const wchar_t name, const int col) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getLiveStrongeSeats(const PieceColor color) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> __getSortPawnLiveSeats(const PieceColor color, const wchar_t name) const;
 
     PieceColor bottomColor_; // 底端棋子颜色
-    const std::vector<std::shared_ptr<PieceSpace::Piece>> pieces_; // 一副棋子，固定的32个
-    const std::vector<std::shared_ptr<SeatSpace::Seat>> seats_; // 一块棋盘位置容器，固定的90个
+    const std::shared_ptr<PieceSpace::Pieces> pieces_;
+    const std::shared_ptr<SeatSpace::Seats> seats_;
 };
 }
 

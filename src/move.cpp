@@ -68,8 +68,8 @@ void Move::setFromRowcols(const std::shared_ptr<BoardSpace::Board>& board)
 
 void Move::setFromIccs(const std::shared_ptr<BoardSpace::Board>& board)
 {
-    fseat_ = board->getSeat(CharManager::getRowFromICCSChar(iccs_.at(1)), CharManager::getColFromICCSChar(iccs_.at(0)));
-    tseat_ = board->getSeat(CharManager::getRowFromICCSChar(iccs_.at(3)), CharManager::getColFromICCSChar(iccs_.at(2)));
+    fseat_ = board->getSeat(PieceManager::getRowFromICCSChar(iccs_.at(1)), PieceManager::getColFromICCSChar(iccs_.at(0)));
+    tseat_ = board->getSeat(PieceManager::getRowFromICCSChar(iccs_.at(3)), PieceManager::getColFromICCSChar(iccs_.at(2)));
     __setRowCols();
     __setZh(board);
 }
@@ -100,7 +100,7 @@ void Move::__setRowCols()
 void Move::__setIccs()
 {
     std::wstringstream wss{};
-    wss << CharManager::getColICCSChar(fseat_->col()) << fseat_->row() << CharManager::getColICCSChar(tseat_->col()) << tseat_->row();
+    wss << PieceManager::getColICCSChar(fseat_->col()) << fseat_->row() << PieceManager::getColICCSChar(tseat_->col()) << tseat_->row();
     iccs_ = wss.str();
 }
 

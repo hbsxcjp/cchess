@@ -52,7 +52,7 @@ public:
     void setIccs(std::wstring iccs) { iccs_ = iccs; }
     void setZh(std::wstring zh) { zh_ = zh; }
     void setFrowcol(int frowcol) { frowcol_ = frowcol; }
-    void setTrowcol(int trowcol) { trowcol_ = trowcol; }    
+    void setTrowcol(int trowcol) { trowcol_ = trowcol; }
     void setRemark(std::wstring remark) { remark_ = remark; }
     void setNextNo(int nextNo) { nextNo_ = nextNo; }
     void setOtherNo(int otherNo) { otherNo_ = otherNo; }
@@ -61,7 +61,7 @@ public:
     void setFromRowcols(const std::shared_ptr<BoardSpace::Board>& board);
     void setFromIccs(const std::shared_ptr<BoardSpace::Board>& board);
     void setFromZh(const std::shared_ptr<BoardSpace::Board>& board);
-    
+
     const std::wstring toString() const;
 
 private:
