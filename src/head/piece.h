@@ -32,25 +32,15 @@ public:
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
     putSeats(const BoardSpace::Board& board) const { return __putSeats(board); }
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const
-    {
-        return __moveSeats(board, fseat);
-    }
+    moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const;
+
     virtual ~Piece() = default;
 
-protected:
-    /*
-    const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __getNonOwnerSeats(const BoardSpace::Board& board, const std::vector<std::pair<int, int>>& rowcols) const;
-    const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __getNonObstacle_NonOwnerSeats(const BoardSpace::Board& board,
-        const std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>>& obs_MoveRowcols) const;
- */
 private:
     virtual const std::vector<std::shared_ptr<SeatSpace::Seat>>
     __putSeats(const BoardSpace::Board& board) const;
     virtual const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const = 0;
+    __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const = 0;
     const wchar_t ch_;
     const wchar_t name_;
     const PieceColor color_;
@@ -64,7 +54,7 @@ private:
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
     __putSeats(const BoardSpace::Board& board) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const;
+    __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const;
 };
 
 class Advisor : public Piece {
@@ -75,7 +65,7 @@ private:
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
     __putSeats(const BoardSpace::Board& board) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const;
+    __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const;
 };
 
 class Bishop : public Piece {
@@ -86,7 +76,7 @@ private:
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
     __putSeats(const BoardSpace::Board& board) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const;
+    __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const;
 };
 
 class Knight : public Piece {
@@ -95,7 +85,7 @@ public:
 
 private:
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const;
+    __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const;
 };
 
 class Rook : public Piece {
@@ -104,7 +94,7 @@ public:
 
 private:
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const;
+    __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const;
 };
 
 class Cannon : public Piece {
@@ -113,7 +103,7 @@ public:
 
 private:
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const;
+    __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const;
 };
 
 class Pawn : public Piece {
@@ -124,7 +114,7 @@ private:
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
     __putSeats(const BoardSpace::Board& board) const;
     const std::vector<std::shared_ptr<SeatSpace::Seat>>
-    __moveSeats(const BoardSpace::Board& board, const SeatSpace::Seat& fseat) const;
+    __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const;
 };
 
 class Pieces {

@@ -51,6 +51,7 @@ public:
     void changeSide(ChangeType ct);
     const std::wstring toString() const;
 
+    void reset();
     void read(const std::string& infilename);
     void write(const std::string& outfilename);
 
@@ -81,9 +82,9 @@ private:
     void __setMoves(RecFormat fmt);
     const std::wstring __moveInfo() const;
 
+    std::wstring remark_{}; // 注释
     std::map<std::wstring, std::wstring> info_{};
     std::shared_ptr<MoveSpace::Move> rootMove_{};
-    std::wstring remark_{}; // 注释
     std::shared_ptr<BoardSpace::Board> board_{};
     std::shared_ptr<MoveSpace::Move> currentMove_{}; // board对应该着已执行的状态
 

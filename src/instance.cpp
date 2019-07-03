@@ -107,11 +107,23 @@ const std::wstring Instance::toString() const
     return Tools::s2ws(ss.str());
 }
 
+void Instance::reset()
+{
+    remark_ = L"";
+    info_ = std::map<std::wstring, std::wstring>{};
+    rootMove_ = std::make_shared<MoveSpace::Move>();
+    board_ = std::make_shared<BoardSpace::Board>();
+    currentMove_ = nullptr;
+    movCount_ = remCount_ = remLenMax_ = maxRow_ = maxCol_ = 0;
+}
+
 void Instance::read(const std::string& infilename)
 {
+    reset();
     RecFormat fmt = getRecFormat(Tools::getExt(infilename));
-    std::ifstream is{ (fmt == RecFormat::XQF || fmt == RecFormat::BIN) ? std::ifstream(infilename, std::ios_base::binary)
-                                                                       : std::ifstream(infilename) };
+    std::ifstream is{ (fmt == RecFormat::XQF || fmt == RecFormat::BIN)
+            ? std::ifstream(infilename, std::ios_base::binary)
+            : std::ifstream(infilename) };
     switch (fmt) {
     case RecFormat::XQF:
         __readXQF(is);
@@ -802,6 +814,7 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
     int fcount{}, dcount{}, movcount{}, remcount{}, remlenmax{};
     std::string extensions{ ".xqf.pgn_iccs.pgn_zh.pgn_cc.bin.json" };
     std::string dirto{ dirfrom.substr(0, dirfrom.rfind('.')) + getExtName(fmt) };
+    Instance ci{};
     std::function<void(std::string, std::string)> __trans = [&](const std::string& dirfrom, std::string dirto) {
         long hFile = 0; //文件句柄
         struct _finddata_t fileinfo; //文件信息
@@ -822,7 +835,6 @@ void transDir(const std::string& dirfrom, const RecFormat fmt)
                     if (extensions.find(ext_old) != std::string::npos) {
                         fcount += 1;
 
-                        Instance ci{};
                         //std::cout << infilename << std::endl;
                         ci.read(infilename);
                         //std::cout << infilename << " read finished!" << std::endl;

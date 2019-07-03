@@ -21,8 +21,13 @@ Piece::Piece(const wchar_t ch)
 const std::wstring Piece::toString() const
 {
     std::wstringstream wss{};
-    wss << (color() == PieceColor::RED ? L'~' : L'*') << ch() << name(); //<< std::boolalpha
+    wss << (color() == PieceColor::RED ? L'+' : L'*') << ch() << PieceManager::getPrintName(*this); //<< std::boolalpha
     return wss.str();
+}
+const std::vector<std::shared_ptr<Seat>>
+Piece::moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const
+{
+    return __moveSeats(board, fseat);
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>>
@@ -38,7 +43,7 @@ King::__putSeats(const Board& board) const
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>>
-King::__moveSeats(const Board& board, const SeatSpace::Seat& fseat) const
+King::__moveSeats(const Board& board, SeatSpace::Seat& fseat) const
 {
     return SeatManager::getKingMoveSeats(board, fseat);
 }
@@ -50,7 +55,7 @@ Advisor::__putSeats(const Board& board) const
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>>
-Advisor::__moveSeats(const Board& board, const SeatSpace::Seat& fseat) const
+Advisor::__moveSeats(const Board& board, SeatSpace::Seat& fseat) const
 {
     return SeatManager::getAdvisorMoveSeats(board, fseat);
 }
@@ -62,25 +67,25 @@ Bishop::__putSeats(const Board& board) const
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>>
-Bishop::__moveSeats(const Board& board, const SeatSpace::Seat& fseat) const
+Bishop::__moveSeats(const Board& board, SeatSpace::Seat& fseat) const
 {
     return SeatManager::getBishopMoveSeats(board, fseat);
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>>
-Knight::__moveSeats(const Board& board, const SeatSpace::Seat& fseat) const
+Knight::__moveSeats(const Board& board, SeatSpace::Seat& fseat) const
 {
     return SeatManager::getKnightMoveSeats(board, fseat);
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>>
-Rook::__moveSeats(const Board& board, const SeatSpace::Seat& fseat) const
+Rook::__moveSeats(const Board& board, SeatSpace::Seat& fseat) const
 {
     return SeatManager::getRookMoveSeats(board, fseat);
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>>
-Cannon::__moveSeats(const Board& board, const SeatSpace::Seat& fseat) const
+Cannon::__moveSeats(const Board& board, SeatSpace::Seat& fseat) const
 {
     return SeatManager::getCannonMoveSeats(board, fseat);
 }
@@ -92,7 +97,7 @@ Pawn::__putSeats(const Board& board) const
 }
 
 const std::vector<std::shared_ptr<SeatSpace::Seat>>
-Pawn::__moveSeats(const Board& board, const SeatSpace::Seat& fseat) const
+Pawn::__moveSeats(const Board& board, SeatSpace::Seat& fseat) const
 {
     return SeatManager::getPawnMoveSeats(board, fseat);
 }
@@ -118,16 +123,18 @@ const std::vector<std::shared_ptr<Piece>>
 Pieces::getBoardPieces(const std::wstring& pieceChars) const
 {
     std::vector<std::shared_ptr<Piece>> pieces(pieceChars.size());
-    std::vector<bool> pieceUsed(allPieces_.size(), false);
+    std::vector<bool> used(allPieces_.size(), false);
+    int pieceIndex{ 0 }, allPiecesSize = used.size();
     std::for_each(pieceChars.begin(), pieceChars.end(),
         [&](const wchar_t ch) {
             if (ch != PieceManager::nullChar())
-                for (int index = pieceUsed.size() - 1; index >= 0; --index)
-                    if (allPieces_[index]->ch() == ch && !pieceUsed[index]) {
-                        pieces[index] = allPieces_[index];
-                        pieceUsed[index] = true;
+                for (int index = 0; index < allPiecesSize; ++index)
+                    if (allPieces_[index]->ch() == ch && !used[index]) {
+                        pieces[pieceIndex] = allPieces_[index];
+                        used[index] = true;
                         break;
                     }
+            ++pieceIndex;
         });
     return pieces;
 }

@@ -38,7 +38,6 @@ public:
     const bool isKilled(const PieceColor color) const; //判断是否将军
     const bool isDied(const PieceColor color) const; //判断是否被将死
 
-    void reset();
     void reset(const std::wstring& pieceChars);
     void changeSide(const ChangeType ct);
     const std::wstring getPieceChars() const;

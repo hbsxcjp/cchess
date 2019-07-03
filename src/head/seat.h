@@ -18,6 +18,7 @@ class Board;
 
 namespace PieceSpace {
 class Piece;
+class Pieces;
 }
 
 namespace SeatSpace {
@@ -32,22 +33,15 @@ public:
     const int rowcol() const { return row_ * 10 + col_; }
     const std::shared_ptr<PieceSpace::Piece>& piece() const { return piece_; }
 
-    // '获取棋子可走的位置, 不能被将军'
-    const std::vector<std::shared_ptr<Seat>>
-    getMoveSeats(const BoardSpace::Board& board);
-
+    const std::vector<std::shared_ptr<Seat>> getMoveSeats(const BoardSpace::Board& board);
     // 置入棋子
     void put(const std::shared_ptr<PieceSpace::Piece>& piece = nullptr) { piece_ = piece; }
     const std::shared_ptr<PieceSpace::Piece>
     movTo(Seat& tseat, const std::shared_ptr<PieceSpace::Piece>& fillPiece = nullptr);
-    void reset() { put(); }
 
     const std::wstring toString() const;
 
 private:
-    const std::vector<std::shared_ptr<Seat>>
-    __getNonOwnerSeats(const BoardSpace::Board& board, const std::vector<std::shared_ptr<Seat>>& seats) const;
-
     const int row_;
     const int col_;
     std::shared_ptr<PieceSpace::Piece> piece_{};
@@ -60,8 +54,7 @@ public:
     const std::shared_ptr<Seat>& getSeat(const int row, const int col) const;
     const std::shared_ptr<Seat>& getSeat(const int rowcol) const;
     const std::shared_ptr<Seat>& getSeat(const std::pair<int, int>& rowcol) const { return getSeat(rowcol.first, rowcol.second); }
-    const std::vector<std::shared_ptr<Seat>> getAllSeats() const;
-
+ 
     const std::shared_ptr<Seat>&
     getKingSeat(const PieceColor color) const;
     const std::vector<std::shared_ptr<Seat>>
@@ -69,8 +62,8 @@ public:
     const std::vector<std::shared_ptr<Seat>>
     getSortPawnLiveSeats(bool isBottom, const PieceColor color, const wchar_t name) const;
 
-    void reset();
     void reset(const std::vector<std::shared_ptr<PieceSpace::Piece>>& boardPieces);
+    void changeSide(const ChangeType ct, const std::shared_ptr<PieceSpace::Pieces>& pieces);
 
     const std::wstring getPieceChars() const;
     const std::wstring toString() const;
@@ -103,19 +96,19 @@ public:
     getPawnSeats(const BoardSpace::Board& board, const PieceSpace::Piece& piece);
 
     static const std::vector<std::shared_ptr<Seat>>
-    getKingMoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    getKingMoveSeats(const BoardSpace::Board& board, Seat& fseat);
     static const std::vector<std::shared_ptr<Seat>>
-    getAdvisorMoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    getAdvisorMoveSeats(const BoardSpace::Board& board, Seat& fseat);
     static const std::vector<std::shared_ptr<Seat>>
-    getBishopMoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    getBishopMoveSeats(const BoardSpace::Board& board, Seat& fseat);
     static const std::vector<std::shared_ptr<Seat>>
-    getKnightMoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    getKnightMoveSeats(const BoardSpace::Board& board, Seat& fseat);
     static const std::vector<std::shared_ptr<Seat>>
-    getRookMoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    getRookMoveSeats(const BoardSpace::Board& board, Seat& fseat);
     static const std::vector<std::shared_ptr<Seat>>
-    getCannonMoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    getCannonMoveSeats(const BoardSpace::Board& board, Seat& fseat);
     static const std::vector<std::shared_ptr<Seat>>
-    getPawnMoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    getPawnMoveSeats(const BoardSpace::Board& board, Seat& fseat);
 
     static const std::wstring getSeatsStr(const std::vector<std::shared_ptr<Seat>>& seats);
 
@@ -129,14 +122,14 @@ private:
     static const std::vector<std::shared_ptr<Seat>>
     __getSeats(const BoardSpace::Board& board, std::vector<std::pair<int, int>> rowcols);
     static const std::vector<std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>>
-    __getBishopObs_MoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    __getBishopObs_MoveSeats(const BoardSpace::Board& board, Seat& fseat);
     static const std::vector<std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>>
-    __getKnightObs_MoveSeats(const BoardSpace::Board& board, const Seat& fseat);
+    __getKnightObs_MoveSeats(const BoardSpace::Board& board, Seat& fseat);
     static const std::vector<std::shared_ptr<Seat>>
     __getNonObstacleSeats(const BoardSpace::Board& board,
         const std::vector<std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>>& obs_MoveSeats);
     static const std::vector<std::vector<std::shared_ptr<Seat>>>
-    __getRookCannonMoveSeat_Lines(const BoardSpace::Board& board, const Seat& fseat);
+    __getRookCannonMoveSeat_Lines(const BoardSpace::Board& board, Seat& fseat);
 
     static const int RowNum_{ 10 };
     static const int ColNum_{ 9 };

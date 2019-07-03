@@ -142,16 +142,10 @@ const bool Board::isKilled(const PieceColor color) const
 //判断是否被将死
 const bool Board::isDied(const PieceColor color) const
 {
-    for (auto& fseat : seats_->getLiveSeats(color))
+    for (auto fseat : seats_->getLiveSeats(color))
         if (!fseat->getMoveSeats(*this).empty())
             return false;
     return true;
-}
-
-void Board::reset()
-{
-    seats_->reset();
-    bottomColor_ = PieceColor::RED;
 }
 
 void Board::reset(const std::wstring& pieceChars)
@@ -162,18 +156,7 @@ void Board::reset(const std::wstring& pieceChars)
 
 void Board::changeSide(const ChangeType ct)
 {
-    std::vector<std::shared_ptr<PieceSpace::Piece>> boardPieces{};
-    auto changeRowcol = (ct == ChangeType::ROTATE
-            ? &SeatManager::getRotate
-            : &SeatManager::getSymmetry);
-    auto allSeats = seats_->getAllSeats();
-    std::for_each(allSeats.begin(), allSeats.end(),
-        [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
-            boardPieces.push_back(ct == ChangeType::EXCHANGE
-                    ? pieces_->getOtherPiece(seat->piece())
-                    : getSeat(changeRowcol(seat->rowcol()))->piece());
-        });
-    seats_->reset(boardPieces);
+    seats_->changeSide(ct, pieces_);
     __setBottomSide();
 }
 
@@ -214,8 +197,8 @@ const std::wstring Board::toString() const
     for (auto color : { PieceColor::BLACK, PieceColor::RED })
         for (auto& seat : seats_->getLiveSeats(color))
             textBlankBoard[(SeatManager::ColNum() - seat->row())
-                * 2 * (SeatManager::ColNum() * 2)
-                * +seat->col() * 2]
+                    * 2 * (SeatManager::ColNum() * 2)
+                + seat->col() * 2]
                 = PieceManager::getPrintName(*seat->piece());
     return textBlankBoard;
 }
@@ -228,7 +211,7 @@ const std::wstring Board::test()
     wss << L"全部棋子: " << pieces_->toString() << L"\n";
 
     // Board test
-    for (const auto& fen : { L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR",
+    for (auto& fen : { L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR",
              L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" }) {
         auto pieceChars = InstanceSpace::FENTopieChars(fen);
 
@@ -237,25 +220,29 @@ const std::wstring Board::test()
             << "\nget:" << InstanceSpace::pieCharsToFEN(pieceChars)
             << "\ngetChars:" << pieceChars
             << "\nboardGet:" << getPieceChars() << L'\n';
+
         //*
         for (auto color : { PieceColor::RED, PieceColor::BLACK })
             wss << L"PieceColor: " << static_cast<int>(color) << L'\t'
                 << seats_->getKingSeat(color)->toString() << L'\n';
-        wss << L"seats_->getLiveSeats() "
+        wss << L"\nseats_->getLiveSeats(RED): "
             << SeatManager::getSeatsStr(seats_->getLiveSeats(PieceColor::RED))
+            << L"\nseats_->getLiveSeats(BLACK): "
             << SeatManager::getSeatsStr(seats_->getLiveSeats(PieceColor::BLACK)) << L"\n";
+        //*/
+
+        //*
         auto getLiveSeatsStr = [&](void) {
             wss << L"\nbottomColor: " << static_cast<int>(bottomColor_) << L'\n' << toString();
             for (auto color : { PieceColor::RED, PieceColor::BLACK })
                 for (auto& fseat : seats_->getLiveSeats(color))
-                    wss << fseat->toString() << L"=>"
-                        << SeatManager::getSeatsStr(fseat->getMoveSeats(*this)) << L'\n';
+                    wss << fseat->toString() << L"=> "
+                        << SeatManager::getSeatsStr(fseat->getMoveSeats(*this))
+                        << L'\n';
         };
         getLiveSeatsStr();
-        //*/
-        //*
-        for (const auto chg : { ChangeType::EXCHANGE,
-                 ChangeType::ROTATE, ChangeType::SYMMETRY }) { //
+        for (const auto chg : {
+                 ChangeType::EXCHANGE, ChangeType::ROTATE, ChangeType::SYMMETRY }) { //
             changeSide(chg);
             getLiveSeatsStr();
         }
