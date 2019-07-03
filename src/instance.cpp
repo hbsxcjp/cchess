@@ -23,12 +23,13 @@ using namespace PieceSpace;
 namespace InstanceSpace {
 
 // Instance
+/*
 Instance::Instance()
     : rootMove_{ std::make_shared<MoveSpace::Move>() }
     , board_{ std::make_shared<BoardSpace::Board>() }
 {
 }
-
+ */
 const bool Instance::isLast() const { return !currentMove_ || !currentMove_->next(); }
 
 // 基本走法
@@ -156,8 +157,6 @@ void Instance::read(const std::string& infilename)
     //movCount_ = remCount_ = remLenMax_ = maxRow_ = maxCol_ = 0;
     __setMoves(fmt);
     //std::wcout << L"__setMoves finished!" << std::endl;
-
-    currentMove_ = nullptr;
 }
 
 void Instance::write(const std::string& outfilename)
@@ -341,7 +340,7 @@ void Instance::__readXQF(std::istream& is)
     }
 }
 
-const std::wstring Instance::__getMoveStr(std::istream& is) const
+const std::wstring Instance:: __getMoveStr(std::istream& is) const
 {
     std::stringstream ss{};
     std::string line{};
@@ -450,35 +449,44 @@ void Instance::__readMove_PGN_CC(std::istream& is)
 {
     const std::wstring imoveStr{ __getMoveStr(is) };
     auto pos0 = imoveStr.find(L"\n("), pos1 = imoveStr.find(L"\n【");
-    std::wstring moveStr{ imoveStr.substr(0, std::min(pos0, pos1)) }, remStr{ imoveStr.substr(std::min(pos0, imoveStr.size()), pos1) };
+    std::wstring moveStr{ imoveStr.substr(0, std::min(pos0, pos1)) },
+        remStr{ imoveStr.substr(std::min(pos0, imoveStr.size()), pos1) };
     std::wregex lingrg{ LR"(\n)" }, mvStrrg{ LR"(.{5})" }, moverg{ LR"(([^…　]{4}[…　]))" },
         remrg{ LR"(\s*(\(\d+,\d+\)): \{([\s\S]*?)\})" };
     std::vector<std::vector<std::wstring>> movlines{};
-    for (std::wsregex_token_iterator lineStrit{ moveStr.begin(), moveStr.end(), lingrg, -1 }, end{}; lineStrit != end; ++++lineStrit) {
+    for (std::wsregex_token_iterator lineStrit{ moveStr.begin(), moveStr.end(), lingrg, -1 },
+         end{};
+         lineStrit != end; ++++lineStrit) {
         std::vector<std::wstring> lines{};
-        for (std::wsregex_token_iterator msit{ (*lineStrit).first, (*lineStrit).second, mvStrrg, 0 }; msit != end; ++msit)
+        for (std::wsregex_token_iterator msit{
+                 (*lineStrit).first, (*lineStrit).second, mvStrrg, 0 };
+             msit != end; ++msit)
             lines.push_back(*msit);
         movlines.push_back(lines);
     }
     std::map<std::wstring, std::wstring> rems{};
-    for (std::wsregex_iterator rp{ remStr.begin(), remStr.end(), remrg }; rp != std::wsregex_iterator{}; ++rp)
+    for (std::wsregex_iterator rp{ remStr.begin(), remStr.end(), remrg };
+         rp != std::wsregex_iterator{}; ++rp)
         rems[(*rp)[1]] = (*rp)[2];
 
-    std::function<void(MoveSpace::Move&, int, int)> __readMove = [&](MoveSpace::Move& move, int row, int col) {
-        std::wstring zhStr{ movlines[row][col] };
-        if (regex_match(zhStr, moverg)) {
-            move.setZh(zhStr.substr(0, 4));
-            move.setRemark(rems[L'(' + std::to_wstring(row) + L',' + std::to_wstring(col) + L')']);
-            if (zhStr.back() == L'…')
-                __readMove(*move.addOther(), row, col + 1);
-            if (int(movlines.size()) - 1 > row && movlines[row + 1][col][0] != L'　')
-                __readMove(*move.addNext(), row + 1, col);
-        } else if (movlines[row][col][0] == L'…') {
-            while (movlines[row][++col][0] == L'…')
-                ;
-            __readMove(move, row, col);
-        }
-    };
+    std::function<void(MoveSpace::Move&, int, int)>
+        __readMove = [&](MoveSpace::Move& move, int row, int col) {
+            std::wstring zhStr{ movlines[row][col] };
+            if (regex_match(zhStr, moverg)) {
+                move.setZh(zhStr.substr(0, 4));
+                move.setRemark(rems[L'(' + std::to_wstring(row) + L','
+                    + std::to_wstring(col) + L')']);
+                if (zhStr.back() == L'…')
+                    __readMove(*move.addOther(), row, col + 1);
+                if (int(movlines.size()) - 1 > row
+                    && movlines[row + 1][col][0] != L'　')
+                    __readMove(*move.addNext(), row + 1, col);
+            } else if (movlines[row][col][0] == L'…') {
+                while (movlines[row][++col][0] == L'…')
+                    ;
+                __readMove(move, row, col);
+            }
+        };
 
     remark_ = rems[L"(0,0)"];
     if (!movlines.empty())
@@ -709,7 +717,7 @@ void Instance::__setMoves(RecFormat fmt)
     if (rootMove_->frowcol() >= 0 || !rootMove_->iccs().empty() || !rootMove_->zh().empty())
         __set(*rootMove_); // 驱动函数
 }
-
+ 
 const std::wstring Instance::__moveInfo() const
 {
     std::wstringstream wss{};
@@ -883,23 +891,18 @@ const std::wstring test()
     ins.read("01.xqf");
     ins.write("01.pgn_iccs");
 
-    ins = InstanceSpace::Instance{};
     ins.read("01.pgn_iccs");
     ins.write("01.pgn_zh");
 
-    ins = InstanceSpace::Instance{};
     ins.read("01.pgn_zh");
     ins.write("01.pgn_cc");
 
-    ins = InstanceSpace::Instance{};
     ins.read("01.pgn_cc");
     ins.write("01.bin");
 
-    ins = InstanceSpace::Instance{};
     ins.read("01.bin");
     ins.write("01.json");
 
-    ins = InstanceSpace::Instance{};
     ins.read("01.json");
     std::wstringstream wss{};
     wss << ins.toString();

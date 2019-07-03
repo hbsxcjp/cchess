@@ -31,7 +31,9 @@ public:
     const std::shared_ptr<Move>& next() const { return next_; }
     const std::shared_ptr<Move>& other() const { return other_; }
     const std::shared_ptr<Move> prev() const { return prev_.lock(); }
+    //int frowcol() const;
     int frowcol() const { return frowcol_; }
+    //int trowcol() const;
     int trowcol() const { return trowcol_; }
     const std::wstring& iccs() const { return iccs_; }
     const std::wstring& zh() const { return zh_; }

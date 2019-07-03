@@ -16,6 +16,10 @@ using namespace SeatSpace;
 using namespace PieceSpace;
 namespace MoveSpace {
 
+//int Move::frowcol() const { return fseat()->rowcol(); }
+
+//int Move::trowcol() const { return tseat()->rowcol(); }
+
 const std::shared_ptr<Move>& Move::addNext()
 {
     auto next = std::make_shared<Move>();
@@ -68,8 +72,10 @@ void Move::setFromRowcols(const std::shared_ptr<BoardSpace::Board>& board)
 
 void Move::setFromIccs(const std::shared_ptr<BoardSpace::Board>& board)
 {
-    fseat_ = board->getSeat(PieceManager::getRowFromICCSChar(iccs_.at(1)), PieceManager::getColFromICCSChar(iccs_.at(0)));
-    tseat_ = board->getSeat(PieceManager::getRowFromICCSChar(iccs_.at(3)), PieceManager::getColFromICCSChar(iccs_.at(2)));
+    fseat_ = board->getSeat(PieceManager::getRowFromICCSChar(iccs_.at(1)),
+        PieceManager::getColFromICCSChar(iccs_.at(0)));
+    tseat_ = board->getSeat(PieceManager::getRowFromICCSChar(iccs_.at(3)),
+        PieceManager::getColFromICCSChar(iccs_.at(2)));
     __setRowCols();
     __setZh(board);
 }
@@ -87,7 +93,8 @@ const std::wstring Move::toString() const
 {
     std::wstringstream wss{};
     wss << frowcol_ / 10 << frowcol_ % 10 << L'_' << trowcol_ / 10 << trowcol_ % 10
-        << L'-' << std::setw(4) << iccs_ << L':' << std::setw(4) << zh_ << L'{' << remark_ << L'}';
+        << L'-' << std::setw(4) << iccs_ << L':' << std::setw(4)
+        << zh_ << L'{' << remark_ << L'}';
     return wss.str();
 }
 

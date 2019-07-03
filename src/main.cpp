@@ -26,9 +26,10 @@ int main(int argc, char const* argv[])
         InstanceSpace::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
             std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));
     else {
-        InstanceSpace::testTransDir(0, 2, 0, 1, 1, 6);
+        InstanceSpace::testTransDir(0, 1, 0, 1, 1, 6);
         std::cout << "--------------------------------------------------------------------" << std::endl;
-        InstanceSpace::testTransDir(0, 2, 0, 6, 3, 4);
+        InstanceSpace::testTransDir(0, 1, 0, 6, 3, 4);
+        InstanceSpace::testTransDir(0, 1, 3, 4, 1, 2);
     }
     //*/
 

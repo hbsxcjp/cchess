@@ -38,7 +38,7 @@ namespace InstanceSpace {
 
 class Instance {
 public:
-    Instance();
+    //Instance();
 
     const bool isStart() const { return !currentMove_; }
     const bool isLast() const;
@@ -62,7 +62,7 @@ public:
     const int getMaxRow() const { return maxRow_; }
     const int getMaxCol() const { return maxCol_; }
 
-private:    
+private:
     void __readXQF(std::istream& is);
     const std::wstring __getMoveStr(std::istream& is) const;
     void __readInfo_PGN(std::istream& is);
@@ -95,7 +95,7 @@ private:
     int maxCol_{ 0 }; //# 存储视图最大列数
 };
 
-const std::wstring pieCharsToFEN(const std::wstring& pieceChars);  // 便利函数，下同
+const std::wstring pieCharsToFEN(const std::wstring& pieceChars); // 便利函数，下同
 const std::wstring FENTopieChars(const std::wstring& fen);
 const std::string getExtName(const RecFormat fmt);
 RecFormat getRecFormat(const std::string& ext);
