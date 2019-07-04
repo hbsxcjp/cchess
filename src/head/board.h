@@ -14,6 +14,10 @@ class Seat;
 class Seats;
 }
 
+namespace MoveSpace {
+class Move;
+}
+
 enum class PieceColor;
 enum class PieceKind;
 enum class RecFormat;
@@ -30,10 +34,11 @@ public:
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const;
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const std::pair<int, int>& rowcol) const;
 
-    const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
-    getMoveSeatFromZh(const std::wstring& Zh) const; // 中文纵线着法->(fseat, tseat), 着法未走状态
-    const std::wstring getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
-        const std::shared_ptr<SeatSpace::Seat>& tseat) const; // (fseat, tseat)->中文纵线着法, 着法未走状态
+    std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
+    getMoveSeatFromZh(const std::wstring& zhStr) const; // 中文纵线着法->(fseat, tseat), 着法未走状态
+    const std::wstring getZh(const MoveSpace::Move& move) const; // (fseat, tseat)->中文纵线着法, 着法未走状态
+    //const std::wstring getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
+    //    const std::shared_ptr<SeatSpace::Seat>& tseat) const; // (fseat, tseat)->中文纵线着法, 着法未走状态
 
     const bool isKilled(const PieceColor color) const; //判断是否将军
     const bool isDied(const PieceColor color) const; //判断是否被将死

@@ -25,14 +25,7 @@ class Move;
 
 enum class PieceColor;
 enum class ChangeType;
-enum class RecFormat {
-    XQF,
-    PGN_ICCS,
-    PGN_ZH,
-    PGN_CC,
-    BIN,
-    JSON
-};
+enum class RecFormat;
 
 namespace InstanceSpace {
 
@@ -48,7 +41,7 @@ public:
     void backFirst();
     void goLast();
     void goInc(int inc);
-    void changeSide(ChangeType ct);
+    //void changeSide(ChangeType ct);
     const std::wstring toString() const;
 
     void reset();
@@ -65,12 +58,13 @@ public:
 private:
     void __readXQF(std::istream& is);
     const std::wstring __getMoveStr(std::istream& is) const;
-    void __readInfo_PGN(std::istream& is);
-    void __writeInfo_PGN(std::ostream& os) const;
-    void __readMove_PGN_ICCSZH(std::istream& is, RecFormat fmt);
-    void __writeMove_PGN_ICCSZH(std::ostream& os, RecFormat fmt) const;
-    void __readMove_PGN_CC(std::istream& is);
-    void __writeMove_PGN_CC(std::ostream& os) const;
+
+    //void __readInfo_PGN(std::istream& is);
+    //void __writeInfo_PGN(std::ostream& os) const;
+    //void __readMove_PGN_ICCSZH(std::istream& is, RecFormat fmt);
+    //void __writeMove_PGN_ICCSZH(std::ostream& os, RecFormat fmt) const;
+    //void __readMove_PGN_CC(std::istream& is);
+    //void __writeMove_PGN_CC(std::ostream& os) const;
     void __readBIN(std::istream& is);
     void __writeBIN(std::ostream& os) const;
     void __readJSON(std::istream& is);

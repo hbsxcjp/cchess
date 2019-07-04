@@ -1,4 +1,5 @@
 #include "board.h"
+#include "move.h"
 #include "instance.h"
 #include "piece.h"
 #include "seat.h"
@@ -42,7 +43,7 @@ const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const std::pair<int, int>
 }
 
 //中文纵线着法->(fseat, tseat)
-const std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
+std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
 Board::getMoveSeatFromZh(const std::wstring& zhStr) const
 {
     assert(zhStr.size() == 4);
@@ -84,9 +85,11 @@ Board::getMoveSeatFromZh(const std::wstring& zhStr) const
 }
 
 //(fseat, tseat)->中文纵线着法
-const std::wstring Board::getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
-    const std::shared_ptr<SeatSpace::Seat>& tseat) const
+const std::wstring Board::getZh(const MoveSpace::Move& move) const // (fseat, tseat)->中文纵线着法, 着法未走状态
+//const std::wstring Board::getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
+//    const std::shared_ptr<SeatSpace::Seat>& tseat) const
 {
+    const std::shared_ptr<SeatSpace::Seat>&fseat = move.fseat(), &tseat = move.tseat();
     std::wstringstream wss{};
     const std::shared_ptr<PieceSpace::Piece>& fromPiece{ fseat->piece() };
     const PieceColor color{ fromPiece->color() };
@@ -105,7 +108,7 @@ const std::wstring Board::getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
         << (PieceManager::isLineMove(name) && !isSameRow ? PieceManager::getNumChar(color, abs(fromRow - toRow))
                                                          : PieceManager::getColChar(color, isBottom, toCol));
 
-    auto& mvSeats = getMoveSeatFromZh(wss.str());
+    auto mvSeats = getMoveSeatFromZh(wss.str());
     assert(fseat == mvSeats.first && tseat == mvSeats.second);
 
     return wss.str();
