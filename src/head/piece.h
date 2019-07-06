@@ -129,13 +129,25 @@ public:
     const std::wstring toString() const;
 
 private:
-    // 一副棋子，固定的32个
     const std::vector<std::shared_ptr<Piece>> allPieces_;
 };
 
 class PieceManager {
 public:
     static const std::vector<std::shared_ptr<Piece>> createPieces();
+
+    static const std::wstring getZhChars()
+    {
+        return (preChars_ + nameChars_ + movChars_
+            + numChars_.at(PieceColor::RED) + numChars_.at(PieceColor::BLACK));
+    }
+
+    static const std::wstring getICCSChars()
+    {
+        return std::to_wstring(1234567890) + ICCSChars_;
+    }
+
+    static const std::wstring getFENStr() { return FENStr_; }
 
     static const int getRowFromICCSChar(const wchar_t ch) { return ch - '0'; } // 0:48
     static const int getColFromICCSChar(const wchar_t ch) { return ICCSChars_.find(ch); }
@@ -206,17 +218,20 @@ public:
 private:
     static const std::wstring __getPreChars(const int length)
     {
-        return (length == 2 ? L"前后"
-                            : (length == 3 ? L"前中后"
-                                           : numChars_.at(PieceColor::RED).substr(0, 5))); //L"一二三四五");
+        return (length == 2 ? (std::wstring{ preChars_ }).erase(1, 1) //L"前后"
+                            : (length == 3 ? preChars_
+                                           //L"一二三四五");
+                                           : numChars_.at(PieceColor::RED).substr(0, 5)));
     }
 
+    static const std::wstring chChars_;
+    static const std::wstring preChars_;
     static const std::wstring nameChars_;
     static const std::wstring movChars_;
     static const std::map<PieceColor, std::wstring> numChars_;
-    static const std::wstring chStr_;
     static const wchar_t nullChar_{ L'_' };
     static const std::wstring ICCSChars_;
+    static const std::wstring FENStr_;
 };
 }
 

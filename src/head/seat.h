@@ -34,7 +34,6 @@ public:
     const std::shared_ptr<PieceSpace::Piece>& piece() const { return piece_; }
 
     const std::vector<std::shared_ptr<Seat>> getMoveSeats(const BoardSpace::Board& board);
-    // 置入棋子
     void put(const std::shared_ptr<PieceSpace::Piece>& piece = nullptr) { piece_ = piece; }
     const std::shared_ptr<PieceSpace::Piece>
     movTo(Seat& tseat, const std::shared_ptr<PieceSpace::Piece>& fillPiece = nullptr);
@@ -69,7 +68,6 @@ public:
     const std::wstring toString() const;
 
 private:
-    // 一块棋盘位置容器，固定的90个
     const std::vector<std::shared_ptr<Seat>> allSeats_;
 };
 

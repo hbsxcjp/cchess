@@ -33,9 +33,6 @@ namespace MoveSpace {
 class Move : public std::enable_shared_from_this<Move> {
 public:
     Move() = default;
-    Move(std::shared_ptr<SeatSpace::Seat>& fseat, std::shared_ptr<SeatSpace::Seat>& tseat);
-    Move(const std::shared_ptr<BoardSpace::Board>& board, int frowcol, int trowcol);
-    Move(const std::shared_ptr<BoardSpace::Board>& board, const std::wstring& str, RecFormat fmt);
 
     const std::shared_ptr<SeatSpace::Seat>& fseat() const { return ftseat_.first; }
     const std::shared_ptr<SeatSpace::Seat>& tseat() const { return ftseat_.second; }
@@ -59,10 +56,19 @@ public:
     void setPrev(std::weak_ptr<Move> prev) { prev_ = prev; }
     const std::shared_ptr<Move>& addNext();
     const std::shared_ptr<Move>& addOther();
+    void reset(std::shared_ptr<SeatSpace::Seat>& fseat,
+        std::shared_ptr<SeatSpace::Seat>& tseat, std::wstring remark = L"");
+    void reset(const std::shared_ptr<BoardSpace::Board>& board,
+        int frowcol, int trowcol, std::wstring remark = L"");
+    void reset(const std::shared_ptr<BoardSpace::Board>& board, const std::wstring& str,
+        RecFormat fmt, std::wstring remark = L"");
     std::vector<std::shared_ptr<Move>> getPrevMoves();
     const std::shared_ptr<Move>& done();
     const std::shared_ptr<Move>& undo();
 
+    void setFTSeat(std::pair<std::shared_ptr<SeatSpace::Seat>,
+        std::shared_ptr<SeatSpace::Seat>>
+            ftseat) { ftseat_ = ftseat; }
     void setRemark(std::wstring remark) { remark_ = remark; }
     void setNextNo(int nextNo) { nextNo_ = nextNo; }
     void setOtherNo(int otherNo) { otherNo_ = otherNo; }
@@ -72,13 +78,14 @@ public:
 
 private:
     std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>> ftseat_{};
+    std::wstring remark_{}; // 注释
+
     std::shared_ptr<PieceSpace::Piece> eatPie_{};
     std::shared_ptr<Move> next_{};
     std::shared_ptr<Move> other_{};
     std::weak_ptr<Move> prev_{};
 
-    std::wstring remark_{}; // 注释
-    int nextNo_{ 1 }; // 着法深度
+    int nextNo_{ 0 }; // 着法深度
     int otherNo_{ 0 }; // 变着广度
     int CC_ColNo_{ 0 }; // 图中列位置（需在Instance::setMoves确定）
 };

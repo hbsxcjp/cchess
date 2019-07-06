@@ -1,6 +1,6 @@
 #include "board.h"
-#include "move.h"
 #include "instance.h"
+#include "move.h"
 #include "piece.h"
 #include "seat.h"
 #include "tools.h"
@@ -42,9 +42,8 @@ const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const std::pair<int, int>
     return seats_->getSeat(rowcol);
 }
 
-//中文纵线着法->(fseat, tseat)
-std::pair<const std::shared_ptr<SeatSpace::Seat>, const std::shared_ptr<SeatSpace::Seat>>
-Board::getMoveSeatFromZh(const std::wstring& zhStr) const
+std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>
+Board::getMoveSeat(const std::wstring& zhStr) const
 {
     assert(zhStr.size() == 4);
     std::shared_ptr<SeatSpace::Seat> fseat{}, tseat{};
@@ -56,7 +55,8 @@ Board::getMoveSeatFromZh(const std::wstring& zhStr) const
     wchar_t name{ zhStr.front() };
 
     if (PieceManager::isPiece(name)) { // 首字符为棋子名
-        seats = seats_->getLiveSeats(color, name, PieceManager::getCol(isBottom, PieceManager::getNum(color, zhStr.at(1))));
+        seats = seats_->getLiveSeats(color, name,
+            PieceManager::getCol(isBottom, PieceManager::getNum(color, zhStr.at(1))));
         assert(seats.size() > 0);
         //# 排除：士、象同列时不分前后，以进、退区分棋子。移动方向为退时，修正index
         index = (seats.size() == 2 && movDir == -1) ? 1 : 0; //&& isAdvBish(name)
@@ -70,7 +70,8 @@ Board::getMoveSeatFromZh(const std::wstring& zhStr) const
 
     assert(index <= static_cast<int>(seats.size()) - 1);
     fseat = seats.at(index);
-    int num{ PieceManager::getNum(color, zhStr.back()) }, toCol{ PieceManager::getCol(isBottom, num) };
+    int num{ PieceManager::getNum(color, zhStr.back()) },
+        toCol{ PieceManager::getCol(isBottom, num) };
     if (PieceManager::isLineMove(name)) {
         int trow{ fseat->row() + movDir * num };
         tseat = movDir == 0 ? getSeat(fseat->row(), toCol) : getSeat(trow, fseat->col());
@@ -85,36 +86,37 @@ Board::getMoveSeatFromZh(const std::wstring& zhStr) const
 }
 
 //(fseat, tseat)->中文纵线着法
-const std::wstring Board::getZh(const MoveSpace::Move& move) const // (fseat, tseat)->中文纵线着法, 着法未走状态
-//const std::wstring Board::getZh(const std::shared_ptr<SeatSpace::Seat>& fseat,
-//    const std::shared_ptr<SeatSpace::Seat>& tseat) const
+const std::wstring Board::getZh(const MoveSpace::Move& move) const
 {
     const std::shared_ptr<SeatSpace::Seat>&fseat = move.fseat(), &tseat = move.tseat();
     std::wstringstream wss{};
     const std::shared_ptr<PieceSpace::Piece>& fromPiece{ fseat->piece() };
     const PieceColor color{ fromPiece->color() };
     const wchar_t name{ fromPiece->name() };
-    const int fromRow{ fseat->row() }, fromCol{ fseat->col() }, toRow{ tseat->row() }, toCol{ tseat->col() };
+    const int fromRow{ fseat->row() }, fromCol{ fseat->col() },
+        toRow{ tseat->row() }, toCol{ tseat->col() };
     bool isSameRow{ fromRow == toRow }, isBottom{ isBottomSide(color) };
     auto seats = seats_->getLiveSeats(color, name, fromCol);
 
     if (seats.size() > 1 && PieceManager::isStronge(name)) {
         if (PieceManager::isPawn(name))
             seats = seats_->getSortPawnLiveSeats(isBottom, color, name);
-        wss << PieceManager::getIndexChar(seats.size(), isBottom, distance(seats.begin(), find(seats.begin(), seats.end(), fseat))) << name;
+        wss << PieceManager::getIndexChar(seats.size(), isBottom,
+                   distance(seats.begin(), find(seats.begin(), seats.end(), fseat)))
+            << name;
     } else //将帅, 仕(士),相(象): 不用“前”和“后”区别，因为能退的一定在前，能进的一定在后
         wss << name << PieceManager::getColChar(color, isBottom, fromCol);
     wss << PieceManager::getMovChar(isSameRow, isBottom, toRow > fromRow)
-        << (PieceManager::isLineMove(name) && !isSameRow ? PieceManager::getNumChar(color, abs(fromRow - toRow))
-                                                         : PieceManager::getColChar(color, isBottom, toCol));
+        << (PieceManager::isLineMove(name) && !isSameRow
+                   ? PieceManager::getNumChar(color, abs(fromRow - toRow))
+                   : PieceManager::getColChar(color, isBottom, toCol));
 
-    auto mvSeats = getMoveSeatFromZh(wss.str());
+    auto mvSeats = getMoveSeat(wss.str());
     assert(fseat == mvSeats.first && tseat == mvSeats.second);
 
     return wss.str();
 }
 
-//判断是否将军
 const bool Board::isKilled(const PieceColor color) const
 {
     PieceColor othColor = color == PieceColor::BLACK ? PieceColor::RED : PieceColor::BLACK;
@@ -134,7 +136,6 @@ const bool Board::isKilled(const PieceColor color) const
     }
     // '获取某方可杀将棋子全部可走的位置
     for (auto& seat : seats_->getLiveSeats(othColor, L'\x00', -1, true)) {
-        //for (auto& seat : __getLiveStrongeSeats(othColor)) {
         auto& mvSeats = seat->piece()->moveSeats(*this, *seat);
         if (!mvSeats.empty() && find(mvSeats.begin(), mvSeats.end(), kingSeat) != mvSeats.end())
             return true;
@@ -142,7 +143,6 @@ const bool Board::isKilled(const PieceColor color) const
     return false;
 }
 
-//判断是否被将死
 const bool Board::isDied(const PieceColor color) const
 {
     for (auto fseat : seats_->getLiveSeats(color))
@@ -214,8 +214,8 @@ const std::wstring Board::test()
     wss << L"全部棋子: " << pieces_->toString() << L"\n";
 
     // Board test
-    for (auto& fen : { L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR",
-             L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" }) {
+    for (auto& fen : { PieceManager::getFENStr(),
+             std::wstring{ L"5a3/4ak2r/6R2/8p/9/9/9/B4N2B/4K4/3c5" } }) {
         auto pieceChars = InstanceSpace::FENTopieChars(fen);
 
         reset(pieceChars);

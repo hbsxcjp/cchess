@@ -16,28 +16,6 @@ using namespace SeatSpace;
 using namespace PieceSpace;
 namespace MoveSpace {
 
-Move::Move(std::shared_ptr<SeatSpace::Seat>& fseat, std::shared_ptr<SeatSpace::Seat>& tseat)
-{
-    ftseat_.first = fseat;
-    ftseat_.second = tseat;
-}
-
-Move::Move(const std::shared_ptr<BoardSpace::Board>& board, int frowcol, int trowcol)
-{
-    ftseat_ = std::make_pair(board->getSeat(frowcol), board->getSeat(trowcol));
-}
-
-Move::Move(const std::shared_ptr<BoardSpace::Board>& board, const std::wstring& str, RecFormat fmt)
-{
-    if (fmt == RecFormat::PGN_ICCS)
-        ftseat_ = std::make_pair(board->getSeat(PieceManager::getRowFromICCSChar(str.at(1)),
-                                     PieceManager::getColFromICCSChar(str.at(0))),
-            board->getSeat(PieceManager::getRowFromICCSChar(str.at(3)),
-                PieceManager::getColFromICCSChar(str.at(2))));
-    else //(fmt == RecFormat::PGN_ZH)
-        ftseat_ = board->getMoveSeatFromZh(str);
-}
-
 int Move::frowcol() const { return fseat()->rowcol(); }
 
 int Move::trowcol() const { return tseat()->rowcol(); }
@@ -57,20 +35,47 @@ const std::wstring Move::zh(const std::shared_ptr<BoardSpace::Board>& board) con
 
 const std::shared_ptr<Move>& Move::addNext()
 {
-    auto next = std::make_shared<Move>();
-    next->setNextNo(nextNo_ + 1); // 步序号
-    next->setOtherNo(otherNo_); // 变着层数
-    next->setPrev(std::weak_ptr<Move>(shared_from_this()));
-    return next_ = next;
+    auto nextMove = std::make_shared<Move>();
+    nextMove->setNextNo(nextNo_ + 1); // 步序号
+    nextMove->setOtherNo(otherNo_); // 变着层数
+    nextMove->setPrev(std::weak_ptr<Move>(shared_from_this()));
+    return next_ = nextMove;
 }
 
 const std::shared_ptr<Move>& Move::addOther()
 {
-    auto other = std::make_shared<Move>();
-    other->setNextNo(nextNo_); // 与premove的步数相同
-    other->setOtherNo(otherNo_ + 1); // 变着层数
-    other->setPrev(std::weak_ptr<Move>(shared_from_this()));
-    return other_ = other;
+    auto otherMove = std::make_shared<Move>();
+    otherMove->setNextNo(nextNo_); // 与premove的步数相同
+    otherMove->setOtherNo(otherNo_ + 1); // 变着层数
+    otherMove->setPrev(std::weak_ptr<Move>(shared_from_this()));
+    return other_ = otherMove;
+} 
+
+void Move::reset(std::shared_ptr<SeatSpace::Seat>& fseat,
+    std::shared_ptr<SeatSpace::Seat>& tseat, std::wstring remark)
+{
+    setFTSeat({ fseat, tseat });
+    setRemark(remark);
+}
+
+void Move::reset(const std::shared_ptr<BoardSpace::Board>& board,
+    int frowcol, int trowcol, std::wstring remark)
+{
+    setFTSeat({ board->getSeat(frowcol), board->getSeat(trowcol) });
+    setRemark(remark);
+}
+
+void Move::reset(const std::shared_ptr<BoardSpace::Board>& board,
+    const std::wstring& str, RecFormat fmt, std::wstring remark)
+{
+    setFTSeat((fmt == RecFormat::PGN_ICCS)
+            ? std::make_pair(board->getSeat(PieceManager::getRowFromICCSChar(str.at(1)),
+                                 PieceManager::getColFromICCSChar(str.at(0))),
+                  board->getSeat(PieceManager::getRowFromICCSChar(str.at(3)),
+                      PieceManager::getColFromICCSChar(str.at(2))))
+            //(fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC)
+            : board->getMoveSeat(str));
+    setRemark(remark);
 }
 
 std::vector<std::shared_ptr<Move>> Move::getPrevMoves()

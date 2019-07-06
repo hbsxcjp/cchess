@@ -153,38 +153,38 @@ const std::vector<std::shared_ptr<Piece>> PieceManager::createPieces()
 {
     //L"KAABBNNRRCCPPPPPkaabbnnrrccppppp"
     return std::vector<std::shared_ptr<Piece>>{
-        std::make_shared<King>(chStr_.at(0)),
-        std::make_shared<Advisor>(chStr_.at(1)),
-        std::make_shared<Advisor>(chStr_.at(1)),
-        std::make_shared<Bishop>(chStr_.at(2)),
-        std::make_shared<Bishop>(chStr_.at(2)),
-        std::make_shared<Knight>(chStr_.at(3)),
-        std::make_shared<Knight>(chStr_.at(3)),
-        std::make_shared<Rook>(chStr_.at(4)),
-        std::make_shared<Rook>(chStr_.at(4)),
-        std::make_shared<Cannon>(chStr_.at(5)),
-        std::make_shared<Cannon>(chStr_.at(5)),
-        std::make_shared<Pawn>(chStr_.at(6)),
-        std::make_shared<Pawn>(chStr_.at(6)),
-        std::make_shared<Pawn>(chStr_.at(6)),
-        std::make_shared<Pawn>(chStr_.at(6)),
-        std::make_shared<Pawn>(chStr_.at(6)),
-        std::make_shared<King>(chStr_.at(7)),
-        std::make_shared<Advisor>(chStr_.at(8)),
-        std::make_shared<Advisor>(chStr_.at(8)),
-        std::make_shared<Bishop>(chStr_.at(9)),
-        std::make_shared<Bishop>(chStr_.at(9)),
-        std::make_shared<Knight>(chStr_.at(10)),
-        std::make_shared<Knight>(chStr_.at(10)),
-        std::make_shared<Rook>(chStr_.at(11)),
-        std::make_shared<Rook>(chStr_.at(11)),
-        std::make_shared<Cannon>(chStr_.at(12)),
-        std::make_shared<Cannon>(chStr_.at(12)),
-        std::make_shared<Pawn>(chStr_.at(13)),
-        std::make_shared<Pawn>(chStr_.at(13)),
-        std::make_shared<Pawn>(chStr_.at(13)),
-        std::make_shared<Pawn>(chStr_.at(13)),
-        std::make_shared<Pawn>(chStr_.at(13))
+        std::make_shared<King>(chChars_.at(0)),
+        std::make_shared<Advisor>(chChars_.at(1)),
+        std::make_shared<Advisor>(chChars_.at(1)),
+        std::make_shared<Bishop>(chChars_.at(2)),
+        std::make_shared<Bishop>(chChars_.at(2)),
+        std::make_shared<Knight>(chChars_.at(3)),
+        std::make_shared<Knight>(chChars_.at(3)),
+        std::make_shared<Rook>(chChars_.at(4)),
+        std::make_shared<Rook>(chChars_.at(4)),
+        std::make_shared<Cannon>(chChars_.at(5)),
+        std::make_shared<Cannon>(chChars_.at(5)),
+        std::make_shared<Pawn>(chChars_.at(6)),
+        std::make_shared<Pawn>(chChars_.at(6)),
+        std::make_shared<Pawn>(chChars_.at(6)),
+        std::make_shared<Pawn>(chChars_.at(6)),
+        std::make_shared<Pawn>(chChars_.at(6)),
+        std::make_shared<King>(chChars_.at(7)),
+        std::make_shared<Advisor>(chChars_.at(8)),
+        std::make_shared<Advisor>(chChars_.at(8)),
+        std::make_shared<Bishop>(chChars_.at(9)),
+        std::make_shared<Bishop>(chChars_.at(9)),
+        std::make_shared<Knight>(chChars_.at(10)),
+        std::make_shared<Knight>(chChars_.at(10)),
+        std::make_shared<Rook>(chChars_.at(11)),
+        std::make_shared<Rook>(chChars_.at(11)),
+        std::make_shared<Cannon>(chChars_.at(12)),
+        std::make_shared<Cannon>(chChars_.at(12)),
+        std::make_shared<Pawn>(chChars_.at(13)),
+        std::make_shared<Pawn>(chChars_.at(13)),
+        std::make_shared<Pawn>(chChars_.at(13)),
+        std::make_shared<Pawn>(chChars_.at(13)),
+        std::make_shared<Pawn>(chChars_.at(13))
     };
 }
 
@@ -194,14 +194,18 @@ const wchar_t PieceManager::getName(const wchar_t ch)
         { 0, 0 }, { 1, 2 }, { 2, 4 }, { 3, 6 }, { 4, 7 }, { 5, 8 }, { 6, 9 },
         { 7, 1 }, { 8, 3 }, { 9, 5 }, { 10, 6 }, { 11, 7 }, { 12, 8 }, { 13, 10 }
     };
-    return nameChars_.at(chIndex_nameIndex.at(chStr_.find(ch)));
+    return nameChars_.at(chIndex_nameIndex.at(chChars_.find(ch)));
 }
 
 const wchar_t PieceManager::getPrintName(const Piece& piece)
 {
-    const std::map<wchar_t, wchar_t> rcpName{ { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' } };
+    const std::map<wchar_t, wchar_t>
+        rcpName{ { L'车', L'車' }, { L'马', L'馬' }, { L'炮', L'砲' } };
     const wchar_t name{ piece.name() };
-    return (piece.color() == PieceColor::BLACK && rcpName.find(name) != rcpName.end()) ? rcpName.at(name) : name;
+    return (piece.color() == PieceColor::BLACK
+               && rcpName.find(name) != rcpName.end())
+        ? rcpName.at(name)
+        : name;
 }
 
 const PieceColor PieceManager::getColor(const wchar_t ch)
@@ -211,7 +215,9 @@ const PieceColor PieceManager::getColor(const wchar_t ch)
 
 const PieceColor PieceManager::getColorFromZh(const wchar_t numZh)
 {
-    return numChars_.at(PieceColor::RED).find(numZh) != std::wstring::npos ? PieceColor::RED : PieceColor::BLACK;
+    return numChars_.at(PieceColor::RED).find(numZh) != std::wstring::npos
+        ? PieceColor::RED
+        : PieceColor::BLACK;
 }
 
 const int PieceManager::getIndex(const int seatsLen, const bool isBottom, const wchar_t preChar)
@@ -235,12 +241,14 @@ const wchar_t PieceManager::getColChar(const PieceColor color, bool isBottom, co
     return numChars_.at(color).at(isBottom ? SeatManager::ColNum() - col - 1 : col);
 }
 
+const std::wstring PieceManager::chChars_{ L"KABNRCPkabnrcp" };
+const std::wstring PieceManager::preChars_{ L"前中后" };
 const std::wstring PieceManager::nameChars_{ L"帅将仕士相象马车炮兵卒" };
 const std::wstring PieceManager::movChars_{ L"退平进" };
 const std::map<PieceColor, std::wstring> PieceManager::numChars_{
     { PieceColor::RED, L"一二三四五六七八九" },
     { PieceColor::BLACK, L"１２３４５６７８９" }
 };
-const std::wstring PieceManager::chStr_{ L"KABNRCPkabnrcp" };
 const std::wstring PieceManager::ICCSChars_{ L"abcdefghi" };
+const std::wstring PieceManager::FENStr_{ L"rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR" };
 }
