@@ -34,18 +34,11 @@ public:
     Instance();
     Instance(const std::string& infilename);
 
-    const bool isStart() const { return !currentMove_; }
-    const bool isLast() const;
-    void go();
-    void goTo(const std::shared_ptr<MoveSpace::Move>& move);
-    void back();
-    void backTo(const std::shared_ptr<MoveSpace::Move>& move);
-    void goOther();
-    void backFirst();
-    void goLast();
-    void goInc(int inc);
+    //void go();
+    //void back();
+    //void goOther();
+    //void goInc(int inc);
     //void changeSide(ChangeType ct);
-    const std::wstring toString() const;
 
     void read(const std::string& infilename);
     void write(const std::string& outfilename);
@@ -56,6 +49,9 @@ public:
     const int getRemLenMax() const { return remLenMax_; }
     const int getMaxRow() const { return maxRow_; }
     const int getMaxCol() const { return maxCol_; }
+
+    const std::wstring toString() const;
+    const std::wstring test();
 
 private:
     void __reset();
@@ -68,7 +64,7 @@ private:
     void __readInfo_PGN(std::wistream& wis);
     void __writeInfo_PGN(std::wostream& wos) const;
     void __readMove_PGN_ICCSZH(std::wistream& wis, RecFormat fmt);
-    void __writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt);
+    void __writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt) const;
     //void __readMove_PGN_CC(std::wistream& wis);
     //void __writeMove_PGN_CC(std::wostream& wos) const;
     const std::wstring __getWString(std::wistream& wis) const;
@@ -98,7 +94,6 @@ const std::string getExtName(const RecFormat fmt);
 RecFormat getRecFormat(const std::string& ext);
 void transDir(const std::string& dirfrom, const RecFormat fmt);
 void testTransDir(int fd, int td, int ff, int ft, int tf, int tt);
-const std::wstring test();
 }
 
 #endif

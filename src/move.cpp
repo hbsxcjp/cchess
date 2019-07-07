@@ -49,7 +49,7 @@ const std::shared_ptr<Move>& Move::addOther()
     otherMove->setOtherNo(otherNo_ + 1); // 变着层数
     otherMove->setPrev(std::weak_ptr<Move>(shared_from_this()));
     return other_ = otherMove;
-} 
+}
 
 void Move::reset(std::shared_ptr<SeatSpace::Seat>& fseat,
     std::shared_ptr<SeatSpace::Seat>& tseat, std::wstring remark)
@@ -90,19 +90,17 @@ std::vector<std::shared_ptr<Move>> Move::getPrevMoves()
     return moves;
 }
 
-const std::shared_ptr<Move>& Move::done()
+void Move::done()
 {
     eatPie_ = ftseat_.first->movTo(*ftseat_.second);
-    return next_;
 }
 
-const std::shared_ptr<Move>& Move::undo()
+void Move::undo() const
 {
     ftseat_.second->movTo(*ftseat_.first, eatPie_);
-    return std::move(prev());
 }
 
-const std::wstring Move::toString(const std::shared_ptr<BoardSpace::Board>& board) const
+const std::wstring Move::toString(const std::shared_ptr<BoardSpace::Board>& board)
 {
     std::wstringstream wss{};
     wss << std::setw(2) << frowcol() << L'_' << std::setw(2) << trowcol()

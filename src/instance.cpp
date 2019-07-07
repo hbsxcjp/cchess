@@ -32,51 +32,26 @@ Instance::Instance(const std::string& infilename)
 {
     read(infilename);
 }
-
-const bool Instance::isLast() const { return !currentMove_ || !currentMove_->next(); }
-
+/* 
 void Instance::go()
 {
-    if (!isLast())
-        currentMove_ = currentMove_->next()->done();
-}
-
-void Instance::goTo(const std::shared_ptr<MoveSpace::Move>& move)
-{
-    while (currentMove_ != move)
-        go();
+    currentMove_ = currentMove_->next();
+    currentMove_->done();
 }
 
 void Instance::back()
 {
-    if (!isStart())
-        currentMove_ = currentMove_->undo();
-}
-
-void Instance::backTo(const std::shared_ptr<MoveSpace::Move>& move)
-{
-    while (currentMove_ != move)
-        back();
+    currentMove_->undo();
+    currentMove_ = currentMove_->prev();
 }
 
 void Instance::goOther()
 {
-    if (currentMove_->other()) {
+    if (currentMove_ && currentMove_->other()) {
         currentMove_->undo();
-        currentMove_ = currentMove_->other()->done();
+        currentMove_ = currentMove_->other();
+        currentMove_->done();
     }
-}
-
-void Instance::backFirst()
-{
-    while (!isStart())
-        back();
-}
-
-void Instance::goLast()
-{
-    while (!isLast())
-        go();
 }
 
 void Instance::goInc(int inc)
@@ -86,11 +61,12 @@ void Instance::goInc(int inc)
     for (int i = abs(inc); i != 0; --i)
         fbward(this);
 }
+*/
 /* 
 void Instance::changeSide(ChangeType ct) // 未测试
 {
     auto prevMoves = currentMove_->getPrevMoves();
-    backFirst();
+    backStart();
     board_->changeSide(ct);
     if (ct != ChangeType::EXCHANGE) {
         auto changeRowcol = ct == ChangeType::ROTATE ? &SeatManager::getRotate : &SeatManager::getSymmetry;
@@ -113,13 +89,6 @@ void Instance::changeSide(ChangeType ct) // 未测试
         move->done();
 }
 */
-const std::wstring Instance::toString() const
-{
-    std::ostringstream ss{};
-    //__writeInfo_PGN(ss);
-    //__writeMove_PGN_CC(ss);
-    return Tools::s2ws(ss.str());
-}
 
 void Instance::read(const std::string& infilename)
 {
@@ -200,6 +169,38 @@ void Instance::write(const std::string& outfilename)
         break;
     }
     //std::wcout << L"writeMove finished!\n" << MoveOwner_->toString() << std::endl;
+}
+
+const std::wstring Instance::toString() const
+{
+    std::wostringstream wos{};
+    __writeInfo_PGN(wos);
+    __writeMove_PGN_ICCSZH(wos, RecFormat::PGN_ZH);
+    return wos.str();
+}
+
+const std::wstring Instance::test()
+{
+    std::wstringstream wss{};
+    read("01.xqf");
+
+    write("01.bin");
+    read("01.bin");
+
+    write("01.json");
+    read("01.json");
+
+    write("01.pgn_iccs");
+    read("01.pgn_iccs");
+
+    write("01.pgn_zh");
+    read("01.pgn_zh");
+
+    //write("01.pgn_cc");
+    //read("01.pgn_cc");
+
+    wss << toString();
+    return wss.str();
 }
 
 void Instance::__reset()
@@ -546,42 +547,52 @@ void Instance::__readInfo_PGN(std::wistream& wis)
 
 void Instance::__readMove_PGN_ICCSZH(std::wistream& wis, RecFormat fmt)
 {
-    bool isPGN_ZH{ fmt == RecFormat::PGN_ZH };
     const std::wstring moveStr{ __getWString(wis) };
     //std::wcout << moveStr << std::endl;
+
+    bool isPGN_ZH{ fmt == RecFormat::PGN_ZH }, isOther{};
     std::wstring otherBeginStr{ LR"((\()?)" };
-    std::wstring boutStr{ LR"((\d+\.)?\s*\b)" };
+    std::wstring boutStr{ LR"((\d+\.)?[\s...]*\b)" };
     std::wstring ICCSZhStr{ LR"(([)"
-        + (isPGN_ZH
-                  // LR"(帅仕相马车炮兵将士象卒一二三四五六七八九１２３４５６７８９前中后进退平)"
-                  ? PieceManager::getZhChars()
-                  : PieceManager::getICCSChars()) // LR"(abcdefghi\d)"
+        + (isPGN_ZH ? PieceManager::getZhChars() : PieceManager::getICCSChars())
         + LR"(]{4})\b)" };
-    std::wstring remarkStr{ LR"((?:\s+\{([\s\S]*?)\})?)" };
-    std::wstring otherEndStr{ LR"((\))?)" };
+    std::wstring remarkStr{ LR"((?:\s*\{([\s\S]*?)\})?)" };
+    std::wstring otherEndStr{ LR"(\s*(\)+)?)" }; // 可能存在多个右括号
     std::wregex moveReg{ otherBeginStr + boutStr + ICCSZhStr + remarkStr + otherEndStr },
         remReg{ remarkStr + LR"(1\.)" };
     std::wsmatch wsm{};
     if (std::regex_search(moveStr, wsm, remReg))
         root_->setRemark(wsm.str(1));
     std::shared_ptr<MoveSpace::Move> preMove{ root_ }, move{};
-    std::vector<std::shared_ptr<MoveSpace::Move>> preMoves{};
+    std::vector<std::shared_ptr<MoveSpace::Move>> preOtherMoves{};
     for (std::wsregex_iterator wtiMove{ moveStr.begin(), moveStr.end(), moveReg },
          wtiEnd{};
          wtiMove != wtiEnd; ++wtiMove) {
-        if ((*wtiMove)[1].matched) {
+        if (isPGN_ZH)
+            std::wcout << (*wtiMove).str() << std::endl;
+
+        if ((isOther = (*wtiMove)[1].matched)) {
             move = preMove->addOther();
-            preMoves.push_back(preMove);
+            preOtherMoves.push_back(preMove);
+            if (isPGN_ZH)
+                preMove->undo();
         } else
             move = preMove->addNext();
         move->reset(board_, (*wtiMove)[3], fmt, (*wtiMove)[4]);
+        //std::wcout << board_->toString() << move->toString(board_) << std::endl;
+
         if (isPGN_ZH)
-            go();
+            move->done();
+
         if ((*wtiMove)[5].matched) {
-            preMove = preMoves.back();
-            preMoves.pop_back();
+            for (int num = (*wtiMove).length(5); num > 0; --num) {
+                preMove = preOtherMoves.back();
+                preOtherMoves.pop_back();
+            }
             if (isPGN_ZH)
-                backTo(preMove);
+                do {
+                    move->undo();
+                } while ((move = move->prev()) != preMove);
         } else
             preMove = move;
     }
@@ -596,11 +607,11 @@ void Instance::__writeInfo_PGN(std::wostream& wos) const
     wos << L'\n';
 }
 
-void Instance::__writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt)
+void Instance::__writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt) const
 {
     bool isPGN_ZH{ fmt == RecFormat::PGN_ZH };
     auto __getRemarkStr = [&](const std::shared_ptr<MoveSpace::Move>& move) {
-        return (move->remark().empty()) ? L"" : (L"\n{" + move->remark() + L"}\n");
+        return (move->remark().empty()) ? L"" : (L" \n{" + move->remark() + L"}\n ");
     };
     std::function<void(const std::shared_ptr<MoveSpace::Move>&, bool)>
         __writeMove = [&](const std::shared_ptr<MoveSpace::Move>& move, bool isOther) {
@@ -608,24 +619,26 @@ void Instance::__writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt)
             bool isEven{ move->nextNo() % 2 == 0 };
             wos << (isOther ? L"(" + boutStr + (isEven ? L"... " : L"")
                             : (isEven ? std::wstring{ L" " } : boutStr))
-                << move->iccs() << L' '
-                //<< (isPGN_ZH ? move->zh(board_) : move->iccs()) << L' '
+                << (isPGN_ZH ? move->zh(board_) : move->iccs()) << L' '
                 << __getRemarkStr(move);
-            if (isPGN_ZH)
-                go();
+
             if (move->other()) {
                 __writeMove(move->other(), true);
-                wos << L") ";
+                wos << L")";
             }
-            if (isPGN_ZH)
-                back();
+
+            if (isPGN_ZH) {
+                // std::wcout << L"627: " << move->toString(board_) << L'\n';
+                move->done();
+                // std::wcout << board_->toString() << std::endl;
+            }
             if (move->next())
                 __writeMove(move->next(), false);
+            if (isPGN_ZH)
+                move->undo();
         };
 
     wos << __getRemarkStr(root_);
-    if (isPGN_ZH)
-        backFirst();
     if (root_->next())
         __writeMove(root_->next(), false);
 }
@@ -935,30 +948,5 @@ void testTransDir(int fd, int td, int ff, int ft, int tf, int tt)
             for (int tIndex = tf; tIndex != tt; ++tIndex)
                 if (tIndex > 0 && tIndex != fIndex)
                     transDir(dirfroms[dir] + getExtName(fmts[fIndex]), fmts[tIndex]);
-}
-
-const std::wstring test()
-{
-    InstanceSpace::Instance ins{};
-    ins.read("01.xqf");
-
-    ins.write("01.bin");
-    ins.read("01.bin");
-
-    ins.write("01.json");
-    ins.read("01.json");
-
-    ins.write("01.pgn_iccs");
-    ins.read("01.pgn_iccs");
-
-    //ins.write("01.pgn_zh");
-    //ins.read("01.pgn_zh");
-
-    //ins.write("01.pgn_cc");
-    //ins.read("01.pgn_cc");
-
-    std::wstringstream wss{};
-    wss << ins.toString();
-    return wss.str();
 }
 }

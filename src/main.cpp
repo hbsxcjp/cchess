@@ -19,9 +19,10 @@ int main(int argc, char const* argv[])
     //*
     BoardSpace::Board board{};
     Tools::writeTxt("board.txt", board.test());
-    Tools::writeTxt("instance.txt", InstanceSpace::test());
+    InstanceSpace::Instance ci{};
+    Tools::writeTxt("instance.txt", ci.test());
     //*/
-    //*
+    /*
     if (argc == 7)
         InstanceSpace::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
             std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));

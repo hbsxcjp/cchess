@@ -63,8 +63,8 @@ public:
     void reset(const std::shared_ptr<BoardSpace::Board>& board, const std::wstring& str,
         RecFormat fmt, std::wstring remark = L"");
     std::vector<std::shared_ptr<Move>> getPrevMoves();
-    const std::shared_ptr<Move>& done();
-    const std::shared_ptr<Move>& undo();
+    void done();
+    void undo() const;
 
     void setFTSeat(std::pair<std::shared_ptr<SeatSpace::Seat>,
         std::shared_ptr<SeatSpace::Seat>>
@@ -74,7 +74,8 @@ public:
     void setOtherNo(int otherNo) { otherNo_ = otherNo; }
     void setCC_ColNo(int CC_ColNo) { CC_ColNo_ = CC_ColNo; }
 
-    const std::wstring toString(const std::shared_ptr<BoardSpace::Board>& board) const;
+    // 在move.done()之前执行
+    const std::wstring toString(const std::shared_ptr<BoardSpace::Board>& board);
 
 private:
     std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>> ftseat_{};
