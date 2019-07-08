@@ -34,17 +34,18 @@ class Move : public std::enable_shared_from_this<Move> {
 public:
     Move() = default;
 
+    int frowcol() const;
+    int trowcol() const;
+    const std::wstring iccs() const;
+    // 在move.done()之前执行
+    const std::wstring zh(const std::shared_ptr<BoardSpace::Board>& board) const;
+
     const std::shared_ptr<SeatSpace::Seat>& fseat() const { return ftseat_.first; }
     const std::shared_ptr<SeatSpace::Seat>& tseat() const { return ftseat_.second; }
     const std::shared_ptr<PieceSpace::Piece>& eatPie() const { return eatPie_; }
     const std::shared_ptr<Move>& next() const { return next_; }
     const std::shared_ptr<Move>& other() const { return other_; }
     const std::shared_ptr<Move> prev() const { return prev_.lock(); }
-
-    int frowcol() const;
-    int trowcol() const;
-    const std::wstring iccs() const;
-    const std::wstring zh(const std::shared_ptr<BoardSpace::Board>& board) const;
 
     const std::wstring& remark() const { return remark_; }
     int nextNo() const { return nextNo_; }
@@ -54,8 +55,10 @@ public:
     void cutNext() { next_ = nullptr; }
     void cutOther() { other_ && (other_ = other_->other_); }
     void setPrev(std::weak_ptr<Move> prev) { prev_ = prev; }
+
     const std::shared_ptr<Move>& addNext();
     const std::shared_ptr<Move>& addOther();
+
     void reset(std::shared_ptr<SeatSpace::Seat>& fseat,
         std::shared_ptr<SeatSpace::Seat>& tseat, std::wstring remark = L"");
     void reset(const std::shared_ptr<BoardSpace::Board>& board,
@@ -63,21 +66,22 @@ public:
     void reset(const std::shared_ptr<BoardSpace::Board>& board, const std::wstring& str,
         RecFormat fmt, std::wstring remark = L"");
     std::vector<std::shared_ptr<Move>> getPrevMoves();
+
     void done();
     void undo() const;
 
-    void setFTSeat(std::pair<std::shared_ptr<SeatSpace::Seat>,
-        std::shared_ptr<SeatSpace::Seat>>
-            ftseat) { ftseat_ = ftseat; }
     void setRemark(std::wstring remark) { remark_ = remark; }
     void setNextNo(int nextNo) { nextNo_ = nextNo; }
     void setOtherNo(int otherNo) { otherNo_ = otherNo; }
     void setCC_ColNo(int CC_ColNo) { CC_ColNo_ = CC_ColNo; }
 
-    // 在move.done()之前执行
     const std::wstring toString(const std::shared_ptr<BoardSpace::Board>& board);
 
 private:
+    void __setFTSeat(std::pair<std::shared_ptr<SeatSpace::Seat>,
+        std::shared_ptr<SeatSpace::Seat>>
+            ftseat) { ftseat_ = ftseat; }
+
     std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>> ftseat_{};
     std::wstring remark_{}; // 注释
 

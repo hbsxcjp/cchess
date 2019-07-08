@@ -54,21 +54,21 @@ const std::shared_ptr<Move>& Move::addOther()
 void Move::reset(std::shared_ptr<SeatSpace::Seat>& fseat,
     std::shared_ptr<SeatSpace::Seat>& tseat, std::wstring remark)
 {
-    setFTSeat({ fseat, tseat });
+    __setFTSeat({ fseat, tseat });
     setRemark(remark);
 }
 
 void Move::reset(const std::shared_ptr<BoardSpace::Board>& board,
     int frowcol, int trowcol, std::wstring remark)
 {
-    setFTSeat({ board->getSeat(frowcol), board->getSeat(trowcol) });
+    __setFTSeat({ board->getSeat(frowcol), board->getSeat(trowcol) });
     setRemark(remark);
 }
 
 void Move::reset(const std::shared_ptr<BoardSpace::Board>& board,
     const std::wstring& str, RecFormat fmt, std::wstring remark)
 {
-    setFTSeat((fmt == RecFormat::PGN_ICCS)
+    __setFTSeat((fmt == RecFormat::PGN_ICCS)
             ? std::make_pair(board->getSeat(PieceManager::getRowFromICCSChar(str.at(1)),
                                  PieceManager::getColFromICCSChar(str.at(0))),
                   board->getSeat(PieceManager::getRowFromICCSChar(str.at(3)),

@@ -43,7 +43,7 @@ public:
     void read(const std::string& infilename);
     void write(const std::string& outfilename);
 
-    //const std::wstring& remark() const { return remark_; }
+    const std::wstring& remark() const;
     const int getMovCount() const { return movCount_; }
     const int getRemCount() const { return remCount_; }
     const int getRemLenMax() const { return remLenMax_; }
@@ -65,8 +65,8 @@ private:
     void __writeInfo_PGN(std::wostream& wos) const;
     void __readMove_PGN_ICCSZH(std::wistream& wis, RecFormat fmt);
     void __writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt) const;
-    //void __readMove_PGN_CC(std::wistream& wis);
-    //void __writeMove_PGN_CC(std::wostream& wos) const;
+    void __readMove_PGN_CC(std::wistream& wis);
+    void __writeMove_PGN_CC(std::wostream& wos) const;
     const std::wstring __getWString(std::wistream& wis) const;
 
     void __setFEN(const std::wstring& pieceChars, PieceColor color);
@@ -75,7 +75,6 @@ private:
     void __setMoves(RecFormat fmt);
     const std::wstring __moveInfo() const;
 
-    //std::wstring remark_{}; // 注释
     std::map<std::wstring, std::wstring> info_{};
     std::shared_ptr<MoveSpace::Move> root_{};
     std::shared_ptr<BoardSpace::Board> board_{};
