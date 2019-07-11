@@ -44,14 +44,14 @@ public:
     void write(const std::string& outfilename);
 
     const std::wstring& remark() const;
+    const std::wstring toString() const;
+    const std::wstring test();
+    
     const int getMovCount() const { return movCount_; }
     const int getRemCount() const { return remCount_; }
     const int getRemLenMax() const { return remLenMax_; }
     const int getMaxRow() const { return maxRow_; }
     const int getMaxCol() const { return maxCol_; }
-
-    const std::wstring toString() const;
-    const std::wstring test();
 
 private:
     void __reset();
@@ -69,10 +69,14 @@ private:
     void __writeMove_PGN_CC(std::wostream& wos) const;
     const std::wstring __getWString(std::wistream& wis) const;
 
+    void __setMove(const std::shared_ptr<MoveSpace::Move>& move,
+        int frowcol, int trowcol, std::wstring remark = L"") const;
+    void __setMove(const std::shared_ptr<MoveSpace::Move>& move,
+        const std::wstring& zhStr, RecFormat fmt, std::wstring remark = L"") const;
+    void __setMoveNums(RecFormat fmt);
     void __setFEN(const std::wstring& pieceChars, PieceColor color);
-    void __setFormat(RecFormat fmt);
+
     const std::wstring __pieceChars() const;
-    void __setMoves(RecFormat fmt);
     const std::wstring __moveInfo() const;
 
     std::map<std::wstring, std::wstring> info_{};

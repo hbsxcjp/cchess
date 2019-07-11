@@ -34,10 +34,10 @@ public:
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const;
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const std::pair<int, int>& rowcol) const;
 
-    std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>
-    getMoveSeat(const std::wstring& zhStr) const; 
-    const std::wstring getZh(const MoveSpace::Move& move) const;
- 
+    void setMove(const std::shared_ptr<MoveSpace::Move>& move,
+        const std::wstring& zhStr) const;
+    void setMoveZh(const std::shared_ptr<MoveSpace::Move>& move) const;
+
     const bool isKilled(const PieceColor color) const;
     const bool isDied(const PieceColor color) const;
 
@@ -48,6 +48,9 @@ public:
     const std::wstring test();
 
 private:
+    const std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>
+    __getMoveSeat(const std::wstring& zhStr) const;
+    const std::wstring __getZh(const std::shared_ptr<MoveSpace::Move>& move) const;
     void __setBottomSide();
 
     PieceColor bottomColor_;

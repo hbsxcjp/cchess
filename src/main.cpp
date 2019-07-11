@@ -1,7 +1,5 @@
 #include "board.h"
 #include "instance.h"
-//#include "piece.h"
-//#include "seat.h"
 #include "tools.h"
 #include <chrono>
 #include <iostream>
@@ -27,9 +25,11 @@ int main(int argc, char const* argv[])
         InstanceSpace::testTransDir(std::stoi(argv[1]), std::stoi(argv[2]),
             std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]));
     else {
-        InstanceSpace::testTransDir(0, 2, 0, 6, 1, 6);
+        //InstanceSpace::testTransDir(0, 2, 0, 6, 1, 6);
         //std::cout << "------------------------------------------------------------------" << std::endl;
-        //InstanceSpace::testTransDir(0, 2, 1, 2, 1, 5);
+        InstanceSpace::testTransDir(0, 1, 0, 1, 1, 6);
+        InstanceSpace::testTransDir(0, 1, 1, 5, 5, 6);
+        InstanceSpace::testTransDir(0, 1, 5, 6, 1, 2);
         //std::cout << "------------------------------------------------------------------" << std::endl;
         //InstanceSpace::testTransDir(0, 2, 2, 3, 1, 5);
     }

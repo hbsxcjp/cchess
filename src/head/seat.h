@@ -52,12 +52,16 @@ public:
 
     const std::shared_ptr<Seat>& getSeat(const int row, const int col) const;
     const std::shared_ptr<Seat>& getSeat(const int rowcol) const;
-    const std::shared_ptr<Seat>& getSeat(const std::pair<int, int>& rowcol) const { return getSeat(rowcol.first, rowcol.second); }
- 
+    const std::shared_ptr<Seat>& getSeat(const std::pair<int, int>& rowcol) const
+    {
+        return getSeat(rowcol.first, rowcol.second);
+    }
+
     const std::shared_ptr<Seat>&
     getKingSeat(const PieceColor color) const;
     const std::vector<std::shared_ptr<Seat>>
-    getLiveSeats(const PieceColor color, const wchar_t name = L'\x00', const int col = -1, bool getStronge = false) const;
+    getLiveSeats(const PieceColor color, const wchar_t name = L'\x00',
+        const int col = -1, bool getStronge = false) const;
     const std::vector<std::shared_ptr<Seat>>
     getSortPawnLiveSeats(bool isBottom, const PieceColor color, const wchar_t name) const;
 

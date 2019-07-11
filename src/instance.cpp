@@ -81,7 +81,7 @@ void Instance::changeSide(ChangeType ct) // 未测试
         };
         if (rootMove_->fseat())
             __setRowcol(*rootMove_); // 驱动调用递归函数
-        __setMoves(RecFormat::BIN); //借用RecFormat::BIN
+        __setMoveNums(RecFormat::BIN); //借用RecFormat::BIN
     }
     auto color = rootMove_->fseat() ? rootMove_->fseat()->piece()->color() : PieceColor::RED;
     __setFEN(board_->getPieceChars(), color);
@@ -125,7 +125,7 @@ void Instance::read(const std::string& infilename)
     default:
         break;
     }
-    __setMoves(fmt);
+    __setMoveNums(fmt);
 }
 
 void Instance::write(const std::string& outfilename)
@@ -357,13 +357,8 @@ void Instance::__readXQF(std::istream& is)
             //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
             int fcolrow = __sub(frc, 0X18 + KeyXYf), tcolrow = __sub(trc, 0X20 + KeyXYt);
             assert(fcolrow <= 89 && tcolrow <= 89);
-            //move->setFrowcol((fcolrow % 10) * 10 + fcolrow / 10);
-            //move->setTrowcol((tcolrow % 10) * 10 + tcolrow / 10);
-            //move->setFromRowcols(board_,
-            move->reset(board_, (fcolrow % 10) * 10 + fcolrow / 10,
+            __setMove(move, (fcolrow % 10) * 10 + fcolrow / 10,
                 (tcolrow % 10) * 10 + tcolrow / 10, remark);
-            //std::wcout << move->toString(board_) << std::endl;
-            //assert(move->fseat()->piece());
 
             char ntag{ tag };
             if (ntag & 0x80) //# 有左子树
@@ -373,7 +368,6 @@ void Instance::__readXQF(std::istream& is)
         };
 
     is.seekg(1024);
-    //remark_ = __readDataAndGetRemark();
     root_->setRemark(__readDataAndGetRemark());
     char rtag{ tag };
     if (rtag & 0x80) //# 有左子树
@@ -395,8 +389,7 @@ void Instance::__readBIN(std::istream& is)
         __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move) {
             char tag{};
             is.get(frowcol).get(trowcol).get(tag);
-            move->reset(board_, frowcol, trowcol,
-                (tag & 0x20) ? __readWstring() : L"");
+            __setMove(move, frowcol, trowcol, (tag & 0x20) ? __readWstring() : L"");
             //assert(move->fseat()->piece());
 
             if (tag & 0x80)
@@ -481,7 +474,7 @@ void Instance::__readJSON(std::istream& is)
     std::function<void(const std::shared_ptr<MoveSpace::Move>&, Json::Value&)>
         __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move, Json::Value& item) {
             int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
-            move->reset(board_, frowcol, trowcol,
+            __setMove(move, frowcol, trowcol,
                 (item.isMember("r")) ? Tools::s2ws(item["r"].asString()) : L"");
             //assert(move->fseat()->piece());
 
@@ -565,8 +558,7 @@ void Instance::__readMove_PGN_ICCSZH(std::wistream& wis, RecFormat fmt)
                 preMove->undo();
         } else
             move = preMove->addNext();
-        move->reset(board_, (*wtiMove)[3], fmt, (*wtiMove)[4]);
-
+        __setMove(move, (*wtiMove)[3], fmt, (*wtiMove)[4]);
         //if (isPGN_ZH)
         //    std::wcout << (*wtiMove).str() << L'\n' << move->toString(board_) << L'\n' << board_->toString() << std::endl;
         if (isPGN_ZH)
@@ -614,7 +606,7 @@ void Instance::__writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt) const
             bool isEven{ move->nextNo() % 2 == 0 };
             wos << (isOther ? L"(" + boutStr + (isEven ? L"... " : L"")
                             : (isEven ? std::wstring{ L" " } : boutStr))
-                << (isPGN_ZH ? move->zh(board_) : move->iccs()) << L' '
+                << (isPGN_ZH ? move->zh() : move->iccs()) << L' '
                 << __getRemarkStr(move);
 
             if (move->other()) {
@@ -664,7 +656,7 @@ void Instance::__readMove_PGN_CC(std::wistream& wis)
         __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move, int row, int col) {
             std::wstring zhStr{ moveLines[row][col] };
             if (regex_match(zhStr, moverg)) {
-                move->reset(board_, zhStr.substr(0, 4), RecFormat::PGN_CC,
+                __setMove(move, zhStr.substr(0, 4), RecFormat::PGN_CC,
                     rems[L'(' + std::to_wstring(row) + L',' + std::to_wstring(col) + L')']);
 
                 if (zhStr.back() == L'…')
@@ -695,7 +687,7 @@ void Instance::__writeMove_PGN_CC(std::wostream& wos) const
     std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
         __setMovePGN_CC = [&](const std::shared_ptr<MoveSpace::Move>& move) {
             int firstcol{ move->CC_ColNo() * 5 }, row{ move->nextNo() * 2 };
-            lineStr.at(row).replace(firstcol, 4, move->zh(board_));
+            lineStr.at(row).replace(firstcol, 4, move->zh());
             if (!move->remark().empty())
                 remWss << L"(" << move->nextNo() << L"," << move->CC_ColNo() << L"): {"
                        << move->remark() << L"}\n";
@@ -733,19 +725,30 @@ const std::wstring Instance::__getWString(std::wistream& wis) const
     return wss.str();
 }
 
-void Instance::__setFEN(const std::wstring& pieceChars, PieceColor color)
+void Instance::__setMove(const std::shared_ptr<MoveSpace::Move>& move,
+    int frowcol, int trowcol, std::wstring remark) const
 {
-    info_[L"FEN"] = (pieCharsToFEN(pieceChars) + L" "
-        + (color == PieceColor::RED ? L"r" : L"b") + L" - - 0 1");
+    move->setFTSeat(board_->getSeat(frowcol), board_->getSeat(trowcol));
+    move->setRemark(remark);
 }
 
-const std::wstring Instance::__pieceChars() const
+void Instance::__setMove(const std::shared_ptr<MoveSpace::Move>& move,
+    const std::wstring& zhStr, RecFormat fmt, std::wstring remark) const
 {
-    std::wstring rfen{ info_.at(L"FEN") }, fen{ rfen.substr(0, rfen.find(L' ')) };
-    return FENTopieChars(fen);
+    if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC) {
+        board_->setMove(move, zhStr);
+        //auto ftseat = board_->getMoveSeat(zhStr);
+        //move->setFTSeat(ftseat.first, ftseat.second);
+        // move->setZh(zhStr);
+    } else //fmt == RecFormat::PGN_ICCS
+        move->setFTSeat(board_->getSeat(PieceManager::getRowFromICCSChar(zhStr.at(1)),
+                            PieceManager::getColFromICCSChar(zhStr.at(0))),
+            board_->getSeat(PieceManager::getRowFromICCSChar(zhStr.at(3)),
+                PieceManager::getColFromICCSChar(zhStr.at(2))));
+    move->setRemark(remark);
 }
 
-void Instance::__setMoves(RecFormat fmt)
+void Instance::__setMoveNums(RecFormat fmt)
 {
     std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
         __setNums = [&](const std::shared_ptr<MoveSpace::Move>& move) {
@@ -757,9 +760,12 @@ void Instance::__setMoves(RecFormat fmt)
                 ++remCount_;
                 remLenMax_ = std::max(remLenMax_, static_cast<int>(move->remark().size()));
             }
-
+            //if (!(fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC))
+            board_->setMoveZh(move);
+            move->done();
             if (move->next())
                 __setNums(move->next());
+            move->undo();
             if (move->other()) {
                 ++maxCol_;
                 __setNums(move->other());
@@ -768,6 +774,18 @@ void Instance::__setMoves(RecFormat fmt)
 
     if (root_->next())
         __setNums(root_->next()); // 驱动函数
+}
+
+void Instance::__setFEN(const std::wstring& pieceChars, PieceColor color)
+{
+    info_[L"FEN"] = (pieCharsToFEN(pieceChars) + L" "
+        + (color == PieceColor::RED ? L"r" : L"b") + L" - - 0 1");
+}
+
+const std::wstring Instance::__pieceChars() const
+{
+    std::wstring rfen{ info_.at(L"FEN") }, fen{ rfen.substr(0, rfen.find(L' ')) };
+    return FENTopieChars(fen);
 }
 
 const std::wstring Instance::__moveInfo() const
@@ -818,36 +836,30 @@ RecFormat getRecFormat(const std::string& ext)
 
 const std::wstring pieCharsToFEN(const std::wstring& pieceChars)
 {
-    //*'下划线字符串对应数字字符'
-    std::vector<std::pair<std::wstring, std::wstring>> line_nums{
-        { L"_________", L"9" }, { L"________", L"8" }, { L"_______", L"7" },
-        { L"______", L"6" }, { L"_____", L"5" }, { L"____", L"4" },
-        { L"___", L"3" }, { L"__", L"2" }, { L"_", L"1" }
-    };
-    std::wstring fen{};
-    for (int i = 81; i >= 0; i -= 9)
-        fen += pieceChars.substr(i, 9) + L"/";
-    fen.erase(fen.size() - 1, 1);
-    std::wstring::size_type pos;
-    for (auto& linenum : line_nums)
-        while ((pos = fen.find(linenum.first)) != std::wstring::npos)
-            fen.replace(pos, linenum.first.size(), linenum.second);
-    //*/
-    /*
     assert(pieceChars.size() == 90);
     std::wstring fen{};
-    std::wregex linerg{ LR"(.{9})" }, nullrg{ LR"()" + board_->getNullChar() + LR"({1,9})" };
-    std::wsregex_token_iterator end_it{};
-    std::wstringstream wss{};
-    for (std::wsregex_token_iterator lineIter{ pieceChars.begin(), pieceChars.end(), linerg, 0 }; lineIter != end_it; ++lineIter) {
+    std::wregex linerg{ LR"(.{9})" };
+    for (std::wsregex_token_iterator lineIter{
+             pieceChars.begin(), pieceChars.end(), linerg, 0 },
+         end{};
+         lineIter != end; ++lineIter) {
         std::wstringstream wss{};
-        for (std::wsregex_token_iterator charIter{ (*lineIter).begin(), (*lineIter).end(), nullrg, -1 }; charIter != end_it; ++charIter) {
-            wss << *charIter;
-            wss << num; // nullrg.size?
+        int num{ 0 };
+        for (auto wch : (*lineIter).str()) {
+            if (wch != PieceManager::nullChar()) {
+                if (num) {
+                    wss << num;
+                    num = 0;
+                }
+                wss << wch;
+            } else
+                ++num;
         }
-        wss << L'/';
-        fen.insert(0, wss.str());
-    }//*/
+        if (num)
+            wss << num;
+        fen.insert(0, wss.str()).insert(0, L"/");
+    }
+    fen.erase(0, 1);
 
     //assert(FENTopieChars(fen) == pieceChars);
     return fen;
@@ -857,11 +869,13 @@ const std::wstring FENTopieChars(const std::wstring& fen)
 {
     std::wstring pieceChars{};
     std::wregex linerg{ LR"(/)" };
-    for (std::wsregex_token_iterator fenLineIter{ fen.begin(), fen.end(), linerg, -1 };
-         fenLineIter != std::wsregex_token_iterator{}; ++fenLineIter) {
+    for (std::wsregex_token_iterator lineIter{ fen.begin(), fen.end(), linerg, -1 };
+         lineIter != std::wsregex_token_iterator{}; ++lineIter) {
         std::wstringstream wss{};
-        for (auto wch : std::wstring{ *fenLineIter })
-            wss << (isdigit(wch) ? std::wstring(wch - 48, PieceManager::nullChar()) : std::wstring{ wch }); // ASCII: 0:48
+        for (auto wch : std::wstring{ *lineIter })
+            wss << (isdigit(wch)
+                    ? std::wstring(wch - L'0', PieceManager::nullChar())
+                    : std::wstring{ wch }); // ASCII: 0:48
         pieceChars.insert(0, wss.str());
     }
 
