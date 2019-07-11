@@ -125,7 +125,7 @@ void Instance::read(const std::string& infilename)
     default:
         break;
     }
-    __setMoveNums(fmt);
+    __setMoveNums();
 }
 
 void Instance::write(const std::string& outfilename)
@@ -728,27 +728,18 @@ const std::wstring Instance::__getWString(std::wistream& wis) const
 void Instance::__setMove(const std::shared_ptr<MoveSpace::Move>& move,
     int frowcol, int trowcol, std::wstring remark) const
 {
-    move->setFTSeat(board_->getSeat(frowcol), board_->getSeat(trowcol));
+    board_->setMove(move, frowcol, trowcol);
     move->setRemark(remark);
 }
 
 void Instance::__setMove(const std::shared_ptr<MoveSpace::Move>& move,
-    const std::wstring& zhStr, RecFormat fmt, std::wstring remark) const
+    const std::wstring& str, RecFormat fmt, std::wstring remark) const
 {
-    if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC) {
-        board_->setMove(move, zhStr);
-        //auto ftseat = board_->getMoveSeat(zhStr);
-        //move->setFTSeat(ftseat.first, ftseat.second);
-        // move->setZh(zhStr);
-    } else //fmt == RecFormat::PGN_ICCS
-        move->setFTSeat(board_->getSeat(PieceManager::getRowFromICCSChar(zhStr.at(1)),
-                            PieceManager::getColFromICCSChar(zhStr.at(0))),
-            board_->getSeat(PieceManager::getRowFromICCSChar(zhStr.at(3)),
-                PieceManager::getColFromICCSChar(zhStr.at(2))));
+    board_->setMove(move, str, fmt);
     move->setRemark(remark);
 }
 
-void Instance::__setMoveNums(RecFormat fmt)
+void Instance::__setMoveNums()
 {
     std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
         __setNums = [&](const std::shared_ptr<MoveSpace::Move>& move) {
@@ -760,7 +751,6 @@ void Instance::__setMoveNums(RecFormat fmt)
                 ++remCount_;
                 remLenMax_ = std::max(remLenMax_, static_cast<int>(move->remark().size()));
             }
-            //if (!(fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC))
             board_->setMoveZh(move);
             move->done();
             if (move->next())

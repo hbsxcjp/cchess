@@ -72,8 +72,8 @@ private:
     void __setMove(const std::shared_ptr<MoveSpace::Move>& move,
         int frowcol, int trowcol, std::wstring remark = L"") const;
     void __setMove(const std::shared_ptr<MoveSpace::Move>& move,
-        const std::wstring& zhStr, RecFormat fmt, std::wstring remark = L"") const;
-    void __setMoveNums(RecFormat fmt);
+        const std::wstring& str, RecFormat fmt, std::wstring remark = L"") const;
+    void __setMoveNums();
     void __setFEN(const std::wstring& pieceChars, PieceColor color);
 
     const std::wstring __pieceChars() const;

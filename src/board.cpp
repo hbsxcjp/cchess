@@ -41,13 +41,20 @@ const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const std::pair<int, int>
 {
     return seats_->getSeat(rowcol);
 }
-/* 
-*/
+
 void Board::setMove(const std::shared_ptr<MoveSpace::Move>& move,
-    const std::wstring& zhStr) const
+    const std::wstring& str, RecFormat fmt) const
 {
-    auto ftseat = __getMoveSeat(zhStr);
-    move->setFTSeat(ftseat.first, ftseat.second);
+    if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC)
+        __setMoveFromZh(move, str);
+    else
+        __setMoveFromICCS(move, str);
+}
+
+void Board::setMove(const std::shared_ptr<MoveSpace::Move>& move,
+    int frowcol, int trowcol) const
+{
+    move->setFTSeat(getSeat(frowcol), getSeat(trowcol));
 }
 
 void Board::setMoveZh(const std::shared_ptr<MoveSpace::Move>& move) const
@@ -99,6 +106,22 @@ void Board::changeSide(const ChangeType ct)
 {
     seats_->changeSide(ct, pieces_);
     __setBottomSide();
+}
+
+void Board::__setMoveFromZh(const std::shared_ptr<MoveSpace::Move>& move,
+    const std::wstring& zhStr) const
+{
+    auto ftseat = __getMoveSeat(zhStr);
+    move->setFTSeat(ftseat.first, ftseat.second);
+}
+
+void Board::__setMoveFromICCS(const std::shared_ptr<MoveSpace::Move>& move,
+    const std::wstring& ICCSStr) const
+{
+    move->setFTSeat(getSeat(PieceManager::getRowFromICCSChar(ICCSStr.at(1)),
+                        PieceManager::getColFromICCSChar(ICCSStr.at(0))),
+        getSeat(PieceManager::getRowFromICCSChar(ICCSStr.at(3)),
+            PieceManager::getColFromICCSChar(ICCSStr.at(2))));
 }
 
 const std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>
