@@ -42,7 +42,7 @@ public:
     const std::wstring iccs() const;
     const std::shared_ptr<SeatSpace::Seat>& fseat() const { return fseat_; }
     const std::shared_ptr<SeatSpace::Seat>& tseat() const { return tseat_; }
-    const std::wstring zh() const { return zh_; }
+    const std::wstring zh() const { return zhStr_; }
     const std::wstring& remark() const { return remark_; }
     const std::shared_ptr<PieceSpace::Piece>& eatPie() const { return eatPie_; }
     const std::shared_ptr<Move>& next() const { return next_; }
@@ -63,8 +63,8 @@ public:
         fseat_ = fseat;
         tseat_ = tseat;
     }
-    void setZh(std::wstring zhStr) { zh_ = zhStr; }
-    void setRemark(std::wstring remark) { remark_ = remark; }
+    void setZhStr(const std::wstring& zhStr) { zhStr_ = zhStr; }
+    void setRemark(const std::wstring& remark) { remark_ = remark; }
     const std::wstring toString() const;
 
     int nextNo() const { return nextNo_; }
@@ -77,7 +77,7 @@ public:
 private:
     std::shared_ptr<SeatSpace::Seat> fseat_{};
     std::shared_ptr<SeatSpace::Seat> tseat_{};
-    std::wstring zh_{};
+    std::wstring zhStr_{};
     std::wstring remark_{}; // 注释
 
     std::shared_ptr<PieceSpace::Piece> eatPie_{};

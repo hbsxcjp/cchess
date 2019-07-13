@@ -31,8 +31,8 @@ const std::wstring Move::iccs() const
 const std::shared_ptr<Move>& Move::addNext()
 {
     auto nextMove = std::make_shared<Move>();
-    nextMove->setNextNo(nextNo_ + 1); // 步序号
-    nextMove->setOtherNo(otherNo_); // 变着层数
+    nextMove->setNextNo(nextNo_ + 1);
+    nextMove->setOtherNo(otherNo_); 
     nextMove->setPrev(std::weak_ptr<Move>(shared_from_this()));
     return next_ = nextMove;
 }
@@ -40,8 +40,8 @@ const std::shared_ptr<Move>& Move::addNext()
 const std::shared_ptr<Move>& Move::addOther()
 {
     auto otherMove = std::make_shared<Move>();
-    otherMove->setNextNo(nextNo_); // 与premove的步数相同
-    otherMove->setOtherNo(otherNo_ + 1); // 变着层数
+    otherMove->setNextNo(nextNo_); 
+    otherMove->setOtherNo(otherNo_ + 1); 
     otherMove->setPrev(std::weak_ptr<Move>(shared_from_this()));
     return other_ = otherMove;
 }

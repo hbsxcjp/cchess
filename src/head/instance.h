@@ -34,11 +34,12 @@ public:
     Instance();
     Instance(const std::string& infilename);
 
-    //void go();
-    //void back();
-    //void goOther();
-    //void goInc(int inc);
-    //void changeSide(ChangeType ct);
+    void go();
+    void back();
+    void backTo(const std::shared_ptr<MoveSpace::Move>& move);
+    void goOther();
+    void goInc(int inc);
+    void changeSide(ChangeType ct);
 
     void read(const std::string& infilename);
     void write(const std::string& outfilename);
@@ -69,10 +70,10 @@ private:
     void __writeMove_PGN_CC(std::wostream& wos) const;
     const std::wstring __getWString(std::wistream& wis) const;
 
-    void __setMove(const std::shared_ptr<MoveSpace::Move>& move,
-        int frowcol, int trowcol, std::wstring remark = L"") const;
-    void __setMove(const std::shared_ptr<MoveSpace::Move>& move,
-        const std::wstring& str, RecFormat fmt, std::wstring remark = L"") const;
+    void __setMoveFromRowcol(const std::shared_ptr<MoveSpace::Move>& move,
+        int frowcol, int trowcol, const std::wstring& remark = L"") const;
+    void __setMoveFromStr(const std::shared_ptr<MoveSpace::Move>& move,
+        const std::wstring& str, RecFormat fmt, const std::wstring& remark = L"") const;
     void __setMoveNums();
     void __setFEN(const std::wstring& pieceChars, PieceColor color);
 

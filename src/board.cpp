@@ -42,26 +42,6 @@ const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const std::pair<int, int>
     return seats_->getSeat(rowcol);
 }
 
-void Board::setMove(const std::shared_ptr<MoveSpace::Move>& move,
-    const std::wstring& str, RecFormat fmt) const
-{
-    if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC)
-        __setMoveFromZh(move, str);
-    else
-        __setMoveFromICCS(move, str);
-}
-
-void Board::setMove(const std::shared_ptr<MoveSpace::Move>& move,
-    int frowcol, int trowcol) const
-{
-    move->setFTSeat(getSeat(frowcol), getSeat(trowcol));
-}
-
-void Board::setMoveZh(const std::shared_ptr<MoveSpace::Move>& move) const
-{
-    move->setZh(__getZh(move));
-}
-
 const bool Board::isKilled(const PieceColor color) const
 {
     PieceColor othColor = color == PieceColor::BLACK ? PieceColor::RED : PieceColor::BLACK;
@@ -108,24 +88,8 @@ void Board::changeSide(const ChangeType ct)
     __setBottomSide();
 }
 
-void Board::__setMoveFromZh(const std::shared_ptr<MoveSpace::Move>& move,
-    const std::wstring& zhStr) const
-{
-    auto ftseat = __getMoveSeat(zhStr);
-    move->setFTSeat(ftseat.first, ftseat.second);
-}
-
-void Board::__setMoveFromICCS(const std::shared_ptr<MoveSpace::Move>& move,
-    const std::wstring& ICCSStr) const
-{
-    move->setFTSeat(getSeat(PieceManager::getRowFromICCSChar(ICCSStr.at(1)),
-                        PieceManager::getColFromICCSChar(ICCSStr.at(0))),
-        getSeat(PieceManager::getRowFromICCSChar(ICCSStr.at(3)),
-            PieceManager::getColFromICCSChar(ICCSStr.at(2))));
-}
-
 const std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>
-Board::__getMoveSeat(const std::wstring& zhStr) const
+Board::getMoveSeat(const std::wstring& zhStr) const
 {
     assert(zhStr.size() == 4);
     std::shared_ptr<SeatSpace::Seat> fseat{}, tseat{};
@@ -162,15 +126,15 @@ Board::__getMoveSeat(const std::wstring& zhStr) const
             trow{ fseat->row() + movDir * (PieceManager::isAdvBish(name) ? colAway : (colAway == 1 ? 2 : 1)) };
         tseat = getSeat(trow, toCol);
     }
-    //assert(zhStr == __getZh(fseat, tseat));
+    //assert(zhStr == getZh(fseat, tseat));
 
     return make_pair(fseat, tseat);
 }
 
 //(fseat, tseat)->中文纵线着法
-const std::wstring Board::__getZh(const std::shared_ptr<MoveSpace::Move>& move) const
+const std::wstring Board::getZhStr(const std::shared_ptr<SeatSpace::Seat>& fseat,
+        const std::shared_ptr<SeatSpace::Seat>& tseat) const
 {
-    const std::shared_ptr<SeatSpace::Seat>&fseat = move->fseat(), &tseat = move->tseat();
     std::wstringstream wss{};
     const std::shared_ptr<PieceSpace::Piece>& fromPiece{ fseat->piece() };
     const PieceColor color{ fromPiece->color() };
@@ -193,10 +157,15 @@ const std::wstring Board::__getZh(const std::shared_ptr<MoveSpace::Move>& move) 
                    ? PieceManager::getNumChar(color, abs(fromRow - toRow))
                    : PieceManager::getColChar(color, isBottom, toCol));
 
-    auto mvSeats = __getMoveSeat(wss.str());
+    auto mvSeats = getMoveSeat(wss.str());
     assert(fseat == mvSeats.first && tseat == mvSeats.second);
 
     return wss.str();
+}
+
+const std::wstring Board::getPieceChars() const
+{
+    return seats_->getPieceChars();
 }
 
 void Board::__setBottomSide()
@@ -204,11 +173,6 @@ void Board::__setBottomSide()
     bottomColor_ = (SeatManager::isBottom(seats_->getKingSeat(PieceColor::RED)->row())
             ? PieceColor::RED
             : PieceColor::BLACK);
-}
-
-const std::wstring Board::getPieceChars() const
-{
-    return seats_->getPieceChars();
 }
 
 const std::wstring Board::toString() const

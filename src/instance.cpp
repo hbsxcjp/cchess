@@ -32,22 +32,32 @@ Instance::Instance(const std::string& infilename)
 {
     read(infilename);
 }
-/* 
+
 void Instance::go()
 {
-    currentMove_ = currentMove_->next();
-    currentMove_->done();
+    if (currentMove_->next()) {
+        currentMove_ = currentMove_->next();
+        currentMove_->done();
+    }
 }
 
 void Instance::back()
 {
-    currentMove_->undo();
-    currentMove_ = currentMove_->prev();
+    if (currentMove_->prev()) {
+        currentMove_->undo();
+        currentMove_ = currentMove_->prev();
+    }
+}
+
+void Instance::backTo(const std::shared_ptr<MoveSpace::Move>& move)
+{
+    while (currentMove_ != root_ && currentMove_ != move)
+        back();
 }
 
 void Instance::goOther()
 {
-    if (currentMove_ && currentMove_->other()) {
+    if (currentMove_ != root_ && currentMove_->other()) {
         currentMove_->undo();
         currentMove_ = currentMove_->other();
         currentMove_->done();
@@ -61,7 +71,7 @@ void Instance::goInc(int inc)
     for (int i = abs(inc); i != 0; --i)
         fbward(this);
 }
-*/
+
 /* 
 void Instance::changeSide(ChangeType ct) // 未测试
 {
@@ -357,7 +367,7 @@ void Instance::__readXQF(std::istream& is)
             //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
             int fcolrow = __sub(frc, 0X18 + KeyXYf), tcolrow = __sub(trc, 0X20 + KeyXYt);
             assert(fcolrow <= 89 && tcolrow <= 89);
-            __setMove(move, (fcolrow % 10) * 10 + fcolrow / 10,
+            __setMoveFromRowcol(move, (fcolrow % 10) * 10 + fcolrow / 10,
                 (tcolrow % 10) * 10 + tcolrow / 10, remark);
 
             char ntag{ tag };
@@ -389,8 +399,7 @@ void Instance::__readBIN(std::istream& is)
         __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move) {
             char tag{};
             is.get(frowcol).get(trowcol).get(tag);
-            __setMove(move, frowcol, trowcol, (tag & 0x20) ? __readWstring() : L"");
-            //assert(move->fseat()->piece());
+            __setMoveFromRowcol(move, frowcol, trowcol, (tag & 0x20) ? __readWstring() : L"");
 
             if (tag & 0x80)
                 __readMove(move->addNext());
@@ -474,10 +483,9 @@ void Instance::__readJSON(std::istream& is)
     std::function<void(const std::shared_ptr<MoveSpace::Move>&, Json::Value&)>
         __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move, Json::Value& item) {
             int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
-            __setMove(move, frowcol, trowcol,
+            __setMoveFromRowcol(move, frowcol, trowcol,
                 (item.isMember("r")) ? Tools::s2ws(item["r"].asString()) : L"");
-            //assert(move->fseat()->piece());
-
+                
             if (item.isMember("n"))
                 __readMove(move->addNext(), item["n"]);
             if (item.isMember("o"))
@@ -558,11 +566,13 @@ void Instance::__readMove_PGN_ICCSZH(std::wistream& wis, RecFormat fmt)
                 preMove->undo();
         } else
             move = preMove->addNext();
-        __setMove(move, (*wtiMove)[3], fmt, (*wtiMove)[4]);
-        //if (isPGN_ZH)
-        //    std::wcout << (*wtiMove).str() << L'\n' << move->toString(board_) << L'\n' << board_->toString() << std::endl;
+        __setMoveFromStr(move, (*wtiMove)[3], fmt, (*wtiMove)[4]);
+        if (isPGN_ZH)
+            ; // std::wcout << (*wtiMove).str() << L'\n' << move->toString() << std::endl;
         if (isPGN_ZH)
             move->done(); // 推进board的状态变化
+        if (isPGN_ZH)
+            ; // std::wcout << board_->toString() << std::endl;
 
         if ((*wtiMove)[5].matched)
             for (int num = (*wtiMove).length(5); num > 0; --num) {
@@ -613,13 +623,8 @@ void Instance::__writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt) const
                 __writeMove(move->other(), true);
                 wos << L")";
             }
-
-            if (isPGN_ZH)
-                move->done();
             if (move->next())
                 __writeMove(move->next(), false);
-            if (isPGN_ZH)
-                move->undo();
         };
 
     wos << __getRemarkStr(root_);
@@ -656,7 +661,7 @@ void Instance::__readMove_PGN_CC(std::wistream& wis)
         __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move, int row, int col) {
             std::wstring zhStr{ moveLines[row][col] };
             if (regex_match(zhStr, moverg)) {
-                __setMove(move, zhStr.substr(0, 4), RecFormat::PGN_CC,
+                __setMoveFromStr(move, zhStr.substr(0, 4), RecFormat::PGN_CC,
                     rems[L'(' + std::to_wstring(row) + L',' + std::to_wstring(col) + L')']);
 
                 if (zhStr.back() == L'…')
@@ -691,12 +696,11 @@ void Instance::__writeMove_PGN_CC(std::wostream& wos) const
             if (!move->remark().empty())
                 remWss << L"(" << move->nextNo() << L"," << move->CC_ColNo() << L"): {"
                        << move->remark() << L"}\n";
-            move->done();
+                       
             if (move->next()) {
                 lineStr.at(row + 1).at(firstcol + 2) = L'↓';
                 __setMovePGN_CC(move->next());
             }
-            move->undo();
             if (move->other()) {
                 int fcol{ firstcol + 4 }, num{ move->other()->CC_ColNo() * 5 - fcol };
                 lineStr.at(row).replace(fcol, num, std::wstring(num, L'…'));
@@ -718,24 +722,28 @@ void Instance::__writeMove_PGN_CC(std::wostream& wos) const
 const std::wstring Instance::__getWString(std::wistream& wis) const
 {
     std::wstringstream wss{};
-    std::wstring line{};
-    wis >> std::noskipws;
-    while (std::getline(wis, line))
-        wss << line << '\n';
+    wis >> std::noskipws >> wss.rdbuf(); // C++ standard library p847
     return wss.str();
 }
 
-void Instance::__setMove(const std::shared_ptr<MoveSpace::Move>& move,
-    int frowcol, int trowcol, std::wstring remark) const
+void Instance::__setMoveFromRowcol(const std::shared_ptr<MoveSpace::Move>& move,
+    int frowcol, int trowcol, const std::wstring& remark) const
 {
-    board_->setMove(move, frowcol, trowcol);
+    move->setFTSeat(board_->getSeat(frowcol), board_->getSeat(trowcol));
     move->setRemark(remark);
 }
 
-void Instance::__setMove(const std::shared_ptr<MoveSpace::Move>& move,
-    const std::wstring& str, RecFormat fmt, std::wstring remark) const
+void Instance::__setMoveFromStr(const std::shared_ptr<MoveSpace::Move>& move,
+    const std::wstring& str, RecFormat fmt, const std::wstring& remark) const
 {
-    board_->setMove(move, str, fmt);
+    if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC) {
+        auto ftseat = board_->getMoveSeat(str);
+        move->setFTSeat(ftseat.first, ftseat.second);
+    } else
+        move->setFTSeat(board_->getSeat(PieceManager::getRowFromICCSChar(str.at(1)),
+                            PieceManager::getColFromICCSChar(str.at(0))),
+            board_->getSeat(PieceManager::getRowFromICCSChar(str.at(3)),
+                PieceManager::getColFromICCSChar(str.at(2))));
     move->setRemark(remark);
 }
 
@@ -751,7 +759,8 @@ void Instance::__setMoveNums()
                 ++remCount_;
                 remLenMax_ = std::max(remLenMax_, static_cast<int>(move->remark().size()));
             }
-            board_->setMoveZh(move);
+
+            move->setZhStr(board_->getZhStr(move->fseat(), move->tseat()));
             move->done();
             if (move->next())
                 __setNums(move->next());
