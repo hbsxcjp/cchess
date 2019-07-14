@@ -72,33 +72,39 @@ void Instance::goInc(int inc)
         fbward(this);
 }
 
-/* 
-void Instance::changeSide(ChangeType ct) // 未测试
+void Instance::changeSide(ChangeType ct)
 {
-    auto prevMoves = currentMove_->getPrevMoves();
-    backStart();
+    std::vector<std::shared_ptr<MoveSpace::Move>> prevMoves{};
+    if (currentMove_ != root_)
+        prevMoves = currentMove_->getPrevMoves();
+    backTo(root_);
     board_->changeSide(ct);
     if (ct != ChangeType::EXCHANGE) {
-        auto changeRowcol = ct == ChangeType::ROTATE ? &SeatManager::getRotate : &SeatManager::getSymmetry;
-        //auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &BoardSpace::Board::getRotate : &BoardSpace::Board::getSymmetry);
-        std::function<void(MoveSpace::Move&)> __setRowcol = [&](MoveSpace::Move& move) {
-            move.setFrowcol(changeRowcol(move.fseat()->rowcol()));
-            move.setTrowcol(changeRowcol(move.tseat()->rowcol()));
-            if (move.next())
-                __setRowcol(*move.next());
-            if (move.other())
-                __setRowcol(*move.other());
-        };
-        if (rootMove_->fseat())
-            __setRowcol(*rootMove_); // 驱动调用递归函数
-        __setMoveNums(RecFormat::BIN); //借用RecFormat::BIN
+        auto changeRowcol = (ct == ChangeType::ROTATE
+                ? &SeatManager::getRotate
+                : &SeatManager::getSymmetry);
+        //auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &SeatManager::getRotate : &SeatManager::getSymmetry);
+        std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
+            __resetMove = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+                __setMoveFromRowcol(move, changeRowcol(move->fseat()->rowcol()),
+                    changeRowcol(move->tseat()->rowcol()), move->remark());
+                if (move->next())
+                    __resetMove(move->next());
+                if (move->other())
+                    __resetMove(move->other());
+            };
+        if (root_->next())
+            __resetMove(root_->next());
     }
-    auto color = rootMove_->fseat() ? rootMove_->fseat()->piece()->color() : PieceColor::RED;
-    __setFEN(board_->getPieceChars(), color);
+    __setFEN(board_->getPieceChars(),
+        (root_->next()->fseat()
+                ? root_->next()->fseat()->piece()->color()
+                : PieceColor::RED));
+    if (ct != ChangeType::ROTATE)
+        __setMoveZhStrAndNums();
     for (auto& move : prevMoves)
         move->done();
 }
-*/
 
 void Instance::read(const std::string& infilename)
 {
@@ -135,7 +141,8 @@ void Instance::read(const std::string& infilename)
     default:
         break;
     }
-    __setMoveNums();
+    currentMove_ = root_;
+    __setMoveZhStrAndNums();
 }
 
 void Instance::write(const std::string& outfilename)
@@ -175,17 +182,40 @@ void Instance::write(const std::string& outfilename)
 
 const std::wstring& Instance::remark() const { return root_->remark(); }
 
-const std::wstring Instance::toString() const
+const std::wstring Instance::toString()
 {
     std::wostringstream wos{};
     __writeInfo_PGN(wos);
     __writeMove_PGN_CC(wos);
+
+    backTo(root_);
+    std::vector<std::shared_ptr<MoveSpace::Move>> preMoves{};
+    std::function<void(bool)>
+        __printMoveBoard = [&](bool isOther) {
+            isOther ? goOther() : go();
+            wos << board_->toString() << currentMove_->toString() << L"\n\n";
+            if (currentMove_->other()) {
+                preMoves.push_back(currentMove_);
+                __printMoveBoard(true);
+                // 变着之前着在返回时，应予执行
+                if (!preMoves.empty()) {
+                    preMoves.back()->done();
+                    preMoves.pop_back();
+                }
+            }
+            if (currentMove_->next()) {
+                __printMoveBoard(false);
+            }
+            back();
+        };
+    if (currentMove_->next())
+        __printMoveBoard(false);
+
     return wos.str();
 }
 
 const std::wstring Instance::test()
 {
-    std::wstringstream wss{};
     read("01.xqf");
 
     write("01.bin");
@@ -203,16 +233,21 @@ const std::wstring Instance::test()
     write("01.pgn_cc");
     read("01.pgn_cc");
 
-    wss << toString();
-    return wss.str();
+    auto str0 = toString();
+    changeSide(ChangeType::EXCHANGE);
+    auto str1 = toString();
+    changeSide(ChangeType::ROTATE);
+    auto str2 = toString();
+    changeSide(ChangeType::SYMMETRY);
+    auto str3 = toString();
+    return str0 + str1 + str2 + str3;
 }
 
 void Instance::__reset()
 {
     info_ = std::map<std::wstring, std::wstring>{};
-    root_ = std::make_shared<MoveSpace::Move>();
     board_ = std::make_shared<BoardSpace::Board>();
-    currentMove_ = root_;
+    currentMove_ = root_ = std::make_shared<MoveSpace::Move>();
     movCount_ = remCount_ = remLenMax_ = maxRow_ = maxCol_ = 0;
 }
 
@@ -485,7 +520,7 @@ void Instance::__readJSON(std::istream& is)
             int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
             __setMoveFromRowcol(move, frowcol, trowcol,
                 (item.isMember("r")) ? Tools::s2ws(item["r"].asString()) : L"");
-                
+
             if (item.isMember("n"))
                 __readMove(move->addNext(), item["n"]);
             if (item.isMember("o"))
@@ -696,7 +731,7 @@ void Instance::__writeMove_PGN_CC(std::wostream& wos) const
             if (!move->remark().empty())
                 remWss << L"(" << move->nextNo() << L"," << move->CC_ColNo() << L"): {"
                        << move->remark() << L"}\n";
-                       
+
             if (move->next()) {
                 lineStr.at(row + 1).at(firstcol + 2) = L'↓';
                 __setMovePGN_CC(move->next());
@@ -747,10 +782,10 @@ void Instance::__setMoveFromStr(const std::shared_ptr<MoveSpace::Move>& move,
     move->setRemark(remark);
 }
 
-void Instance::__setMoveNums()
+void Instance::__setMoveZhStrAndNums()
 {
     std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
-        __setNums = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+        __setZhStrAndNums = [&](const std::shared_ptr<MoveSpace::Move>& move) {
             ++movCount_;
             maxCol_ = std::max(maxCol_, move->otherNo());
             maxRow_ = std::max(maxRow_, move->nextNo());
@@ -759,20 +794,22 @@ void Instance::__setMoveNums()
                 ++remCount_;
                 remLenMax_ = std::max(remLenMax_, static_cast<int>(move->remark().size()));
             }
-
             move->setZhStr(board_->getZhStr(move->fseat(), move->tseat()));
+
             move->done();
             if (move->next())
-                __setNums(move->next());
+                __setZhStrAndNums(move->next());
             move->undo();
+
             if (move->other()) {
                 ++maxCol_;
-                __setNums(move->other());
+                __setZhStrAndNums(move->other());
             }
         };
 
+    movCount_ = remCount_ = remLenMax_ = maxRow_ = maxCol_ = 0;
     if (root_->next())
-        __setNums(root_->next()); // 驱动函数
+        __setZhStrAndNums(root_->next()); // 驱动函数
 }
 
 void Instance::__setFEN(const std::wstring& pieceChars, PieceColor color)

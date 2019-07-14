@@ -48,11 +48,11 @@ const std::shared_ptr<Move>& Move::addOther()
 
 std::vector<std::shared_ptr<Move>> Move::getPrevMoves()
 {
-    std::shared_ptr<Move> this_move{ shared_from_this() }, prev_move{};
-    std::vector<std::shared_ptr<Move>> moves{ this_move };
-    while (prev_move = this_move->prev()) {
-        moves.push_back(prev_move);
-        this_move = prev_move;
+    std::shared_ptr<Move> thisMove{ shared_from_this() }, preMove{};
+    std::vector<std::shared_ptr<Move>> moves{ thisMove };
+    while (preMove = thisMove->prev()) {
+        moves.push_back(preMove);
+        thisMove = preMove;
     }
     reverse(moves.begin(), moves.end());
     return moves;

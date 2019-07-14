@@ -45,9 +45,9 @@ public:
     void write(const std::string& outfilename);
 
     const std::wstring& remark() const;
-    const std::wstring toString() const;
+    const std::wstring toString();
     const std::wstring test();
-    
+
     const int getMovCount() const { return movCount_; }
     const int getRemCount() const { return remCount_; }
     const int getRemLenMax() const { return remLenMax_; }
@@ -74,7 +74,7 @@ private:
         int frowcol, int trowcol, const std::wstring& remark = L"") const;
     void __setMoveFromStr(const std::shared_ptr<MoveSpace::Move>& move,
         const std::wstring& str, RecFormat fmt, const std::wstring& remark = L"") const;
-    void __setMoveNums();
+    void __setMoveZhStrAndNums();
     void __setFEN(const std::wstring& pieceChars, PieceColor color);
 
     const std::wstring __pieceChars() const;
