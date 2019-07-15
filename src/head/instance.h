@@ -81,8 +81,8 @@ private:
     const std::wstring __moveInfo() const;
 
     std::map<std::wstring, std::wstring> info_{};
-    std::shared_ptr<MoveSpace::Move> root_{};
     std::shared_ptr<BoardSpace::Board> board_{};
+    std::shared_ptr<MoveSpace::Move> root_{};
     std::shared_ptr<MoveSpace::Move> currentMove_{ root_ };
 
     int movCount_{ 0 }; //着法数量

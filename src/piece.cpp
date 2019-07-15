@@ -21,7 +21,8 @@ Piece::Piece(const wchar_t ch)
 const std::wstring Piece::toString() const
 {
     std::wstringstream wss{};
-    wss << (color() == PieceColor::RED ? L'+' : L'*') << ch() << PieceManager::getPrintName(*this); //<< std::boolalpha
+    wss << (color() == PieceColor::RED ? L'+' : L'*')
+        << ch() << PieceManager::getPrintName(*this); //<< std::boolalpha
     return wss.str();
 }
 const std::vector<std::shared_ptr<Seat>>
