@@ -216,7 +216,8 @@ const std::wstring Instance::toString()
 
 const std::wstring Instance::test()
 {
-    read("01.xqf");
+    read("4.xqf");
+    //read("01.xqf");
 
     write("01.bin");
     read("01.bin");
