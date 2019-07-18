@@ -14,10 +14,6 @@ class Seat;
 class Seats;
 }
 
-namespace MoveSpace {
-class Move;
-}
-
 enum class PieceColor;
 enum class PieceKind;
 enum class RecFormat;

@@ -1,7 +1,6 @@
 #include "instance.h"
 #include "../json/json.h"
 #include "board.h"
-#include "move.h"
 #include "piece.h"
 #include "seat.h"
 #include "tools.h"
@@ -18,8 +17,9 @@
 #include <string>
 #include <vector>
 
-using namespace SeatSpace;
 using namespace PieceSpace;
+using namespace SeatSpace;
+using namespace BoardSpace;
 namespace InstanceSpace {
 
 // Instance
@@ -49,15 +49,15 @@ void Instance::back()
     }
 }
 
-void Instance::backTo(const std::shared_ptr<MoveSpace::Move>& move)
+void Instance::backTo(const std::shared_ptr<Move>& move)
 {
-    while (currentMove_ != root_ && currentMove_ != move)
+    while (currentMove_ != rootMove_ && currentMove_ != move)
         back();
 }
 
 void Instance::goOther()
 {
-    if (currentMove_ != root_ && currentMove_->other()) {
+    if (currentMove_ != rootMove_ && currentMove_->other()) {
         currentMove_->undo();
         currentMove_ = currentMove_->other();
         currentMove_->done();
@@ -74,18 +74,18 @@ void Instance::goInc(int inc)
 
 void Instance::changeSide(ChangeType ct)
 {
-    std::vector<std::shared_ptr<MoveSpace::Move>> prevMoves{};
-    if (currentMove_ != root_)
+    std::vector<std::shared_ptr<Move>> prevMoves{};
+    if (currentMove_ != rootMove_)
         prevMoves = currentMove_->getPrevMoves();
-    backTo(root_);
+    backTo(rootMove_);
     board_->changeSide(ct);
     if (ct != ChangeType::EXCHANGE) {
         auto changeRowcol = (ct == ChangeType::ROTATE
                 ? &SeatManager::getRotate
                 : &SeatManager::getSymmetry);
         //auto changeRowcol = std::mem_fn(ct == ChangeType::ROTATE ? &SeatManager::getRotate : &SeatManager::getSymmetry);
-        std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
-            __resetMove = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+        std::function<void(const std::shared_ptr<Move>&)>
+            __resetMove = [&](const std::shared_ptr<Move>& move) {
                 __setMoveFromRowcol(move, changeRowcol(move->fseat()->rowcol()),
                     changeRowcol(move->tseat()->rowcol()), move->remark());
                 if (move->next())
@@ -93,12 +93,12 @@ void Instance::changeSide(ChangeType ct)
                 if (move->other())
                     __resetMove(move->other());
             };
-        if (root_->next())
-            __resetMove(root_->next());
+        if (rootMove_->next())
+            __resetMove(rootMove_->next());
     }
     __setFEN(board_->getPieceChars(),
-        (root_->next()->fseat()
-                ? root_->next()->fseat()->piece()->color()
+        (rootMove_->next()->fseat()
+                ? rootMove_->next()->fseat()->piece()->color()
                 : PieceColor::RED));
     if (ct != ChangeType::ROTATE)
         __setMoveZhStrAndNums();
@@ -141,7 +141,7 @@ void Instance::read(const std::string& infilename)
     default:
         break;
     }
-    currentMove_ = root_;
+    currentMove_ = rootMove_;
     __setMoveZhStrAndNums();
 }
 
@@ -180,7 +180,7 @@ void Instance::write(const std::string& outfilename)
     }
 }
 
-const std::wstring& Instance::remark() const { return root_->remark(); }
+const std::wstring& Instance::remark() const { return rootMove_->remark(); }
 
 const std::wstring Instance::toString()
 {
@@ -188,8 +188,8 @@ const std::wstring Instance::toString()
     __writeInfo_PGN(wos);
     __writeMove_PGN_CC(wos);
 
-    backTo(root_);
-    std::vector<std::shared_ptr<MoveSpace::Move>> preMoves{};
+    backTo(rootMove_);
+    std::vector<std::shared_ptr<Move>> preMoves{};
     std::function<void(bool)>
         __printMoveBoard = [&](bool isOther) {
             isOther ? goOther() : go();
@@ -247,8 +247,8 @@ const std::wstring Instance::test()
 void Instance::__reset()
 {
     info_ = std::map<std::wstring, std::wstring>{};
-    board_ = std::make_shared<BoardSpace::Board>();
-    currentMove_ = root_ = std::make_shared<MoveSpace::Move>();
+    board_ = std::make_shared<Board>();
+    currentMove_ = rootMove_ = std::make_shared<Move>();
     movCount_ = remCount_ = remLenMax_ = maxRow_ = maxCol_ = 0;
 }
 
@@ -397,8 +397,8 @@ void Instance::__readXQF(std::istream& is)
             } else
                 return std::wstring{};
         };
-    std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
-        __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+    std::function<void(const std::shared_ptr<Move>&)>
+        __readMove = [&](const std::shared_ptr<Move>& move) {
             auto remark = __readDataAndGetRemark();
             //# 一步棋的起点和终点有简单的加密计算，读入时需要还原
             int fcolrow = __sub(frc, 0X18 + KeyXYf), tcolrow = __sub(trc, 0X20 + KeyXYt);
@@ -414,10 +414,10 @@ void Instance::__readXQF(std::istream& is)
         };
 
     is.seekg(1024);
-    root_->setRemark(__readDataAndGetRemark());
+    rootMove_->setRemark(__readDataAndGetRemark());
     char rtag{ tag };
     if (rtag & 0x80) //# 有左子树
-        __readMove(root_->addNext());
+        __readMove(rootMove_->addNext());
 }
 
 void Instance::__readBIN(std::istream& is)
@@ -431,8 +431,8 @@ void Instance::__readBIN(std::istream& is)
         return Tools::s2ws(rem);
     };
     char frowcol{}, trowcol{};
-    std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
-        __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+    std::function<void(const std::shared_ptr<Move>&)>
+        __readMove = [&](const std::shared_ptr<Move>& move) {
             char tag{};
             is.get(frowcol).get(trowcol).get(tag);
             __setMoveFromRowcol(move, frowcol, trowcol, (tag & 0x20) ? __readWstring() : L"");
@@ -459,9 +459,9 @@ void Instance::__readBIN(std::istream& is)
     board_->reset(__pieceChars());
 
     if (atag & 0x40)
-        root_->setRemark(__readWstring());
+        rootMove_->setRemark(__readWstring());
     if (atag & 0x20)
-        __readMove(root_->addNext());
+        __readMove(rootMove_->addNext());
 }
 
 void Instance::__writeBIN(std::ostream& os) const
@@ -471,8 +471,8 @@ void Instance::__writeBIN(std::ostream& os) const
         int len = str.size();
         os.write((char*)&len, sizeof(int)).write(str.c_str(), len);
     };
-    std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
-        __writeMove = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+    std::function<void(const std::shared_ptr<Move>&)>
+        __writeMove = [&](const std::shared_ptr<Move>& move) {
             char tag = ((move->next() ? 0x80 : 0x00)
                 | (move->other() ? 0x40 : 0x00)
                 | (!move->remark().empty() ? 0x20 : 0x00));
@@ -486,8 +486,8 @@ void Instance::__writeBIN(std::ostream& os) const
         };
 
     char tag = ((!info_.empty() ? 0x80 : 0x00)
-        | (!root_->remark().empty() ? 0x40 : 0x00)
-        | (root_->next() ? 0x20 : 0x00));
+        | (!rootMove_->remark().empty() ? 0x40 : 0x00)
+        | (rootMove_->next() ? 0x20 : 0x00));
     os.put(tag);
     if (tag & 0x80) {
         os.put(info_.size());
@@ -498,9 +498,9 @@ void Instance::__writeBIN(std::ostream& os) const
             });
     }
     if (tag & 0x40)
-        __writeWstring(root_->remark());
+        __writeWstring(rootMove_->remark());
     if (tag & 0x20)
-        __writeMove(root_->next());
+        __writeMove(rootMove_->next());
 }
 
 void Instance::__readJSON(std::istream& is)
@@ -516,8 +516,8 @@ void Instance::__readJSON(std::istream& is)
         info_[Tools::s2ws(key)] = Tools::s2ws(infoItem[key].asString());
     board_->reset(__pieceChars());
 
-    std::function<void(const std::shared_ptr<MoveSpace::Move>&, Json::Value&)>
-        __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move, Json::Value& item) {
+    std::function<void(const std::shared_ptr<Move>&, Json::Value&)>
+        __readMove = [&](const std::shared_ptr<Move>& move, Json::Value& item) {
             int frowcol{ item["f"].asInt() }, trowcol{ item["t"].asInt() };
             __setMoveFromRowcol(move, frowcol, trowcol,
                 (item.isMember("r")) ? Tools::s2ws(item["r"].asString()) : L"");
@@ -528,10 +528,10 @@ void Instance::__readJSON(std::istream& is)
                 __readMove(move->addOther(), item["o"]);
         };
 
-    root_->setRemark(Tools::s2ws(root["remark"].asString()));
+    rootMove_->setRemark(Tools::s2ws(root["remark"].asString()));
     Json::Value rootItem{ root["moves"] };
     if (!rootItem.isNull())
-        __readMove(root_->addNext(), rootItem);
+        __readMove(rootMove_->addNext(), rootItem);
 }
 
 void Instance::__writeJSON(std::ostream& os) const
@@ -544,8 +544,8 @@ void Instance::__writeJSON(std::ostream& os) const
             infoItem[Tools::ws2s(kv.first)] = Tools::ws2s(kv.second);
         });
     root["info"] = infoItem;
-    std::function<Json::Value(const std::shared_ptr<MoveSpace::Move>&)>
-        __writeItem = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+    std::function<Json::Value(const std::shared_ptr<Move>&)>
+        __writeItem = [&](const std::shared_ptr<Move>& move) {
             Json::Value item{};
             item["f"] = move->frowcol();
             item["t"] = move->trowcol();
@@ -557,9 +557,9 @@ void Instance::__writeJSON(std::ostream& os) const
                 item["o"] = __writeItem(move->other());
             return item;
         };
-    root["remark"] = Tools::ws2s(root_->remark());
-    if (root_->next())
-        root["moves"] = __writeItem(root_->next());
+    root["remark"] = Tools::ws2s(rootMove_->remark());
+    if (rootMove_->next())
+        root["moves"] = __writeItem(rootMove_->next());
     writer->write(root, &os);
 }
 
@@ -577,7 +577,7 @@ void Instance::__readInfo_PGN(std::wistream& wis)
 
 void Instance::__readMove_PGN_ICCSZH(std::wistream& wis, RecFormat fmt)
 {
-    const std::wstring moveStr{ __getWString(wis) };
+    const std::wstring moveStr{ getWString(wis) };
     bool isPGN_ZH{ fmt == RecFormat::PGN_ZH };
     std::wstring otherBeginStr{ LR"((\()?)" };
     std::wstring boutStr{ LR"((\d+\.)?[\s...]*\b)" };
@@ -590,9 +590,9 @@ void Instance::__readMove_PGN_ICCSZH(std::wistream& wis, RecFormat fmt)
         remReg{ remarkStr + LR"(1\.)" };
     std::wsmatch wsm{};
     if (std::regex_search(moveStr, wsm, remReg))
-        root_->setRemark(wsm.str(1));
-    std::shared_ptr<MoveSpace::Move> preMove{ root_ }, move{ root_ };
-    std::vector<std::shared_ptr<MoveSpace::Move>> preOtherMoves{};
+        rootMove_->setRemark(wsm.str(1));
+    std::shared_ptr<Move> preMove{ rootMove_ }, move{ rootMove_ };
+    std::vector<std::shared_ptr<Move>> preOtherMoves{};
     for (std::wsregex_iterator wtiMove{ moveStr.begin(), moveStr.end(), moveReg }, wtiEnd{};
          wtiMove != wtiEnd; ++wtiMove) {
         if ((*wtiMove)[1].matched) {
@@ -625,7 +625,7 @@ void Instance::__readMove_PGN_ICCSZH(std::wistream& wis, RecFormat fmt)
             preMove = move;
     }
     if (isPGN_ZH)
-        while (move != root_) {
+        while (move != rootMove_) {
             move->undo();
             move = move->prev();
         }
@@ -643,11 +643,11 @@ void Instance::__writeInfo_PGN(std::wostream& wos) const
 void Instance::__writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt) const
 {
     bool isPGN_ZH{ fmt == RecFormat::PGN_ZH };
-    auto __getRemarkStr = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+    auto __getRemarkStr = [&](const std::shared_ptr<Move>& move) {
         return (move->remark().empty()) ? L"" : (L" \n{" + move->remark() + L"}\n ");
     };
-    std::function<void(const std::shared_ptr<MoveSpace::Move>&, bool)>
-        __writeMove = [&](const std::shared_ptr<MoveSpace::Move>& move, bool isOther) {
+    std::function<void(const std::shared_ptr<Move>&, bool)>
+        __writeMove = [&](const std::shared_ptr<Move>& move, bool isOther) {
             std::wstring boutStr{ std::to_wstring((move->nextNo() + 1) / 2) + L". " };
             bool isEven{ move->nextNo() % 2 == 0 };
             wos << (isOther ? L"(" + boutStr + (isEven ? L"... " : L"")
@@ -663,14 +663,14 @@ void Instance::__writeMove_PGN_ICCSZH(std::wostream& wos, RecFormat fmt) const
                 __writeMove(move->next(), false);
         };
 
-    wos << __getRemarkStr(root_);
-    if (root_->next())
-        __writeMove(root_->next(), false);
+    wos << __getRemarkStr(rootMove_);
+    if (rootMove_->next())
+        __writeMove(rootMove_->next(), false);
 }
 
 void Instance::__readMove_PGN_CC(std::wistream& wis)
 {
-    const std::wstring move_remStr{ __getWString(wis) };
+    const std::wstring move_remStr{ getWString(wis) };
     auto pos0 = move_remStr.find(L"\n("), pos1 = move_remStr.find(L"\n【");
     std::wstring moveStr{ move_remStr.substr(0, std::min(pos0, pos1)) },
         remStr{ move_remStr.substr(std::min(pos0, move_remStr.size()), pos1) };
@@ -693,8 +693,8 @@ void Instance::__readMove_PGN_CC(std::wistream& wis)
             line.push_back(*moveit);
         moveLines.push_back(line);
     }
-    std::function<void(const std::shared_ptr<MoveSpace::Move>&, int, int)>
-        __readMove = [&](const std::shared_ptr<MoveSpace::Move>& move, int row, int col) {
+    std::function<void(const std::shared_ptr<Move>&, int, int)>
+        __readMove = [&](const std::shared_ptr<Move>& move, int row, int col) {
             std::wstring zhStr{ moveLines[row][col] };
             if (regex_match(zhStr, moverg)) {
                 __setMoveFromStr(move, zhStr.substr(0, 4), RecFormat::PGN_CC,
@@ -715,9 +715,9 @@ void Instance::__readMove_PGN_CC(std::wistream& wis)
             }
         };
 
-    root_->setRemark(rems[L"(0,0)"]);
+    rootMove_->setRemark(rems[L"(0,0)"]);
     if (!moveLines.empty())
-        __readMove(root_->addNext(), 1, 0);
+        __readMove(rootMove_->addNext(), 1, 0);
 }
 
 void Instance::__writeMove_PGN_CC(std::wostream& wos) const
@@ -725,8 +725,8 @@ void Instance::__writeMove_PGN_CC(std::wostream& wos) const
     std::wstringstream remWss{};
     std::wstring blankStr((getMaxCol() + 1) * 5, L'　');
     std::vector<std::wstring> lineStr((getMaxRow() + 1) * 2, blankStr);
-    std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
-        __setMovePGN_CC = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+    std::function<void(const std::shared_ptr<Move>&)>
+        __setMovePGN_CC = [&](const std::shared_ptr<Move>& move) {
             int firstcol{ move->CC_ColNo() * 5 }, row{ move->nextNo() * 2 };
             lineStr.at(row).replace(firstcol, 4, move->zh());
             if (!move->remark().empty())
@@ -748,28 +748,21 @@ void Instance::__writeMove_PGN_CC(std::wostream& wos) const
         remWss << L"(0,0): {" << remark() << L"}\n";
     lineStr.front().replace(0, 3, L"　开始");
     lineStr.at(1).at(2) = L'↓';
-    if (root_->next())
-        __setMovePGN_CC(root_->next());
+    if (rootMove_->next())
+        __setMovePGN_CC(rootMove_->next());
     for (auto& line : lineStr)
         wos << line << L'\n';
     wos << remWss.str() << __moveInfo();
 }
 
-const std::wstring Instance::__getWString(std::wistream& wis) const
-{
-    std::wstringstream wss{};
-    wis >> std::noskipws >> wss.rdbuf(); // C++ standard library p847
-    return wss.str();
-}
-
-void Instance::__setMoveFromRowcol(const std::shared_ptr<MoveSpace::Move>& move,
+void Instance::__setMoveFromRowcol(const std::shared_ptr<Move>& move,
     int frowcol, int trowcol, const std::wstring& remark) const
 {
     move->setFTSeat(board_->getSeat(frowcol), board_->getSeat(trowcol));
     move->setRemark(remark);
 }
 
-void Instance::__setMoveFromStr(const std::shared_ptr<MoveSpace::Move>& move,
+void Instance::__setMoveFromStr(const std::shared_ptr<Move>& move,
     const std::wstring& str, RecFormat fmt, const std::wstring& remark) const
 {
     if (fmt == RecFormat::PGN_ZH || fmt == RecFormat::PGN_CC) {
@@ -785,8 +778,8 @@ void Instance::__setMoveFromStr(const std::shared_ptr<MoveSpace::Move>& move,
 
 void Instance::__setMoveZhStrAndNums()
 {
-    std::function<void(const std::shared_ptr<MoveSpace::Move>&)>
-        __setZhStrAndNums = [&](const std::shared_ptr<MoveSpace::Move>& move) {
+    std::function<void(const std::shared_ptr<Move>&)>
+        __setZhStrAndNums = [&](const std::shared_ptr<Move>& move) {
             ++movCount_;
             maxCol_ = std::max(maxCol_, move->otherNo());
             maxRow_ = std::max(maxRow_, move->nextNo());
@@ -809,8 +802,8 @@ void Instance::__setMoveZhStrAndNums()
         };
 
     movCount_ = remCount_ = remLenMax_ = maxRow_ = maxCol_ = 0;
-    if (root_->next())
-        __setZhStrAndNums(root_->next()); // 驱动函数
+    if (rootMove_->next())
+        __setZhStrAndNums(rootMove_->next()); // 驱动函数
 }
 
 void Instance::__setFEN(const std::wstring& pieceChars, PieceColor color)
@@ -833,42 +826,72 @@ const std::wstring Instance::__moveInfo() const
     return wss.str();
 }
 
-const std::string getExtName(const RecFormat fmt)
+int Instance::Move::frowcol() const { return fseat_->rowcol(); }
+
+int Instance::Move::trowcol() const { return tseat_->rowcol(); }
+
+const std::wstring Instance::Move::iccs() const
 {
-    switch (fmt) {
-    case RecFormat::XQF:
-        return ".xqf";
-    case RecFormat::BIN:
-        return ".bin";
-    case RecFormat::JSON:
-        return ".json";
-    case RecFormat::PGN_ICCS:
-        return ".pgn_iccs";
-    case RecFormat::PGN_ZH:
-        return ".pgn_zh";
-    case RecFormat::PGN_CC:
-        return ".pgn_cc";
-    default:
-        return ".pgn_cc";
-    }
+    std::wstringstream wss{};
+    wss << PieceManager::getColICCSChar(fseat_->col()) << fseat_->row()
+        << PieceManager::getColICCSChar(tseat_->col()) << tseat_->row();
+    return wss.str();
 }
 
-RecFormat getRecFormat(const std::string& ext)
+const std::shared_ptr<Instance::Move>& Instance::Move::addNext()
 {
-    if (ext == ".xqf")
-        return RecFormat::XQF;
-    else if (ext == ".bin")
-        return RecFormat::BIN;
-    else if (ext == ".json")
-        return RecFormat::JSON;
-    else if (ext == ".pgn_iccs")
-        return RecFormat::PGN_ICCS;
-    else if (ext == ".pgn_zh")
-        return RecFormat::PGN_ZH;
-    else if (ext == ".pgn_cc")
-        return RecFormat::PGN_CC;
-    else
-        return RecFormat::PGN_CC;
+    auto nextMove = std::make_shared<Move>();
+    nextMove->setNextNo(nextNo_ + 1);
+    nextMove->setOtherNo(otherNo_);
+    nextMove->setPrev(std::weak_ptr<Move>(shared_from_this()));
+    return next_ = nextMove;
+}
+
+const std::shared_ptr<Instance::Move>& Instance::Move::addOther()
+{
+    auto otherMove = std::make_shared<Move>();
+    otherMove->setNextNo(nextNo_);
+    otherMove->setOtherNo(otherNo_ + 1);
+    otherMove->setPrev(std::weak_ptr<Move>(shared_from_this()));
+    return other_ = otherMove;
+}
+
+std::vector<std::shared_ptr<Instance::Move>> Instance::Move::getPrevMoves()
+{
+    std::shared_ptr<Move> thisMove{ shared_from_this() }, preMove{};
+    std::vector<std::shared_ptr<Move>> moves{ thisMove };
+    while (preMove = thisMove->prev()) {
+        moves.push_back(preMove);
+        thisMove = preMove;
+    }
+    reverse(moves.begin(), moves.end());
+    return moves;
+}
+
+void Instance::Move::done()
+{
+    eatPie_ = fseat_->movTo(*tseat_);
+}
+
+void Instance::Move::undo() const
+{
+    tseat_->movTo(*fseat_, eatPie_);
+}
+
+const std::wstring Instance::Move::toString() const
+{
+    std::wstringstream wss{};
+    wss << std::setw(2) << frowcol() << L'_' << std::setw(2) << trowcol()
+        << L'-' << std::setw(4) << iccs() << L':' << std::setw(4)
+        << zh() << L'{' << remark() << L'}';
+    return wss.str();
+}
+
+const std::wstring getWString(std::wistream& wis)
+{
+    std::wstringstream wss{};
+    wis >> std::noskipws >> wss.rdbuf(); // C++ standard library p847
+    return wss.str();
 }
 
 const std::wstring pieCharsToFEN(const std::wstring& pieceChars)
@@ -918,6 +941,44 @@ const std::wstring FENTopieChars(const std::wstring& fen)
 
     //assert(fen == pieCharsToFEN(pieceChars));
     return pieceChars;
+}
+
+const std::string getExtName(const RecFormat fmt)
+{
+    switch (fmt) {
+    case RecFormat::XQF:
+        return ".xqf";
+    case RecFormat::BIN:
+        return ".bin";
+    case RecFormat::JSON:
+        return ".json";
+    case RecFormat::PGN_ICCS:
+        return ".pgn_iccs";
+    case RecFormat::PGN_ZH:
+        return ".pgn_zh";
+    case RecFormat::PGN_CC:
+        return ".pgn_cc";
+    default:
+        return ".pgn_cc";
+    }
+}
+
+RecFormat getRecFormat(const std::string& ext)
+{
+    if (ext == ".xqf")
+        return RecFormat::XQF;
+    else if (ext == ".bin")
+        return RecFormat::BIN;
+    else if (ext == ".json")
+        return RecFormat::JSON;
+    else if (ext == ".pgn_iccs")
+        return RecFormat::PGN_ICCS;
+    else if (ext == ".pgn_zh")
+        return RecFormat::PGN_ZH;
+    else if (ext == ".pgn_cc")
+        return RecFormat::PGN_CC;
+    else
+        return RecFormat::PGN_CC;
 }
 
 void transDir(const std::string& dirfrom, const RecFormat fmt)

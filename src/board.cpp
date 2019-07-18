@@ -1,6 +1,5 @@
 #include "board.h"
 #include "instance.h"
-#include "move.h"
 #include "piece.h"
 #include "seat.h"
 #include "tools.h"
@@ -22,22 +21,22 @@ namespace BoardSpace {
 
 Board::Board()
     : bottomColor_{ PieceColor::RED }
-    , pieces_{ std::make_shared<PieceSpace::Pieces>() }
-    , seats_{ std::make_shared<SeatSpace::Seats>() }
+    , pieces_{ std::make_shared<Pieces>() }
+    , seats_{ std::make_shared<Seats>() }
 {
 }
 
-const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const int row, const int col) const
+const std::shared_ptr<Seat>& Board::getSeat(const int row, const int col) const
 {
     return seats_->getSeat(row, col);
 }
 
-const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const int rowcol) const
+const std::shared_ptr<Seat>& Board::getSeat(const int rowcol) const
 {
     return seats_->getSeat(rowcol);
 }
 
-const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const std::pair<int, int>& rowcol) const
+const std::shared_ptr<Seat>& Board::getSeat(const std::pair<int, int>& rowcol) const
 {
     return seats_->getSeat(rowcol);
 }
@@ -45,7 +44,7 @@ const std::shared_ptr<SeatSpace::Seat>& Board::getSeat(const std::pair<int, int>
 const bool Board::isKilled(const PieceColor color) const
 {
     PieceColor othColor = color == PieceColor::BLACK ? PieceColor::RED : PieceColor::BLACK;
-    std::shared_ptr<SeatSpace::Seat> kingSeat{ seats_->getKingSeat(color) }, othKingSeat{ seats_->getKingSeat(othColor) };
+    std::shared_ptr<Seat> kingSeat{ seats_->getKingSeat(color) }, othKingSeat{ seats_->getKingSeat(othColor) };
     int fcol{ kingSeat->col() };
     if (fcol == othKingSeat->col()) {
         bool isBottom{ isBottomSide(color) };
@@ -88,12 +87,12 @@ void Board::changeSide(const ChangeType ct)
     __setBottomSide();
 }
 
-const std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>
+const std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>
 Board::getMoveSeat(const std::wstring& zhStr) const
 {
     assert(zhStr.size() == 4);
-    std::shared_ptr<SeatSpace::Seat> fseat{}, tseat{};
-    std::vector<std::shared_ptr<SeatSpace::Seat>> seats{};
+    std::shared_ptr<Seat> fseat{}, tseat{};
+    std::vector<std::shared_ptr<Seat>> seats{};
     // 根据最后一个字符判断该着法属于哪一方
     PieceColor color{ PieceManager::getColorFromZh(zhStr.back()) };
     bool isBottom{ isBottomSide(color) };
@@ -132,11 +131,11 @@ Board::getMoveSeat(const std::wstring& zhStr) const
 }
 
 //(fseat, tseat)->中文纵线着法
-const std::wstring Board::getZhStr(const std::shared_ptr<SeatSpace::Seat>& fseat,
-        const std::shared_ptr<SeatSpace::Seat>& tseat) const
+const std::wstring Board::getZhStr(const std::shared_ptr<Seat>& fseat,
+        const std::shared_ptr<Seat>& tseat) const
 {
     std::wstringstream wss{};
-    const std::shared_ptr<PieceSpace::Piece>& fromPiece{ fseat->piece() };
+    const std::shared_ptr<Piece>& fromPiece{ fseat->piece() };
     const PieceColor color{ fromPiece->color() };
     const wchar_t name{ fromPiece->name() };
     const int fromRow{ fseat->row() }, fromCol{ fseat->col() },
@@ -209,7 +208,6 @@ const std::wstring Board::toString() const
 const std::wstring Board::test()
 {
     std::wstringstream wss{};
-
     // Piece test
     wss << L"全部棋子: " << pieces_->toString() << L"\n";
 

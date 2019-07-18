@@ -41,8 +41,7 @@ private:
     __putSeats(const BoardSpace::Board& board) const;
     virtual const std::vector<std::shared_ptr<SeatSpace::Seat>>
     __moveSeats(const BoardSpace::Board& board, SeatSpace::Seat& fseat) const = 0;
-    const wchar_t ch_;
-    const wchar_t name_;
+    const wchar_t ch_, name_;
     const PieceColor color_;
 };
 

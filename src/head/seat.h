@@ -41,8 +41,7 @@ public:
     const std::wstring toString() const;
 
 private:
-    const int row_;
-    const int col_;
+    const int row_, col_;
     std::shared_ptr<PieceSpace::Piece> piece_{};
 };
 
@@ -133,18 +132,10 @@ private:
     static const std::vector<std::vector<std::shared_ptr<Seat>>>
     __getRookCannonMoveSeat_Lines(const BoardSpace::Board& board, Seat& fseat);
 
-    static const int RowNum_{ 10 };
-    static const int ColNum_{ 9 };
-    static const int RowLowIndex_{ 0 };
-    static const int RowLowMidIndex_{ 2 };
-    static const int RowLowUpIndex_{ 4 };
-    static const int RowUpLowIndex_{ 5 };
-    static const int RowUpMidIndex_{ 7 };
-    static const int RowUpIndex_{ 9 };
-    static const int ColLowIndex_{ 0 };
-    static const int ColMidLowIndex_{ 3 };
-    static const int ColMidUpIndex_{ 5 };
-    static const int ColUpIndex_{ 8 };
+    static const int RowNum_{ 10 }, ColNum_{ 9 },
+        RowLowIndex_{ 0 }, RowLowMidIndex_{ 2 }, RowLowUpIndex_{ 4 },
+        RowUpLowIndex_{ 5 }, RowUpMidIndex_{ 7 }, RowUpIndex_{ 9 },
+        ColLowIndex_{ 0 }, ColMidLowIndex_{ 3 }, ColMidUpIndex_{ 5 }, ColUpIndex_{ 8 };
 };
 }
 

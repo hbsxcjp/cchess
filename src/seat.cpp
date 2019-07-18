@@ -2,7 +2,6 @@
 #include "board.h"
 #include "piece.h"
 #include <algorithm>
-//#include <iomanip>
 #include <cassert>
 #include <sstream>
 #include <string>
@@ -18,7 +17,7 @@ Seat::Seat(int row, int col)
 }
 
 const std::vector<std::shared_ptr<Seat>>
-Seat::getMoveSeats(const BoardSpace::Board& board)
+Seat::getMoveSeats(const Board& board)
 {
     assert(piece());
     PieceColor color{ piece()->color() };
@@ -38,8 +37,8 @@ Seat::getMoveSeats(const BoardSpace::Board& board)
     return std::vector<std::shared_ptr<Seat>>{ seats.begin(), pos };
 }
 
-const std::shared_ptr<PieceSpace::Piece>
-Seat::movTo(Seat& tseat, const std::shared_ptr<PieceSpace::Piece>& fillPiece)
+const std::shared_ptr<Piece>
+Seat::movTo(Seat& tseat, const std::shared_ptr<Piece>& fillPiece)
 {
     auto eatPiece = tseat.piece();
     tseat.put(piece_);
@@ -119,7 +118,7 @@ Seats::getSortPawnLiveSeats(bool isBottom, const PieceColor color, const wchar_t
     return seats;
 }
 
-void Seats::reset(const std::vector<std::shared_ptr<PieceSpace::Piece>>& boardPieces)
+void Seats::reset(const std::vector<std::shared_ptr<Piece>>& boardPieces)
 {
     assert(allSeats_.size() == boardPieces.size());
     int index{ 0 };
@@ -127,14 +126,14 @@ void Seats::reset(const std::vector<std::shared_ptr<PieceSpace::Piece>>& boardPi
         [&](const std::shared_ptr<Seat>& seat) { seat->put(boardPieces[index++]); });
 }
 
-void Seats::changeSide(const ChangeType ct, const std::shared_ptr<PieceSpace::Pieces>& pieces)
+void Seats::changeSide(const ChangeType ct, const std::shared_ptr<Pieces>& pieces)
 {
-    std::vector<std::shared_ptr<PieceSpace::Piece>> boardPieces{};
+    std::vector<std::shared_ptr<Piece>> boardPieces{};
     auto changeRowcol = (ct == ChangeType::ROTATE
             ? &SeatManager::getRotate
             : &SeatManager::getSymmetry);
     std::for_each(allSeats_.begin(), allSeats_.end(),
-        [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
+        [&](const std::shared_ptr<Seat>& seat) {
             boardPieces.push_back(ct == ChangeType::EXCHANGE
                     ? pieces->getOtherPiece(seat->piece())
                     : getSeat(changeRowcol(seat->rowcol()))->piece());
@@ -174,37 +173,37 @@ const std::vector<std::shared_ptr<Seat>> SeatManager::creatSeats()
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getAllSeats(const BoardSpace::Board& board)
+SeatManager::getAllSeats(const Board& board)
 {
     return __getSeats(board, __getAllRowcols());
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getKingSeats(const BoardSpace::Board& board, const PieceSpace::Piece& piece)
+SeatManager::getKingSeats(const Board& board, const Piece& piece)
 {
     return __getSeats(board, __getKingRowcols(board.isBottomSide(piece.color())));
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getAdvisorSeats(const BoardSpace::Board& board, const PieceSpace::Piece& piece)
+SeatManager::getAdvisorSeats(const Board& board, const Piece& piece)
 {
     return __getSeats(board, __getAdvisorRowcols(board.isBottomSide(piece.color())));
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getBishopSeats(const BoardSpace::Board& board, const PieceSpace::Piece& piece)
+SeatManager::getBishopSeats(const Board& board, const Piece& piece)
 {
     return __getSeats(board, __getBishopRowcols(board.isBottomSide(piece.color())));
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getPawnSeats(const BoardSpace::Board& board, const PieceSpace::Piece& piece)
+SeatManager::getPawnSeats(const Board& board, const Piece& piece)
 {
     return __getSeats(board, __getPawnRowcols(board.isBottomSide(piece.color())));
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getKingMoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::getKingMoveSeats(const Board& board, Seat& fseat)
 {
     bool isBottom{ board.isBottomSide(fseat.piece()->color()) };
     int frow{ fseat.row() }, fcol{ fseat.col() };
@@ -223,7 +222,7 @@ SeatManager::getKingMoveSeats(const BoardSpace::Board& board, Seat& fseat)
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getAdvisorMoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::getAdvisorMoveSeats(const Board& board, Seat& fseat)
 {
     bool isBottom{ board.isBottomSide(fseat.piece()->color()) };
     int frow{ fseat.row() }, fcol{ fseat.col() };
@@ -242,19 +241,19 @@ SeatManager::getAdvisorMoveSeats(const BoardSpace::Board& board, Seat& fseat)
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getBishopMoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::getBishopMoveSeats(const Board& board, Seat& fseat)
 {
     return __getNonObstacleSeats(board, __getBishopObs_MoveSeats(board, fseat));
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getKnightMoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::getKnightMoveSeats(const Board& board, Seat& fseat)
 {
     return __getNonObstacleSeats(board, __getKnightObs_MoveSeats(board, fseat));
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getRookMoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::getRookMoveSeats(const Board& board, Seat& fseat)
 {
     std::vector<std::shared_ptr<Seat>> moveSeats{};
     for (auto& seats : __getRookCannonMoveSeat_Lines(board, fseat))
@@ -267,7 +266,7 @@ SeatManager::getRookMoveSeats(const BoardSpace::Board& board, Seat& fseat)
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getCannonMoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::getCannonMoveSeats(const Board& board, Seat& fseat)
 {
     std::vector<std::shared_ptr<Seat>> moveSeats{};
     for (auto& seats : __getRookCannonMoveSeat_Lines(board, fseat)) {
@@ -288,7 +287,7 @@ SeatManager::getCannonMoveSeats(const BoardSpace::Board& board, Seat& fseat)
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::getPawnMoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::getPawnMoveSeats(const Board& board, Seat& fseat)
 {
     bool isBottom{ board.isBottomSide(fseat.piece()->color()) };
     int frow{ fseat.row() }, fcol{ fseat.col() };
@@ -311,7 +310,7 @@ const std::wstring SeatManager::getSeatsStr(const std::vector<std::shared_ptr<Se
     std::wstringstream wss{};
     wss << seats.size() << L"个: ";
     std::for_each(seats.begin(), seats.end(),
-        [&](const std::shared_ptr<SeatSpace::Seat>& seat) {
+        [&](const std::shared_ptr<Seat>& seat) {
             wss << seat->toString() << L' ';
         });
     return wss.str();
@@ -381,7 +380,7 @@ const std::vector<std::pair<int, int>> SeatManager::__getPawnRowcols(bool isBott
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::__getSeats(const BoardSpace::Board& board, std::vector<std::pair<int, int>> rowcols)
+SeatManager::__getSeats(const Board& board, std::vector<std::pair<int, int>> rowcols)
 {
     std::vector<std::shared_ptr<Seat>> seats{};
     std::for_each(rowcols.begin(), rowcols.end(), [&](std::pair<int, int>& rowcol) {
@@ -391,7 +390,7 @@ SeatManager::__getSeats(const BoardSpace::Board& board, std::vector<std::pair<in
 }
 
 const std::vector<std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>>
-SeatManager::__getBishopObs_MoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::__getBishopObs_MoveSeats(const Board& board, Seat& fseat)
 {
     bool isBottom{ board.isBottomSide(fseat.piece()->color()) };
     int frow{ fseat.row() }, fcol{ fseat.col() };
@@ -418,7 +417,7 @@ SeatManager::__getBishopObs_MoveSeats(const BoardSpace::Board& board, Seat& fsea
 }
 
 const std::vector<std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>>
-SeatManager::__getKnightObs_MoveSeats(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::__getKnightObs_MoveSeats(const Board& board, Seat& fseat)
 {
     int frow{ fseat.row() }, fcol{ fseat.col() };
     std::vector<std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>> obs_MoveSeats{};
@@ -446,7 +445,7 @@ SeatManager::__getKnightObs_MoveSeats(const BoardSpace::Board& board, Seat& fsea
 }
 
 const std::vector<std::shared_ptr<Seat>>
-SeatManager::__getNonObstacleSeats(const BoardSpace::Board& board,
+SeatManager::__getNonObstacleSeats(const Board& board,
     const std::vector<std::pair<std::shared_ptr<Seat>, std::shared_ptr<Seat>>>& obs_MoveSeats)
 {
     std::vector<std::shared_ptr<Seat>> seats{};
@@ -459,7 +458,7 @@ SeatManager::__getNonObstacleSeats(const BoardSpace::Board& board,
 }
 
 const std::vector<std::vector<std::shared_ptr<Seat>>>
-SeatManager::__getRookCannonMoveSeat_Lines(const BoardSpace::Board& board, Seat& fseat)
+SeatManager::__getRookCannonMoveSeat_Lines(const Board& board, Seat& fseat)
 {
     int frow{ fseat.row() }, fcol{ fseat.col() };
     std::vector<std::vector<std::shared_ptr<Seat>>> seat_Lines(4);
