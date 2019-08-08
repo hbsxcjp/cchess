@@ -25,22 +25,23 @@ class Board {
 public:
     Board();
 
-    const bool isBottomSide(const PieceColor color) const { return bottomColor_ == color; }
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int row, const int col) const;
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const int rowcol) const;
     const std::shared_ptr<SeatSpace::Seat>& getSeat(const std::pair<int, int>& rowcol) const;
 
+    const bool isBottomSide(const PieceColor color) const { return bottomColor_ == color; }
     const bool isKilled(const PieceColor color) const;
     const bool isDied(const PieceColor color) const;
 
     void reset(const std::wstring& pieceChars);
     void changeSide(const ChangeType ct);
+    const std::wstring getPieceChars() const;
+
     const std::pair<std::shared_ptr<SeatSpace::Seat>, std::shared_ptr<SeatSpace::Seat>>
     getMoveSeat(const std::wstring& zhStr) const;
     const std::wstring getZhStr(const std::shared_ptr<SeatSpace::Seat>& fseat,
         const std::shared_ptr<SeatSpace::Seat>& tseat) const;
 
-    const std::wstring getPieceChars() const;
     const std::wstring toString() const;
     const std::wstring test();
 
