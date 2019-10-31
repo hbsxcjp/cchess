@@ -27,9 +27,9 @@ int main(int argc, char const* argv[])
     else {
         //InstanceSpace::testTransDir(0, 2, 0, 6, 1, 6);
         //std::cout << "------------------------------------------------------------------" << std::endl;
-        InstanceSpace::testTransDir(0, 1, 0, 1, 1, 6);
-        InstanceSpace::testTransDir(0, 1, 1, 5, 5, 6);
-        InstanceSpace::testTransDir(0, 1, 5, 6, 1, 2);
+        InstanceSpace::testTransDir(0, 2, 0, 1, 1, 6);
+        InstanceSpace::testTransDir(0, 2, 1, 5, 5, 6);
+        InstanceSpace::testTransDir(0, 2, 5, 6, 1, 2);
         //std::cout << "------------------------------------------------------------------" << std::endl;
         //InstanceSpace::testTransDir(0, 2, 2, 3, 1, 5);
     }
